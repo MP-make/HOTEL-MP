@@ -3,27 +3,35 @@ Estilos Globales
 ============================== */
 body {
     font-family: 'Inter', 'Poppins', sans-serif;
-    background: linear-gradient(180deg, #F1EADA 0%, #FFF 100%);
+    background-image: url(https://res.cloudinary.com/dydwmg2qr/image/upload/v1757986609/fondo_vm0chl.jpg);
+    background-attachment: fixed;
     color: #584738;
     scroll-behavior: smooth;
     margin: 0;
     padding: 0;
 }
 
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
     font-family: 'Poppins', sans-serif;
     font-weight: 600;
     color: #584738;
 }
 
 main {
-    padding: 60px 20px;
+    padding: 40px 20px;
     max-width: 1200px;
     margin: 0 auto;
 }
 
 section {
-    margin-bottom: 100px;
+    background-color: rgba(255, 255, 255, 0.623);
+    backdrop-filter: blur(10px);
+    margin-bottom: 60px;
+    padding: 30px;
+    border-radius: 14px;
 }
 
 /* ==============================
@@ -38,13 +46,13 @@ Botones principales
     transition: all 0.3s ease-in-out;
     display: inline-block;
     text-align: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
 .btn-principal:hover {
     background: linear-gradient(135deg, #B59E7D, #AAA396);
     transform: translateY(-3px) scale(1.03);
-    box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
 }
 
 .btn-principal:disabled {
@@ -52,6 +60,7 @@ Botones principales
     cursor: not-allowed;
     box-shadow: none;
 }
+
 /* ==============================
 Header y Navegación
 ============================== */
@@ -59,7 +68,7 @@ Header y Navegación
     background: linear-gradient(90deg, #584738, #B59E7D);
     color: white;
     padding: 20px 30px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
@@ -69,18 +78,27 @@ Header y Navegación
     z-index: 1000;
 }
 
+.header .logo {
+    height: 80px;
+    width: auto;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
 .header h1 {
     font-family: 'Orbitron', sans-serif;
     font-size: 1.9rem;
     letter-spacing: 2px;
     margin: 0;
     text-transform: uppercase;
-    text-shadow: 0px 3px 6px rgba(0,0,0,0.4);
+    text-shadow: 0px 3px 6px rgba(0, 0, 0, 0.4);
     color: #F1EADA;
 }
 
-.header .auth-nav {
+.header .auth-nav,
+.header .top-nav {
     display: flex;
+    align-items: center;
     gap: 15px;
 }
 
@@ -137,14 +155,14 @@ Habitaciones
     background: #F1EADA;
     border-radius: 14px;
     overflow: hidden;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 
 .tarjeta-habitacion:hover {
     transform: translateY(-6px);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
 }
 
 .tarjeta-habitacion h3 {
@@ -155,6 +173,7 @@ Habitaciones
     border-bottom: 3px solid #B59E7D;
     transition: transform 0.4s ease;
 }
+
 .tarjeta-habitacion:hover img {
     transform: scale(1.05);
 }
@@ -188,13 +207,13 @@ Tarjetas generales
     background: #F1EADA;
     border-radius: 12px;
     padding: 24px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .tarjeta:hover {
     transform: translateY(-5px);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
 }
 
 .img-banner {
@@ -202,7 +221,7 @@ Tarjetas generales
     height: 400px;
     object-fit: cover;
     border-radius: 14px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 
 /* ==============================
@@ -241,13 +260,13 @@ Servicios
     border-radius: 14px;
     padding: 40px 20px;
     text-align: center;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .tarjeta-servicio:hover {
     transform: translateY(-6px);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
 }
 
 .tarjeta-servicio i {
@@ -268,7 +287,7 @@ Ubicación
     background: #F1EADA;
     border-radius: 14px;
     padding: 25px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 
 .mapa-contenedor {
@@ -277,7 +296,7 @@ Ubicación
     width: 100%;
     border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 
 .mapa-contenedor iframe {
@@ -356,8 +375,10 @@ Modales
     display: none;
     position: fixed;
     z-index: 9999;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: rgba(88, 71, 56, 0.65);
     justify-content: center;
     align-items: center;
@@ -373,7 +394,7 @@ Modales
     text-align: center;
     position: relative;
     animation: fadeIn 0.4s ease-in-out;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
 }
 
 .modal-content h2 {
@@ -391,7 +412,10 @@ Modales
     cursor: pointer;
     transition: color 0.3s;
 }
-.modal-content .close:hover { color: #584738; }
+
+.modal-content .close:hover {
+    color: #584738;
+}
 
 .form-input {
     width: 100%;
@@ -420,13 +444,13 @@ Modales
     font-size: 1rem;
     cursor: pointer;
     transition: transform 0.2s ease, background 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .btn-submit:hover {
     background: linear-gradient(135deg, #CEC1A8, #AAA396);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 .form-footer {
@@ -447,8 +471,15 @@ Modales
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-20px) scale(0.95); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 /* ==============================
@@ -459,20 +490,25 @@ Responsivo
         flex-direction: column;
         text-align: center;
     }
+
     .header .auth-nav {
         margin-top: 10px;
     }
+
     .header .main-nav {
         margin-top: 15px;
     }
+
     .header .nav-links {
         flex-direction: column;
         gap: 12px;
     }
+
     .footer-row {
         flex-direction: column;
         align-items: center;
     }
+
     .footer-col {
         min-width: auto;
         width: 100%;
