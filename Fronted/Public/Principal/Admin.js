@@ -1,4 +1,4 @@
-    // Admin.js (completo — usa fetch a /api/admin/... y /api/admin/dashboard)
+// Admin.js (completo — usa fetch a /api/admin/...)
     document.addEventListener('DOMContentLoaded', () => {
         const API_BASE = '/api'; // usa mismo host/puerto del server
         const sidebarItems = document.querySelectorAll(".sidebar-item");
@@ -6,7 +6,7 @@
         const sectionTitle = document.getElementById("sectionTitle");
     
         // --- Funciones del Modal (igual a las tuyas) ---
-        function showModal(title, contentHtml) {
+        function showModal(title, contentHtml, onShow) {
             let modal = document.getElementById('dynamicModal');
             if (!modal) {
                 modal = document.createElement('div');
@@ -26,6 +26,7 @@
                 </div>
             `;
             document.getElementById('close-modal-btn').addEventListener('click', hideModal);
+            if (typeof onShow === 'function') onShow();
         }
     
         function showConfirmModal(message, onConfirm) {
@@ -490,6 +491,8 @@
                             showModal('Error', `<p>${err.message}</p>`);
                         }
                     });
+                    // Indicar al handler global que NO reprocesE este formulario (evita doble envío)
+                    form.dataset.skipGlobal = 'true';
                 });
             } catch (err) {
                 showModal('Error', `<p>${err.message}</p>`);
@@ -579,6 +582,8 @@
                             showModal('Error', `<p>${err.message}</p>`);
                         }
                     });
+                    // Evitar doble envío por el handler global
+                    form.dataset.skipGlobal = 'true';
                 });
             } catch (err) {
                 showModal('Error', `<p>${err.message}</p>`);
@@ -743,7 +748,33 @@
         document.body.addEventListener('submit', async (e) => {
             const form = e.target;
             if (form && form.id === 'habitacion-form') {
+                // Si el formulario fue manejado por el onShow (listener inline), no volver a enviarlo
+                if (form.dataset && form.dataset.skipGlobal === 'true') return;
                 e.preventDefault();
+                // Si el formulario contiene input[type=file], enviamos FormData (multipart) y evitamos doble envío
+                const fileInput = form.querySelector('input[type="file"]');
+                if (fileInput) {
+                    // Envío multipart con archivos
+                    const fd = new FormData(form);
+                    const id = fd.get('id_habitacion') || fd.get('id');
+                    try {
+                        const url = id ? `/api/admin/habitaciones/${id}` : '/api/admin/habitaciones';
+                        const method = id ? 'PUT' : 'POST';
+                        const res = await fetch(url, { method, body: fd });
+                        if (!res.ok) {
+                            const err = await res.json().catch(()=>({ error: res.statusText }));
+                            throw new Error(err.error || res.statusText);
+                        }
+                        hideModal();
+                        showModal('Éxito', `<p>Habitación ${id ? 'actualizada' : 'creada'} correctamente.</p>`);
+                        loadSection('gestion-habitaciones');
+                    } catch (err) {
+                        showModal('Error', `<p>${err.message}</p>`);
+                    }
+                    return; // importante: no continuar para evitar otro envío
+                }
+
+                // Si no hay archivos, enviamos JSON usando los helpers existentes
                 const fd = new FormData(form);
                 const payload = {
                     numero_habitacion: fd.get('numero_habitacion'),
@@ -753,18 +784,16 @@
                     precio_por_dia: fd.get('precio_por_dia') ? parseFloat(fd.get('precio_por_dia')) : null,
                     piso: fd.get('piso') ? parseInt(fd.get('piso'), 10) : null,
                     capacidad: fd.get('capacidad') ? parseInt(fd.get('capacidad'), 10) : null,
-                    disponible: fd.get('disponible') === 'on' || fd.get('disponible') === 'true' || fd.get('disponible') === 'on'
+                    disponible: fd.get('disponible') === 'on' || fd.get('disponible') === 'true'
                 };
-    
+
                 const id = fd.get('id_habitacion') || fd.get('id');
                 try {
                     if (id) {
-                        // editar
                         await apiPut(`/admin/habitaciones/${id}`, payload);
                         hideModal();
                         showModal('Éxito', `<p>Habitación actualizada.</p>`);
                     } else {
-                        // crear
                         await apiPost('/admin/habitaciones', payload);
                         hideModal();
                         showModal('Éxito', `<p>Habitación creada.</p>`);
@@ -774,7 +803,7 @@
                     showModal('Error', `<p>${err.message}</p>`);
                 }
             }
-    
+
             // crear encargado via modal (create-enc-form)
             if (form && form.id === 'create-enc-form') {
                 // handled previously inline; this is a fallback

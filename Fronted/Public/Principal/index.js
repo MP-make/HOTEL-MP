@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
     
             try {
-                const response = await fetch('http://localhost:4000/api/cliente/habitaciones');
+                const response = await fetch('/api/cliente/habitaciones');
                 if (!response.ok) throw new Error('No se pudo obtener la información de las habitaciones.');
     
                 const data = await response.json();
@@ -83,6 +83,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     const card = document.createElement('div');
                     card.className = 'tarjeta-habitacion';
     
+                    // Determinar imagen referencial (primera foto si existe)
+                    let imgSrc = '/img/placeholder-room.jpg'; // placeholder por defecto (puedes cambiarlo)
+                    if (habitacion.fotos && Array.isArray(habitacion.fotos) && habitacion.fotos.length > 0) {
+                        const ruta = habitacion.fotos[0] || '';
+                        imgSrc = ruta.startsWith('/') ? ruta : '/' + ruta; // normalizar con slash inicial
+                    }
+    
                     let precioTexto = '';
                     if (habitacion.precio_por_dia) {
                         precioTexto = `$${habitacion.precio_por_dia}/noche`;
@@ -92,16 +99,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         precioTexto = 'Consultar precio';
                     }
     
+                    // Mostrar características y foto referencial
                     card.innerHTML = `
-                        <img src="https://placehold.co/600x400/FFD700/8B4513?text=Habitación+${habitacion.numero_habitacion}" alt="Habitación ${habitacion.categoria}">
+                        <img src="${imgSrc}" alt="Habitación ${habitacion.categoria}" class="tarjeta-img">
                         <div class="tarjeta-cuerpo">
                             <h3>Habitación ${habitacion.numero_habitacion}</h3>
                             <p>Categoría: ${habitacion.categoria}</p>
                             <p>Piso: ${habitacion.piso || 'N/A'}</p>
                             <p>Capacidad: ${habitacion.capacidad || 'N/A'} personas</p>
                             <p>Precio: ${precioTexto}</p>
-                            <p class="text-green-600 font-bold">Disponible</p>
-                            <button class="btn-principal">Reservar</button>
+                            <p class="text-green-600 font-bold">${habitacion.disponible ? 'Disponible' : 'No disponible'}</p>
+                            <div class="mt-2">
+                                <button class="btn-principal reservar-btn" data-id="${habitacion.id_habitacion}">Reservar</button>
+                            </div>
                         </div>
                     `;
                     habitacionGrid.appendChild(card);
@@ -112,6 +122,105 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
         renderHabitaciones();
+
+        // --- Funcionalidad de Reservas ---
+        function openReservationModal(habitacionId) {
+            // Crear modal dinámico
+            const existing = document.getElementById('reservationModalDynamic');
+            if (existing) existing.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'reservationModalDynamic';
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width:520px; width:90%;">
+                    <span class="close-modal" id="closeReservationModal">&times;</span>
+                    <h2>Reservar Habitación</h2>
+                    <form id="reservationForm">
+                        <input type="hidden" name="id_habitacion" value="${habitacionId}">
+                        <label>Fecha y hora de check-in</label>
+                        <input type="datetime-local" name="fecha_checkin" required class="form-input">
+                        <label>Fecha y hora de check-out</label>
+                        <input type="datetime-local" name="fecha_checkout" required class="form-input">
+                        <p id="reservationMessage" class="text-red-500 my-2"></p>
+                        <button type="submit" class="btn-submit">Confirmar Reserva</button>
+                    </form>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            document.getElementById('closeReservationModal').addEventListener('click', () => modal.remove());
+
+            document.getElementById('reservationForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const user = JSON.parse(localStorage.getItem('user'));
+                const msgEl = document.getElementById('reservationMessage');
+                msgEl.textContent = '';
+                if (!user) {
+                    msgEl.textContent = 'Debes iniciar sesión para realizar una reserva.';
+                    return;
+                }
+                // validar rol
+                if (user.rol && user.rol !== 'cliente') {
+                    msgEl.textContent = 'Solo los clientes pueden hacer reservas.';
+                    return;
+                }
+
+                const fd = new FormData(e.target);
+                const id_habitacion = fd.get('id_habitacion');
+                const fecha_checkin = fd.get('fecha_checkin');
+                const fecha_checkout = fd.get('fecha_checkout');
+
+                if (!fecha_checkin || !fecha_checkout) {
+                    msgEl.textContent = 'Selecciona fecha de check-in y check-out.';
+                    return;
+                }
+                if (new Date(fecha_checkout) <= new Date(fecha_checkin)) {
+                    msgEl.textContent = 'La fecha de check-out debe ser posterior al check-in.';
+                    return;
+                }
+
+                try {
+                    const payload = {
+                        id_usuario: user.id,
+                        id_habitacion: parseInt(id_habitacion, 10),
+                        fecha_checkin,
+                        fecha_checkout
+                    };
+                    const headers = { 'Content-Type': 'application/json' };
+                    const token = localStorage.getItem('token');
+                    if (token) headers['Authorization'] = 'Bearer ' + token;
+                    const res = await fetch('/api/cliente/reservas', {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                        msgEl.textContent = data.error || 'Error al crear reserva.';
+                        return;
+                    }
+                    // éxito
+                    modal.remove();
+                    // refrescar grid de habitaciones para reflejar cambios de disponibilidad
+                    renderHabitaciones();
+                    // mostrar mensaje amigable
+                    alert('Reserva creada correctamente. ID: ' + (data.id_reserva || data.id || '')); // mostrar id si viene
+                } catch (err) {
+                    console.error('Error al crear reserva:', err);
+                    msgEl.textContent = 'Error de red al crear la reserva.';
+                }
+            });
+        }
+
+        // Delegación para botones reservar
+        document.body.addEventListener('click', (e) => {
+            const btn = e.target.closest('.reservar-btn');
+            if (!btn) return;
+            const id = btn.getAttribute('data-id');
+            openReservationModal(id);
+        });
         
         // Elementos del DOM para el manejo de la sesión
         const authButtons = document.getElementById('authButtons');
@@ -126,17 +235,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const registerForm = document.getElementById('registerForm');
         const registerMessage = document.getElementById('registerMessage');
         const updateUIForUser = (user) => {
+            // Usar comprobaciones defensivas por si elementos no existen en la página
             if (user) {
-                authButtons.classList.add('hidden');
-                userProfile.classList.remove('hidden');
-                userName.textContent = `Bienvenido, ${user.nombre}`;
-                dashboardSection.classList.remove('hidden');
-                welcomeMessage.textContent = user.nombre;
-                userRoleMessage.textContent = `Tu rol es: ${user.rol}`;
+                if (authButtons) authButtons.classList.add('hidden');
+                if (userProfile) userProfile.classList.remove('hidden');
+                if (userName) userName.textContent = `Bienvenido, ${user.nombre}`;
+                if (dashboardSection) dashboardSection.classList.remove('hidden');
+                if (welcomeMessage) welcomeMessage.textContent = user.nombre;
+                if (userRoleMessage) userRoleMessage.textContent = `Tu rol es: ${user.rol}`;
             } else {
-                authButtons.classList.remove('hidden');
-                userProfile.classList.add('hidden');
-                dashboardSection.classList.add('hidden');
+                if (authButtons) authButtons.classList.remove('hidden');
+                if (userProfile) userProfile.classList.add('hidden');
+                if (dashboardSection) dashboardSection.classList.add('hidden');
             }
         };
         const handleLogin = async (e) => {
@@ -145,14 +255,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = document.getElementById('loginPassword').value;
             loginMessage.textContent = '';
             try {
-                const response = await fetch('http://localhost:4000/api/login', {
+                const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
                 });
                 const data = await response.json();
                 if (response.ok) {
-                    localStorage.setItem('user', JSON.stringify(data.user));
+                    // Guardar usuario y token
+                    if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
+                    if (data.token) localStorage.setItem('token', data.token);
                     loginMessage.textContent = 'Inicio de sesión exitoso.';
                     loginMessage.classList.remove('text-red-500');
                     loginMessage.classList.add('text-green-500');
@@ -214,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return; // Detiene el proceso si la contraseña no es válida
             }
             try {
-                const response = await fetch('http://localhost:4000/api/register', {
+                const response = await fetch('/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nombre, email, password })
@@ -243,6 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         const handleLogout = () => {
             localStorage.removeItem('user');
+            localStorage.removeItem('token');
             updateUIForUser(null);
             window.location.href = '/'; // Redirige a la página principal
         };
@@ -264,4 +377,3 @@ document.addEventListener('DOMContentLoaded', () => {
         checkSession();
     
     });
-    

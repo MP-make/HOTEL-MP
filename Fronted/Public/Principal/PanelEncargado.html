@@ -16,6 +16,7 @@
     <nav>
     <ul class="sidebar-nav">
         <li><a href="#habitaciones" class="sidebar-item active"><i class="fas fa-bed"></i> Habitaciones</a></li>
+        <li><a href="#reservas" class="sidebar-item"><i class="fas fa-calendar-check"></i> Reservas</a></li>
         <li><a href="#reclamos" class="sidebar-item"><i class="fas fa-exclamation-triangle"></i> Reclamos</a></li>
     </ul>
     <a href="#" id="logout-link" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
@@ -45,6 +46,28 @@
         <div id="rooms-list">
             <p style="text-align: center;">Cargando habitaciones...</p>
         </div>
+        </div>
+    </section>
+
+    <section id="reservas" style="display: none;">
+        <div class="card">
+        <h2>Reservas Pendientes</h2>
+        <div class="filtros-reservas" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+            <input id="filter-cliente" placeholder="Buscar cliente" class="input" style="flex:1;min-width:160px;">
+            <input id="filter-habitacion" type="number" placeholder="ID habitación" class="input" style="width:120px;">
+            <input id="filter-fecha-inicio" type="date" class="input" style="width:160px;">
+            <input id="filter-fecha-fin" type="date" class="input" style="width:160px;">
+            <select id="pageSize" class="input" style="width:120px;">
+                <option value="5">5 por página</option>
+                <option value="10" selected>10 por página</option>
+                <option value="25">25 por página</option>
+            </select>
+            <button id="applyFilters" class="btn">Aplicar</button>
+        </div>
+        <div id="reservas-list">
+            <p style="text-align: center;">Cargando reservas...</p>
+        </div>
+        <div id="reservas-paginacion" style="display:flex;justify-content:center;gap:8px;margin-top:12px;"></div>
         </div>
     </section>
 
