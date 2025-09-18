@@ -70,6 +70,36 @@ password: process.env.DB_PASSWORD,
 port: process.env.DB_PORT,
 });
 
+// Helper: small sleep utility
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Helper: ejecutar consultas con reintentos para cubrir errores transitorios de red/DNS
+async function queryWithRetry(queryText, params = [], retries = 4, delayMs = 500) {
+  let attempt = 0;
+  while (true) {
+    try {
+      attempt++;
+      return await pool.query(queryText, params);
+    } catch (err) {
+      const transient = err && (err.code === 'ENOTFOUND' || err.code === 'EAI_AGAIN' || err.code === 'ECONNREFUSED' || err.code === 'ENETUNREACH' || (err.message && err.message.includes('getaddrinfo')));
+      if (!transient || attempt > retries) {
+        // No es transitorio o se agotaron reintentos
+        throw err;
+      }
+      const wait = delayMs * Math.pow(2, attempt - 1);
+      console.warn(`Query attempt ${attempt} failed with transient error (${err.code || err.message}). Retrying in ${wait}ms...`);
+      await sleep(wait);
+    }
+  }
+}
+
+// Reemplazar la verificación inicial de la BD por una versión con reintentos
+queryWithRetry('SELECT NOW()', [], 6, 500)
+.then(() => console.log('Conexión a la base de datos verificada correctamente.'))
+.catch(err => console.error('Error al conectar a la base de datos (después de reintentos):', err.message));
+
 // Define la ruta absoluta para guardar las fotos
 // La carpeta de destino será 'Fronted/Public/img/habitaciones' para coincidir con las rutas guardadas en DB
 const uploadDir = path.join(__dirname, '..', 'Fronted', 'Public', 'img', 'habitaciones');
@@ -93,11 +123,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Middleware para verificar la conexión a la base de datos al inicio
-pool.query('SELECT NOW()')
-.then(() => console.log('Conexión a la base de datos verificada correctamente.'))
-.catch(err => console.error('Error al conectar a la base de datos:', err.message));
-
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -119,11 +144,11 @@ app.use('/img', express.static(imgStatic));
 async function ensureDefaultRoles() {
   try {
     const needed = ['cliente','encargado','admin'];
-    const res = await pool.query(`SELECT nombre FROM public.roles WHERE nombre = ANY($1)`, [needed]);
+    const res = await queryWithRetry(`SELECT nombre FROM public.roles WHERE nombre = ANY($1)`, [needed]);
     const existing = res.rows.map(r => r.nombre);
     const toInsert = needed.filter(n => !existing.includes(n));
     for (const nombre of toInsert) {
-      await pool.query(`INSERT INTO public.roles (nombre) VALUES ($1)`, [nombre]);
+      await queryWithRetry(`INSERT INTO public.roles (nombre) VALUES ($1)`, [nombre]);
       console.log('Rol creado por defecto:', nombre);
     }
   } catch (err) {
@@ -308,11 +333,11 @@ try {
     }
 
     // Verificar existencia del usuario
-    const userQ = await pool.query('SELECT id FROM public.usuarios WHERE id = $1', [id_usuario]);
+    const userQ = await queryWithRetry('SELECT id FROM public.usuarios WHERE id = $1', [id_usuario]);
     if (userQ.rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado.' });
 
     // Verificar existencia de la habitación
-    const habRes = await pool.query('SELECT disponible FROM public.habitaciones WHERE id_habitacion = $1', [parsedHabId]);
+    const habRes = await queryWithRetry('SELECT disponible FROM public.habitaciones WHERE id_habitacion = $1', [parsedHabId]);
     if (habRes.rows.length === 0) return res.status(404).json({ error: 'Habitación no encontrada.' });
 
     // Comprobar solapamiento con reservas existentes (solo considerar reservas que no estén completadas)
@@ -323,19 +348,19 @@ try {
         AND NOT (r.fecha_checkout <= $2 OR r.fecha_checkin >= $3)
       LIMIT 1
     `;
-    const conflictRes = await pool.query(conflictQ, [parsedHabId, checkIn.toISOString(), checkOut.toISOString()]);
+    const conflictRes = await queryWithRetry(conflictQ, [parsedHabId, checkIn.toISOString(), checkOut.toISOString()]);
     if (conflictRes.rows.length > 0) {
       return res.status(409).json({ error: 'La habitación no está disponible en las fechas seleccionadas.' });
     }
 
     // Insertar reserva
-    const result = await pool.query(
+    const result = await queryWithRetry(
     "INSERT INTO public.reservas (id_usuario, id_habitacion, fecha_checkin, fecha_checkout, estado_reserva, fecha_creacion) VALUES ($1, $2, $3, $4, 'pendiente', NOW()) RETURNING *",
     [id_usuario, parsedHabId, checkIn.toISOString(), checkOut.toISOString()]
     );
 
     // Marcar la habitación como no disponible (regla de negocio: al crear reserva la habitación queda ocupada)
-    await pool.query('UPDATE public.habitaciones SET disponible = false WHERE id_habitacion = $1', [parsedHabId]);
+    await queryWithRetry('UPDATE public.habitaciones SET disponible = false WHERE id_habitacion = $1', [parsedHabId]);
 
     const nuevaReserva = result.rows[0];
 
