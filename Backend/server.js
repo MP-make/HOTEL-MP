@@ -51,6 +51,24 @@ function authenticateToken(req, res, next) {
   });
 }
 
+// Middleware para roles: requiere admin
+function requireAdmin(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Token requerido' });
+  if (req.user.rol !== 'admin') return res.status(403).json({ error: 'Acceso restringido a administradores' });
+  next();
+}
+
+// Util: validar email simple y campos
+function isValidEmail(email) {
+  return typeof email === 'string' && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+}
+
+function sanitizeBoolean(val) {
+  if (typeof val === 'boolean') return val;
+  if (typeof val === 'string') return ['1','true','yes','y'].includes(val.toLowerCase());
+  return false;
+}
+
 // Agregamos manejadores de errores globales para depuración
 process.on('uncaughtException', (err) => {
 console.error('Error no detectado (Uncaught Exception):', err);
@@ -135,6 +153,20 @@ app.use(express.static(staticPath));
 // Servir imágenes públicas (ruta /img/...)
 const imgStatic = path.join(__dirname, '..', 'Fronted', 'Public', 'img');
 app.use('/img', express.static(imgStatic));
+
+// Evitar 404 en /favicon.ico: servir favicon si existe o una imagen por defecto
+app.get('/favicon.ico', (req, res) => {
+  try {
+    const faviconPath = path.join(imgStatic, 'favicon.ico');
+    if (fs.existsSync(faviconPath)) return res.sendFile(faviconPath);
+    const fallback = path.join(imgStatic, 'logo_pequeño.png');
+    if (fs.existsSync(fallback)) return res.sendFile(fallback);
+    return res.status(204).end();
+  } catch (err) {
+    console.error('Error sirviendo favicon:', err);
+    return res.status(500).end();
+  }
+});
 
 /**
  * RUTAS DE AUTENTICACIÓN (mantenidas tal y como las tenías)
@@ -249,9 +281,9 @@ try {
  * RUTAS AUXILIARES (categorías)
  * =========================
  */
-app.get("/api/admin/categorias", async (req, res) => {
+app.get("/api/admin/categorias", authenticateToken, requireAdmin, async (req, res) => {
 try {
-    const result = await pool.query("SELECT * FROM public.categorias_habitaciones ORDER BY id_categoria");
+    const result = await queryWithRetry("SELECT * FROM public.categorias_habitaciones ORDER BY id_categoria");
     res.json(result.rows);
 } catch (err) {
     console.error("Error al obtener categorías:", err);
@@ -271,7 +303,16 @@ try {
  */
 app.get("/api/cliente/habitaciones", async (req, res) => {
   try {
-      const queryText = `
+      const { page = 1, pageSize = 20, q } = req.query;
+      const offset = (parseInt(page,10) - 1) * parseInt(pageSize,10);
+      const params = [];
+      let where = '';
+      if (q) {
+        params.push('%' + q + '%');
+        where = `WHERE (h.numero_habitacion::text ILIKE $${params.length} OR c.nombre ILIKE $${params.length})`;
+      }
+
+      const dataQ = `
         SELECT
             h.id_habitacion,
             h.numero_habitacion,
@@ -285,17 +326,16 @@ app.get("/api/cliente/habitaciones", async (req, res) => {
         FROM public.habitaciones h
         INNER JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria
         LEFT JOIN public.habitaciones_fotos f ON h.id_habitacion = f.id_habitacion
-        WHERE h.disponible = true
+        ${where} AND h.disponible = true
         GROUP BY h.id_habitacion, c.nombre
-        ORDER BY h.numero_habitacion ASC;
+        ORDER BY h.numero_habitacion ASC
+        LIMIT $${params.length + 1} OFFSET $${params.length + 2};
       `;
+      params.push(parseInt(pageSize,10));
+      params.push(offset);
 
-      const result = await pool.query(queryText);
-
-      if (!result.rows || result.rows.length === 0) {
-          return res.status(200).json({ message: "No hay habitaciones disponibles", habitaciones: [] });
-      }
-
+      const result = await queryWithRetry(dataQ, params);
+      if (!result.rows || result.rows.length === 0) return res.status(200).json({ message: "No hay habitaciones disponibles", habitaciones: [] });
       res.json({ habitaciones: result.rows });
   } catch (err) {
       console.error("Error al obtener habitaciones disponibles para el cliente:", err);
@@ -385,53 +425,49 @@ try {
  * @route GET /api/admin/habitaciones
  * @desc Obtener todas las habitaciones con sus categorías (incluye campos extendidos)
  */
-app.get("/api/admin/habitaciones", async (req, res) => {
+app.get("/api/admin/habitaciones", authenticateToken, requireAdmin, async (req, res) => {
 try {
-    // Seleccionamos campos comunes y campos extra (si existen en la tabla)
-    const queryText = `
-    SELECT
-        h.id_habitacion,
-        h.numero_habitacion,
-        h.tipo,
-        h.precio_por_dia,
-        h.precio_por_hora,
-        h.disponible,
-        c.nombre AS categoria
-    FROM public.habitaciones h
-    JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria
-    WHERE h.disponible = true
-    ORDER BY h.id_habitacion ASC;
-    `;
+    const { page = 1, pageSize = 20, q } = req.query;
+    const offset = (parseInt(page,10) -1) * parseInt(pageSize,10);
+    const params = [];
+    const where = [];
+    let idx = 1;
+    if (q) {
+      where.push(`(h.numero_habitacion::text ILIKE $${idx} OR c.nombre ILIKE $${idx} OR h.tipo ILIKE $${idx})`);
+      params.push('%' + q + '%');
+      idx++;
+    }
+    const whereSQL = where.length ? 'WHERE ' + where.join(' AND ') : '';
 
-    // Ejecutamos la versión simple: selección de columnas esperadas.
-    // (Si tus columnas no existen, aplica las migraciones que incluyo más abajo.)
-    const result = await pool.query(`
-    SELECT
-        h.id_habitacion,
-        h.numero_habitacion,
-        h.tipo,
-        h.precio_por_dia,
-        h.precio_por_hora,
-        h.piso,
-        h.capacidad,
-        h.disponible,
-        c.nombre AS categoria,
-        h.id_categoria
-    FROM public.habitaciones h
-    LEFT JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria
-    ORDER BY h.id_habitacion ASC;
-    `);
+    const totalRes = await queryWithRetry(`SELECT COUNT(*)::int AS total FROM public.habitaciones h LEFT JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria ${whereSQL}`, params);
+    const total = totalRes.rows[0].total || 0;
+
+    params.push(parseInt(pageSize,10));
+    params.push(offset);
+
+    const dataQ = `
+      SELECT
+        h.id_habitacion, h.numero_habitacion, h.tipo, h.precio_por_dia, h.precio_por_hora, h.piso, h.capacidad, h.disponible, c.nombre AS categoria, h.id_categoria
+      FROM public.habitaciones h
+      LEFT JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria
+      ${whereSQL}
+      ORDER BY h.id_habitacion ASC
+      LIMIT $${idx++} OFFSET $${idx++};
+    `;
+    const result = await queryWithRetry(dataQ, params);
+    // Return direct array for compatibility with frontend that expects an array
     res.json(result.rows);
 } catch (err) {
     console.error("Error al obtener habitaciones:", err);
     res.status(500).json({ error: "Error al obtener habitaciones" });
 }
 });
+
 /**
  * @route POST /api/admin/habitaciones
  * @desc Crear una nueva habitación
  */
-app.post('/api/admin/habitaciones', upload.array("fotos", 10), async (req, res) => {
+app.post('/api/admin/habitaciones', authenticateToken, requireAdmin, upload.array("fotos", 10), async (req, res) => {
   try {
     console.log("👉 Datos recibidos en req.body:", req.body);
     console.log("👉 Archivos recibidos en req.files:", req.files);
@@ -441,38 +477,33 @@ app.post('/api/admin/habitaciones', upload.array("fotos", 10), async (req, res) 
       tipo,
       piso,
       capacidad,
-      disponible,
+      disponible = 'true',
       id_categoria,
       precio_por_hora,
       precio_por_dia
     } = req.body;
 
-    // Validación rápida
     if (!numero_habitacion || !tipo || !id_categoria) {
-      return res.status(400).json({ error: "Faltan datos obligatorios" });
+      return res.status(400).json({ error: "Faltan datos obligatorios: numero_habitacion, tipo o id_categoria" });
     }
 
-    // 1. Crear habitación
-    const result = await pool.query(
+    // insertar habitación
+    const result = await queryWithRetry(
       `INSERT INTO public.habitaciones
       (numero_habitacion, tipo, disponible, id_categoria, precio_por_hora, precio_por_dia, piso, capacidad)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id_habitacion`,
-      [numero_habitacion, tipo, disponible, id_categoria, precio_por_hora, precio_por_dia, piso, capacidad]
+      [numero_habitacion, tipo, sanitizeBoolean(disponible), id_categoria, precio_por_hora || null, precio_por_dia || null, piso || null, capacidad || null]
     );
 
     const habitacionId = result.rows[0].id_habitacion;
-    console.log("✅ Habitación creada con ID:", habitacionId);
 
-    // 2. Insertar fotos (si se enviaron)
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        const fotoPath = "img/habitaciones/" + file.filename; // ojo, sin / inicial
-        await pool.query(
-          `INSERT INTO public.habitaciones_fotos (id_habitacion, ruta_foto)
-           VALUES ($1, $2)`,
+        const fotoPath = '/img/habitaciones/' + file.filename; // siempre con slash inicial
+        await queryWithRetry(
+          `INSERT INTO public.habitaciones_fotos (id_habitacion, ruta_foto) VALUES ($1, $2)`,
           [habitacionId, fotoPath]
         );
-        console.log("📸 Foto guardada:", fotoPath);
       }
     }
 
@@ -483,11 +514,12 @@ app.post('/api/admin/habitaciones', upload.array("fotos", 10), async (req, res) 
     res.status(500).json({ error: "Error interno del servidor", detalle: err.message });
   }
 });
+
 /**
  * @route PUT /api/admin/habitaciones/:id
  * @desc Actualizar una habitación
  */
-app.put("/api/admin/habitaciones/:id", upload.array("fotos", 10), async (req, res) => {
+app.put("/api/admin/habitaciones/:id", authenticateToken, requireAdmin, upload.array("fotos", 10), async (req, res) => {
 const { id } = req.params;
 const {
     numero_habitacion,
@@ -501,8 +533,11 @@ const {
 } = req.body;
 
 try {
-  // 1. Actualizar datos
-  await pool.query(
+  // verificar existencia
+  const exist = await queryWithRetry('SELECT id_habitacion FROM public.habitaciones WHERE id_habitacion = $1', [id]);
+  if (exist.rows.length === 0) return res.status(404).json({ error: 'Habitación no encontrada' });
+
+  await queryWithRetry(
     `UPDATE public.habitaciones SET
       numero_habitacion=$1,
       id_categoria=$2,
@@ -513,37 +548,34 @@ try {
       capacidad=$7,
       disponible=$8
     WHERE id_habitacion=$9`,
-    [numero_habitacion, id_categoria, tipo, precio_por_hora, precio_por_dia, piso, capacidad, disponible, id]
+    [numero_habitacion, id_categoria, tipo, precio_por_hora || null, precio_por_dia || null, piso || null, capacidad || null, sanitizeBoolean(disponible), id]
   );
 
-  // 2. Si se enviaron nuevas fotos → agregar
   if (req.files && req.files.length > 0) {
     for (const file of req.files) {
-      const fotoPath = "/img/habitaciones/" + file.filename;
-      await pool.query(
-        `INSERT INTO public.habitaciones_fotos (id_habitacion, ruta_foto)
-        VALUES ($1, $2)`,
+      const fotoPath = '/img/habitaciones/' + file.filename;
+      await queryWithRetry(
+        `INSERT INTO public.habitaciones_fotos (id_habitacion, ruta_foto) VALUES ($1, $2)`,
         [id, fotoPath]
       );
     }
   }
 
-  // ✅ responder siempre, aunque no se suban fotos
   res.json({ message: "Habitación actualizada con éxito" });
 
 } catch (err) {
   console.error("Error al actualizar habitación:", err);
-  res.status(500).json({ error: "Error al actualizar habitación" });
-}}); 
+  res.status(500).json({ error: "Error al actualizar habitación", detalle: err.message });
+}});
 
 /**
  * @route DELETE /api/admin/habitaciones/:id
  * @desc Eliminar una habitación
  */
-app.delete("/api/admin/habitaciones/:id", async (req, res) => {
+app.delete("/api/admin/habitaciones/:id", authenticateToken, requireAdmin, async (req, res) => {
 const { id } = req.params;
 try {
-    await pool.query("DELETE FROM public.habitaciones WHERE id_habitacion=$1", [id]);
+    await queryWithRetry("DELETE FROM public.habitaciones WHERE id_habitacion=$1", [id]);
     res.status(204).send();
 } catch (err) {
     console.error("Error al eliminar habitación:", err);
@@ -561,16 +593,36 @@ try {
  * @route GET /api/admin/encargados
  * @desc Obtener todos los encargados y administradores
  */
-app.get("/api/admin/encargados", async (req, res) => {
+app.get("/api/admin/encargados", authenticateToken, requireAdmin, async (req, res) => {
 try {
-    const query = `
-    SELECT u.id, u.nombre, u.email, r.nombre AS rol
-    FROM public.usuarios u
-    JOIN public.roles r ON u.rol = r.id_rol
-    WHERE r.nombre IN ('encargado', 'admin')
-    ORDER BY u.nombre;
-    `;
-    const result = await pool.query(query);
+    const { page = 1, pageSize = 50, q } = req.query;
+    const offset = (parseInt(page,10)-1)*parseInt(pageSize,10);
+    const params = [];
+    let where = '';
+    if (q) {
+      params.push('%' + q + '%');
+      where = `WHERE u.nombre ILIKE $1 OR u.email ILIKE $1`;
+    }
+    const totalQ = `SELECT COUNT(*)::int AS total FROM public.usuarios u JOIN public.roles r ON u.rol = r.id_rol ${where} AND r.nombre IN ('encargado','admin')`;
+    // if where is '', SQL will be malformed with AND; build carefully
+    let totalRes;
+    if (where) totalRes = await queryWithRetry(totalQ, params);
+    else totalRes = await queryWithRetry("SELECT COUNT(*)::int AS total FROM public.usuarios u JOIN public.roles r ON u.rol = r.id_rol WHERE r.nombre IN ('encargado','admin')");
+    const total = totalRes.rows[0].total || 0;
+
+    // build data query
+    let dataQ;
+    let dataParams = [];
+    if (where) {
+      dataQ = `SELECT u.id, u.nombre, u.email, r.nombre AS rol FROM public.usuarios u JOIN public.roles r ON u.rol = r.id_rol ${where} AND r.nombre IN ('encargado','admin') ORDER BY u.nombre LIMIT $2 OFFSET $3`;
+      dataParams = [params[0], parseInt(pageSize,10), offset];
+    } else {
+      dataQ = `SELECT u.id, u.nombre, u.email, r.nombre AS rol FROM public.usuarios u JOIN public.roles r ON u.rol = r.id_rol WHERE r.nombre IN ('encargado','admin') ORDER BY u.nombre LIMIT $1 OFFSET $2`;
+      dataParams = [parseInt(pageSize,10), offset];
+    }
+
+    const result = await queryWithRetry(dataQ, dataParams);
+    // Return direct array so frontend can map over the response
     res.json(result.rows);
 } catch (err) {
     console.error("Error al obtener encargados:", err);
@@ -582,24 +634,27 @@ try {
  * @route POST /api/admin/encargados
  * @desc Crear un nuevo encargado (crea usuario en usuarios con rol 'encargado')
  */
-app.post("/api/admin/encargados", async (req, res) => {
+app.post("/api/admin/encargados", authenticateToken, requireAdmin, async (req, res) => {
 const { nombre, email, password } = req.body;
 try {
+    if (!nombre || !email || !password) return res.status(400).json({ error: 'nombre, email y password son obligatorios' });
+    if (!isValidEmail(email)) return res.status(400).json({ error: 'Email inválido' });
+    if (String(password).length < 6) return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+
+    // revisar duplicado
+    const exists = await queryWithRetry('SELECT id FROM public.usuarios WHERE email = $1', [email]);
+    if (exists.rows.length > 0) return res.status(409).json({ error: 'El email ya está registrado' });
+
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    const query = `
-    INSERT INTO public.usuarios (nombre, email, password, rol)
-    VALUES ($1, $2, $3, (SELECT id_rol FROM public.roles WHERE nombre = 'encargado'))
-    RETURNING *;
-    `;
-    const result = await pool.query(query, [nombre, email, passwordHash]);
+    const query = `INSERT INTO public.usuarios (nombre, email, password, rol) VALUES ($1, $2, $3, (SELECT id_rol FROM public.roles WHERE nombre = 'encargado')) RETURNING id, nombre, email`;
+    const result = await queryWithRetry(query, [nombre, email, passwordHash]);
     const newEncargado = result.rows[0];
-    delete newEncargado.password;
     res.status(201).json({ user: newEncargado });
 } catch (err) {
     console.error("Error al crear encargado:", err);
-    res.status(500).json({ error: "Error al crear encargado" });
+    res.status(500).json({ error: "Error al crear encargado", detalle: err.message });
 }
 });
 
@@ -608,11 +663,11 @@ try {
  * @desc Buscar usuario por email y asignarle rol 'encargado' (si existe)
  *       Body: { email: "usuario@domain" }
  */
-app.post("/api/admin/assign-encargado", async (req, res) => {
+app.post("/api/admin/assign-encargado", authenticateToken, requireAdmin, async (req, res) => {
   const { email } = req.body;
   try {
       // 1. Buscar al usuario y verificar su rol actual
-      const userRes = await pool.query(
+      const userRes = await queryWithRetry(
           "SELECT u.id, u.nombre, r.nombre as rol FROM public.usuarios u JOIN public.roles r ON u.rol = r.id_rol WHERE u.email = $1",
           [email]
       );
@@ -627,7 +682,7 @@ app.post("/api/admin/assign-encargado", async (req, res) => {
       }
 
       // 2. Actualizar el rol del usuario a 'encargado'
-      await pool.query(
+      await queryWithRetry(
           `UPDATE public.usuarios
           SET rol = (SELECT id_rol FROM public.roles WHERE nombre = 'encargado')
           WHERE id = $1`,
@@ -635,7 +690,7 @@ app.post("/api/admin/assign-encargado", async (req, res) => {
       );
 
       // 3. Devolver los datos actualizados del usuario
-      const updatedUserRes = await pool.query(
+      const updatedUserRes = await queryWithRetry(
           `SELECT u.id, u.nombre, u.email, r.nombre as rol
           FROM public.usuarios u JOIN public.roles r ON u.rol = r.id_rol WHERE u.id = $1`,
           [user.id]
@@ -649,44 +704,42 @@ app.post("/api/admin/assign-encargado", async (req, res) => {
 });
 
 // Actualizar encargado (nombre, email y opcionalmente password)
-app.put("/api/admin/encargados/:id", async (req, res) => {
+app.put("/api/admin/encargados/:id", authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { nombre, email, password } = req.body;
   try {
-    // Validar existencia
-    const exist = await pool.query("SELECT id FROM public.usuarios WHERE id = $1", [id]);
+    const exist = await queryWithRetry("SELECT id, email FROM public.usuarios WHERE id = $1", [id]);
     if (exist.rows.length === 0) return res.status(404).json({ error: 'Encargado no encontrado' });
 
-    if (password) {
-      const saltRounds = 10;
-      const passwordHash = await bcrypt.hash(password, saltRounds);
-      await pool.query(
-        `UPDATE public.usuarios SET nombre = $1, email = $2, password = $3 WHERE id = $4`,
-        [nombre, email, passwordHash, id]
-      );
-    } else {
-      await pool.query(
-        `UPDATE public.usuarios SET nombre = $1, email = $2 WHERE id = $3`,
-        [nombre, email, id]
-      );
+    if (email && !isValidEmail(email)) return res.status(400).json({ error: 'Email inválido' });
+    // si email se modifica, verificar duplicado
+    if (email && email !== exist.rows[0].email) {
+      const dup = await queryWithRetry('SELECT id FROM public.usuarios WHERE email = $1', [email]);
+      if (dup.rows.length > 0) return res.status(409).json({ error: 'El email ya está en uso' });
     }
 
-    const updated = await pool.query(
-      `SELECT u.id, u.nombre, u.email, r.nombre AS rol FROM public.usuarios u JOIN public.roles r ON u.rol = r.id_rol WHERE u.id = $1`,
-      [id]
-    );
+    if (password) {
+      if (String(password).length < 6) return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+      const saltRounds = 10;
+      const passwordHash = await bcrypt.hash(password, saltRounds);
+      await queryWithRetry(`UPDATE public.usuarios SET nombre = $1, email = $2, password = $3 WHERE id = $4`, [nombre, email, passwordHash, id]);
+    } else {
+      await queryWithRetry(`UPDATE public.usuarios SET nombre = $1, email = $2 WHERE id = $3`, [nombre, email, id]);
+    }
+
+    const updated = await queryWithRetry(`SELECT u.id, u.nombre, u.email, r.nombre AS rol FROM public.usuarios u JOIN public.roles r ON u.rol = r.id_rol WHERE u.id = $1`, [id]);
     res.json({ user: updated.rows[0] });
   } catch (err) {
     console.error('Error al actualizar encargado:', err);
-    res.status(500).json({ error: 'Error al actualizar encargado' });
+    res.status(500).json({ error: 'Error al actualizar encargado', detalle: err.message });
   }
 });
 
 // Eliminar encargado
-app.delete("/api/admin/encargados/:id", async (req, res) => {
+app.delete("/api/admin/encargados/:id", authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
   try {
-    await pool.query("DELETE FROM public.usuarios WHERE id = $1", [id]);
+    await queryWithRetry("DELETE FROM public.usuarios WHERE id = $1", [id]);
     res.status(204).send();
   } catch (err) {
     console.error('Error al eliminar encargado:', err);
@@ -704,25 +757,48 @@ app.delete("/api/admin/encargados/:id", async (req, res) => {
  * @route GET /api/admin/reservas
  * @desc Obtener todas las reservas (admin)
  */
-app.get("/api/admin/reservas", async (req, res) => {
+app.get("/api/admin/reservas", authenticateToken, requireAdmin, async (req, res) => {
 try {
-    const q = `
+    const { page = 1, pageSize = 20, q } = req.query;
+    const offset = (parseInt(page,10)-1)*parseInt(pageSize,10);
+    const params = [];
+    let where = '';
+    if (q) {
+      params.push('%' + q + '%');
+      where = `WHERE u.nombre ILIKE $1 OR u.email ILIKE $1 OR h.numero_habitacion::text ILIKE $1`;
+    }
+    const totalQ = where ? `SELECT COUNT(*)::int AS total FROM public.reservas r JOIN public.usuarios u ON r.id_usuario = u.id JOIN public.habitaciones h ON r.id_habitacion = h.id_habitacion ${where}` : `SELECT COUNT(*)::int AS total FROM public.reservas r JOIN public.usuarios u ON r.id_usuario = u.id JOIN public.habitaciones h ON r.id_habitacion = h.id_habitacion`;
+    const totalRes = await queryWithRetry(totalQ, params);
+    const total = totalRes.rows[0].total || 0;
+
+    if (where) params.push(parseInt(pageSize,10), offset);
+    else params.push(parseInt(pageSize,10), offset);
+
+    const dataQ = where ? `
     SELECT
-        r.id_reserva,
-        r.fecha_creacion,
-        r.estado_reserva,
-        r.fecha_checkin,
-        r.fecha_checkout,
-        u.nombre AS cliente_nombre,
-        u.email AS cliente_email,
-        h.id_habitacion,
-        h.numero_habitacion
+        r.id_reserva, r.fecha_creacion, r.estado_reserva, r.fecha_checkin, r.fecha_checkout,
+        u.nombre AS cliente_nombre, u.email AS cliente_email,
+        h.id_habitacion, h.numero_habitacion
     FROM public.reservas r
     JOIN public.usuarios u ON r.id_usuario = u.id
     JOIN public.habitaciones h ON r.id_habitacion = h.id_habitacion
-    ORDER BY r.fecha_creacion DESC;
+    ${where}
+    ORDER BY r.fecha_creacion DESC
+    LIMIT $${params.length-1} OFFSET $${params.length};
+    ` : `
+    SELECT
+        r.id_reserva, r.fecha_creacion, r.estado_reserva, r.fecha_checkin, r.fecha_checkout,
+        u.nombre AS cliente_nombre, u.email AS cliente_email,
+        h.id_habitacion, h.numero_habitacion
+    FROM public.reservas r
+    JOIN public.usuarios u ON r.id_usuario = u.id
+    JOIN public.habitaciones h ON r.id_habitacion = h.id_habitacion
+    ORDER BY r.fecha_creacion DESC
+    LIMIT $1 OFFSET $2;
     `;
-    const result = await pool.query(q);
+
+    const result = await queryWithRetry(dataQ, params);
+    // Return direct array so frontend can map over the response
     res.json(result.rows);
 } catch (err) {
     console.error("Error al obtener reservas (admin):", err);
@@ -734,10 +810,10 @@ try {
  * @route DELETE /api/admin/reservas/:id
  * @desc Eliminar una reserva (admin)
  */
-app.delete("/api/admin/reservas/:id", async (req, res) => {
+app.delete("/api/admin/reservas/:id", authenticateToken, requireAdmin, async (req, res) => {
 const { id } = req.params;
 try {
-    await pool.query("DELETE FROM public.reservas WHERE id_reserva = $1", [id]);
+    await queryWithRetry("DELETE FROM public.reservas WHERE id_reserva = $1", [id]);
     res.status(204).send();
 } catch (err) {
     console.error("Error al eliminar reserva:", err);
@@ -749,14 +825,20 @@ try {
  * @route PUT /api/admin/reservas/:id/completar
  * @desc Marcar reserva como completada (admin)
  */
-app.put("/api/admin/reservas/:id/completar", async (req, res) => {
+app.put("/api/admin/reservas/:id/completar", authenticateToken, requireAdmin, async (req, res) => {
 const { id } = req.params;
 try {
-    const result = await pool.query(
-    "UPDATE public.reservas SET estado_reserva = 'completada' WHERE id_reserva = $1 RETURNING *",
-    [id]
-    );
-    res.json(result.rows[0]);
+    const r = await queryWithRetry('SELECT id_habitacion FROM public.reservas WHERE id_reserva = $1', [id]);
+    if (r.rows.length === 0) return res.status(404).json({ error: 'Reserva no encontrada' });
+    const id_habitacion = r.rows[0].id_habitacion;
+
+    const result = await queryWithRetry("UPDATE public.reservas SET estado_reserva = 'completada' WHERE id_reserva = $1 RETURNING *", [id]);
+
+    await queryWithRetry('UPDATE public.habitaciones SET disponible = true WHERE id_habitacion = $1', [id_habitacion]);
+
+    const updated = result.rows[0];
+    sendSseEvent('reserva_completada', { reserva: updated, id_habitacion });
+    res.json(updated);
 } catch (err) {
     console.error("Error al completar reserva (admin):", err);
     res.status(500).json({ error: "Error al completar reserva" });
@@ -805,7 +887,7 @@ app.get('/api/encargado/reservas', authenticateToken, async (req, res) => {
     const whereSQL = whereClauses.length ? 'WHERE ' + whereClauses.join(' AND ') : '';
 
     const totalQ = `SELECT COUNT(*)::int AS total FROM public.reservas r JOIN public.usuarios u ON r.id_usuario = u.id ${whereSQL}`;
-    const totalRes = await pool.query(totalQ, params);
+    const totalRes = await queryWithRetry(totalQ, params);
     const total = totalRes.rows[0].total || 0;
 
     const dataQ = `
@@ -822,7 +904,7 @@ app.get('/api/encargado/reservas', authenticateToken, async (req, res) => {
     params.push(parseInt(pageSize, 10));
     params.push(offset);
 
-    const result = await pool.query(dataQ, params);
+    const result = await queryWithRetry(dataQ, params);
     res.json({ total, page: parseInt(page,10), pageSize: parseInt(pageSize,10), reservas: result.rows });
   } catch (err) {
     console.error('Error GET /api/encargado/reservas paginado:', err);
@@ -832,23 +914,28 @@ app.get('/api/encargado/reservas', authenticateToken, async (req, res) => {
 
 /**
  * @route PUT /api/encargado/reservas/:id/completar
- * @desc Completar una reserva
+ * @desc Completar una reserva (protegida para encargados/admins)
  */
-app.put("/api/encargado/reservas/:id/completar", async (req, res) => {
+app.put("/api/encargado/reservas/:id/completar", authenticateToken, async (req, res) => {
 const { id } = req.params;
 try {
+    // Sólo encargados o admins pueden completar reservas
+    if (!(req.user && (req.user.rol === 'encargado' || req.user.rol === 'admin'))) {
+      return res.status(403).json({ error: 'Acceso no autorizado' });
+    }
+
     // Obtener la reserva para conocer la habitación
-    const r = await pool.query('SELECT id_habitacion FROM public.reservas WHERE id_reserva = $1', [id]);
+    const r = await queryWithRetry('SELECT id_habitacion FROM public.reservas WHERE id_reserva = $1', [id]);
     if (r.rows.length === 0) return res.status(404).json({ error: 'Reserva no encontrada' });
     const id_habitacion = r.rows[0].id_habitacion;
 
-    const result = await pool.query(
+    const result = await queryWithRetry(
     "UPDATE public.reservas SET estado_reserva = 'completada' WHERE id_reserva = $1 RETURNING *",
     [id]
     );
 
     // Marcar la habitación como disponible nuevamente
-    await pool.query('UPDATE public.habitaciones SET disponible = true WHERE id_habitacion = $1', [id_habitacion]);
+    await queryWithRetry('UPDATE public.habitaciones SET disponible = true WHERE id_habitacion = $1', [id_habitacion]);
 
     const updated = result.rows[0];
 
@@ -857,7 +944,7 @@ try {
 
     res.json(updated);
 } catch (err) {
-    console.error("Error al completar reserva:", err);
+    console.error("Error al completar reserva (encargado):", err);
     res.status(500).json({ error: "Error al completar reserva" });
 }
 });
@@ -887,6 +974,51 @@ app.get('/api/encargado/reservas/stream', (req, res) => {
   });
 });
 
+// Ruta para que encargados puedan listar habitaciones (misma salida que admin pero permitida para encargados)
+app.get("/api/encargado/habitaciones", authenticateToken, async (req, res) => {
+  // Solo encargados o admins
+  if (!(req.user && (req.user.rol === 'encargado' || req.user.rol === 'admin'))) {
+    return res.status(403).json({ error: 'Acceso no autorizado' });
+  }
+
+  try {
+    const { page = 1, pageSize = 20, q } = req.query;
+    const offset = (parseInt(page,10) -1) * parseInt(pageSize,10);
+    const params = [];
+    const where = [];
+    let idx = 1;
+    if (q) {
+      where.push(`(h.numero_habitacion::text ILIKE $${idx} OR c.nombre ILIKE $${idx} OR h.tipo ILIKE $${idx})`);
+      params.push('%' + q + '%');
+      idx++;
+    }
+    const whereSQL = where.length ? 'WHERE ' + where.join(' AND ') : '';
+
+    // calcular total (opcional pero mantiene paridad con admin endpoint)
+    const totalRes = await queryWithRetry(`SELECT COUNT(*)::int AS total FROM public.habitaciones h LEFT JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria ${whereSQL}`, params);
+    const total = totalRes.rows[0].total || 0;
+
+    params.push(parseInt(pageSize,10));
+    params.push(offset);
+
+    const dataQ = `
+      SELECT
+        h.id_habitacion, h.numero_habitacion, h.tipo, h.precio_por_dia, h.precio_por_hora, h.piso, h.capacidad, h.disponible, c.nombre AS categoria, h.id_categoria
+      FROM public.habitaciones h
+      LEFT JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria
+      ${whereSQL}
+      ORDER BY h.id_habitacion ASC
+      LIMIT $${idx++} OFFSET $${idx++};
+    `;
+    const result = await queryWithRetry(dataQ, params);
+    // Devolver arreglo directo para compatibilidad con el frontend del encargado
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error al obtener habitaciones (encargado):", err);
+    res.status(500).json({ error: "Error al obtener habitaciones" });
+  }
+});
+
 /**
  * =========================
  * DASHBOARD METRICS (ADMIN)
@@ -901,7 +1033,7 @@ app.get('/api/encargado/reservas/stream', (req, res) => {
  *  - reservas_completadas
  *  - ingresos_est (suma aproximada de precio_por_dia * noches para reservas completadas)
  */
-app.get("/api/admin/dashboard", async (req, res) => {
+app.get("/api/admin/dashboard", authenticateToken, requireAdmin, async (req, res) => {
 try {
     // Métricas básicas
     const totalHabitRes = await pool.query("SELECT COUNT(*)::int AS total FROM public.habitaciones");
@@ -942,6 +1074,95 @@ try {
     console.error("Error al obtener dashboard metrics:", err);
     res.status(500).json({ error: "Error al obtener métricas" });
 }
+});
+
+// CARRUSEL: listar imágenes y administración (protegida)
+const carouselDir = path.join(__dirname, '..', 'Fronted', 'Public', 'img', 'carousel');
+if (!fs.existsSync(carouselDir)) fs.mkdirSync(carouselDir, { recursive: true });
+
+// Ajustar multer para carrusel (puede reutilizar storage but place files in carouselDir)
+const carouselStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, carouselDir),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+});
+const uploadCarousel = multer({ storage: carouselStorage });
+
+// GET /api/carrusel - lista pública
+app.get('/api/carrusel', async (req, res) => {
+  try {
+    const files = fs.readdirSync(carouselDir).filter(f => !f.startsWith('.'));
+    const urls = files.map(f => '/img/carousel/' + f);
+    res.json({ images: urls });
+  } catch (err) {
+    console.error('Error leyendo carrusel:', err);
+    res.status(500).json({ error: 'Error al leer imágenes del carrusel' });
+  }
+});
+
+// RUTA PROTEGIDA PARA ADMIN: GET /api/admin/carrusel - lista para el panel de administración
+app.get('/api/admin/carrusel', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const files = fs.readdirSync(carouselDir).filter(f => !f.startsWith('.'));
+    const urls = files.map(f => '/img/carousel/' + f);
+    res.json({ images: urls });
+  } catch (err) {
+    console.error('Error leyendo carrusel (admin):', err);
+    res.status(500).json({ error: 'Error al leer imágenes del carrusel' });
+  }
+});
+
+// POST /api/admin/carrusel - subir imagen al carrusel
+// Acepta token en Authorization header, en query param 'token' o en form-data 'token'
+// Ahora acepta tanto field 'image' (single) como 'fotos' (multiple)
+app.post('/api/admin/carrusel', uploadCarousel.fields([{ name: 'image', maxCount: 1 }, { name: 'fotos', maxCount: 20 }]), async (req, res) => {
+  try {
+    // Extraer token: preferir Authorization header, luego query token, luego form-data token
+    const headerAuth = req.headers['authorization'];
+    const tokenFromQuery = req.query && req.query.token;
+    const tokenFromBody = req.body && req.body.token; // multer-filled
+    const authSource = headerAuth || tokenFromQuery || tokenFromBody;
+    const token = authSource && typeof authSource === 'string' && authSource.startsWith('Bearer ') ? authSource.split(' ')[1] : authSource;
+    if (!token) return res.status(401).json({ error: 'Token requerido' });
+
+    let user;
+    try {
+      user = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+
+    if (!user || user.rol !== 'admin') return res.status(403).json({ error: 'Acceso restringido a administradores' });
+
+    // recolectar archivos recibidos en cualquiera de los campos
+    const uploadedFiles = [];
+    if (req.files) {
+      if (req.files['image'] && req.files['image'].length) uploadedFiles.push(...req.files['image']);
+      if (req.files['fotos'] && req.files['fotos'].length) uploadedFiles.push(...req.files['fotos']);
+    }
+
+    if (!uploadedFiles.length) return res.status(400).json({ error: 'Falta el archivo (campo: image o fotos)' });
+
+    const urls = uploadedFiles.map(f => '/img/carousel/' + f.filename);
+    // devolver array de urls
+    res.status(201).json({ images: urls });
+  } catch (err) {
+    console.error('Error subiendo imagen al carrusel (handler modificado para múltiples campos):', err);
+    res.status(500).json({ error: 'Error al subir imagen' });
+  }
+});
+
+// DELETE /api/admin/carrusel/:name - eliminar por nombre de archivo
+app.delete('/api/admin/carrusel/:name', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const name = req.params.name;
+    const filePath = path.join(carouselDir, name);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Archivo no encontrado' });
+    fs.unlinkSync(filePath);
+    res.status(204).send();
+  } catch (err) {
+    console.error('Error eliminando imagen del carrusel:', err);
+    res.status(500).json({ error: 'Error al eliminar imagen' });
+  }
 });
 
 // Iniciar el servidor

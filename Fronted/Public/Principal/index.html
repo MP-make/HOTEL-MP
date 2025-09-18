@@ -11,6 +11,34 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@400;600&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <!-- Favicon: use existing logo as a simple favicon to avoid 404 -->
+    <link rel="icon" href="/img/logo_pequeño.png" type="image/png">
+
+    <!-- Carrusel responsive (se adapta al ancho y desliza suavemente) -->
+    <style>
+      /* Carousel base */
+      .carousel { width: 100%; max-width: 1100px; margin: 1.5rem auto; position: relative; overflow: hidden; border-radius: 6px; }
+      .carousel-track { display: flex; transition: transform 0.6s cubic-bezier(.22,.98,.36,.99); will-change: transform; }
+      .carousel-slide { min-width: 100%; box-sizing: border-box; display:flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.03); }
+      .carousel-slide img { width: 100%; height: auto; object-fit: contain; display:block; }
+
+      /* arrows */
+      .carousel-arrow { position: absolute; top: 50%; transform: translateY(-50%); z-index: 20; background: rgba(0,0,0,0.45); color: #fff; border: none; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display:flex; align-items:center; justify-content:center; font-size: 22px; }
+      .carousel-arrow:hover { background: rgba(0,0,0,0.6); }
+      .carousel-arrow.prev { left: 12px; }
+      .carousel-arrow.next { right: 12px; }
+
+      /* dots */
+      .carousel-dots { position: absolute; left: 50%; transform: translateX(-50%); bottom: 10px; z-index: 20; display:flex; gap:8px; }
+      .carousel-dot { width:10px; height:10px; border-radius:50%; background: rgba(255,255,255,0.6); cursor:pointer; opacity:0.8; }
+      .carousel-dot.active { background: #ffffff; box-shadow: 0 0 0 3px rgba(0,0,0,0.08); }
+
+      /* responsive tweaks */
+      @media (max-width: 600px) {
+        .carousel { max-width: 100%; margin: 0.75rem; }
+        .carousel-arrow { width:36px; height:36px; font-size:18px; }
+      }
+    </style>
 </head>
 
 <body class="bg-principal">
@@ -56,8 +84,92 @@
                 Nuestra pasión es ofrecerte una experiencia inolvidable, combinando la historia local con todas las
                 comodidades modernas.
             </p> <br>
-            <img src="https://placehold.co/1200x400/8B4513/FDF6E3?text=Bienvenido+a+Casa+del+Inka"
-                alt="Banner del hotel" class="img-banner">
+
+            <!-- Nuevo carrusel gestionable (mejorado visualmente) -->
+            <div id="heroCarousel" class="hero-carousel" aria-roledescription="carousel" aria-label="Imagen principal">
+                <div class="hero-carousel-inner" id="heroCarouselInner">
+                    <!-- imágenes inyectadas por JS -->
+                </div>
+                <button class="hero-arrow prev" aria-label="Anterior">‹</button>
+                <button class="hero-arrow next" aria-label="Siguiente">›</button>
+                <div class="hero-dots" id="heroCarouselDots" aria-hidden="false"></div>
+            </div>
+            
+            <style>
+              /* Hero carousel visual improvements */
+              .hero-carousel { position: relative; width: 100%; max-width: 1200px; margin: 1.25rem auto; overflow: hidden; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+              .hero-carousel-inner { display:flex; transition: transform .6s cubic-bezier(.22,.98,.36,.99); will-change: transform; }
+              .hero-slide { min-width:100%; height: 420px; box-sizing:border-box; position:relative; background:#111; }
+              @media (max-width:1100px) { .hero-slide { height: 360px; } }
+              @media (max-width:800px) { .hero-slide { height: 220px; } }
+              .hero-slide img { width:100%; height:100%; object-fit:cover; display:block; }
+              .hero-overlay { position:absolute; left:0; right:0; top:0; bottom:0; background: linear-gradient(180deg, rgba(0,0,0,0.28), rgba(0,0,0,0.02) 45%); pointer-events:none; }
+              .hero-caption { position:absolute; left:24px; bottom:22px; z-index:35; color:#fff; text-shadow: 0 2px 8px rgba(0,0,0,0.45); }
+              .hero-caption h2{ margin:0;font-size:1.6rem; font-weight:700; }
+              .hero-caption p{ margin:0.25rem 0 0; font-size:0.95rem; opacity:0.95 }
+              .hero-arrow { position:absolute; top:50%; transform:translateY(-50%); z-index:30; background: rgba(0,0,0,0.45); color:#fff; border:0; width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+              .hero-arrow.prev{ left:12px; } .hero-arrow.next{ right:12px; }
+              .hero-dots{ position:absolute; left:50%; transform:translateX(-50%); bottom:12px; display:flex; gap:8px; z-index:30; }
+              .hero-dot{ width:10px; height:10px; border-radius:50%; background: rgba(255,255,255,0.6); cursor:pointer; }
+              .hero-dot.active{ background:#fff; box-shadow: 0 0 0 3px rgba(0,0,0,0.08); }
+            </style>
+            
+            <script>
+              (function(){
+                const container = document.getElementById('heroCarouselInner');
+                const dotsContainer = document.getElementById('heroCarouselDots');
+                const prev = document.querySelector('#heroCarousel .hero-arrow.prev');
+                const next = document.querySelector('#heroCarousel .hero-arrow.next');
+                let slides = [], idx = 0, timer = null, AUTOPLAY = 4500;
+                let touchStartX = 0, touchDeltaX = 0;
+            
+                function render(imgs){
+                  container.innerHTML=''; dotsContainer.innerHTML=''; slides=[];
+                  imgs.forEach((src,i)=>{
+                    const slide = document.createElement('div'); slide.className='hero-slide';
+                    const img = document.createElement('img'); img.src = src; img.alt = `Imagen ${i+1}`; img.loading = 'lazy';
+                    slide.appendChild(img);
+                    const ov = document.createElement('div'); ov.className='hero-overlay'; slide.appendChild(ov);
+                    // optional caption area
+                    const caption = document.createElement('div'); caption.className='hero-caption'; caption.innerHTML = `<h2>Casa del Inka</h2><p>Tradición & confort en Villa El Salvador</p>`; slide.appendChild(caption);
+                    container.appendChild(slide);
+            
+                    const dot = document.createElement('button'); dot.className='hero-dot'; dot.addEventListener('click',()=>go(i));
+                    dotsContainer.appendChild(dot);
+                    slides.push({slide,dot});
+                  });
+                  if(slides.length<=1){ prev.style.display='none'; next.style.display='none'; dotsContainer.style.display='none'; }
+                  go(0,false);
+                  start();
+                }
+            
+                function update(){ container.style.transform = `translateX(-${idx*100}%)`; slides.forEach((s,i)=> s.dot.classList.toggle('active', i===idx)); }
+                function go(i,reset=true){ if(!slides.length) return; idx = ((i%slides.length)+slides.length)%slides.length; update(); if(reset) restart(); }
+                function nextSlide(){ go(idx+1); }
+                function prevSlide(){ go(idx-1); }
+                function start(){ stop(); if(slides.length>1) timer = setInterval(nextSlide, AUTOPLAY); }
+                function stop(){ if(timer){ clearInterval(timer); timer=null; } }
+                function restart(){ stop(); start(); }
+            
+                next.addEventListener('click', nextSlide); prev.addEventListener('click', prevSlide);
+                document.getElementById('heroCarousel').addEventListener('mouseenter', stop);
+                document.getElementById('heroCarousel').addEventListener('mouseleave', start);
+            
+                // touch handlers for swipe
+                container.addEventListener('touchstart', (e)=>{ touchStartX = e.touches[0].clientX; touchDeltaX = 0; stop(); });
+                container.addEventListener('touchmove', (e)=>{ touchDeltaX = e.touches[0].clientX - touchStartX; container.style.transform = `translateX(${ -idx*100 + (touchDeltaX / container.clientWidth * 100) }%)`; });
+                container.addEventListener('touchend', ()=>{ if(Math.abs(touchDeltaX) > 50){ if(touchDeltaX < 0) nextSlide(); else prevSlide(); } else update(); restart(); });
+            
+                // fetch images
+                fetch('/api/carrusel').then(r=>r.ok? r.json() : Promise.reject()).then(b=>{
+                  const imgs = Array.isArray(b)? b : (b.images||[]);
+                  const urls = imgs.map(u=> u.url||u).filter(Boolean);
+                  if(urls.length) render(urls);
+                  else document.getElementById('heroCarousel').style.display='none';
+                }).catch(()=>{ document.getElementById('heroCarousel').style.display='none'; });
+               })();
+            </script>
+
         </section>
 
         <section id="habitaciones">
@@ -96,6 +208,8 @@
                     <iframe
                         src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15383.985657375253!2d-76.94073574999999!3d-12.18823525!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9105b9b9a9d702d7%3A0xc6e4b2d130310702!2sAv.%20Los%20Incas%20123%2C%20Villa%20El%20Salvador%2015816%2C%20Per%C3%BA!5e0!3m2!1ses-419!2sus!4v1701384976450!5m2!1ses-419!2sus"
                         width="100%" height="100%" style="border:0;" allowfullscreen loading="lazy"></iframe>
+                    <!-- Fallback/helpful note for users whose browsers or extensions block Google Maps resources -->
+                    <p id="map-note" style="font-size:0.9rem;margin-top:8px;color:#555;">Si el mapa no carga (por ejemplo, por extensiones de bloqueo), intenta abrirlo directamente en Google Maps: <a href="https://www.google.com/maps/place/Av.+Los+Incas+123,+Villa+El+Salvador" target="_blank" rel="noopener">Abrir en Google Maps</a>. También puedes probar en una ventana de incógnito sin extensiones.</p>
                 </div>
             </div>
         </section>

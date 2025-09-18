@@ -131,15 +131,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('rooms-list');
         if (!container) return;
         try {
-            const res = await fetch('/api/admin/habitaciones');
+            const res = await fetch('/api/encargado/habitaciones', { headers: getAuthHeaders() });
             if (!res.ok) throw new Error('Error al obtener habitaciones');
             const habitaciones = await res.json();
             if (!Array.isArray(habitaciones) || habitaciones.length === 0) {
                 container.innerHTML = '<p style="text-align:center">No hay habitaciones.</p>';
                 return;
             }
-            container.innerHTML = '<table class="rooms-table"><thead><tr><th>#</th><th>Categoría</th><th>Piso</th><th>Capacidad</th><th>Precio/Día</th><th>Disponible</th></tr></thead><tbody>' +
-                habitaciones.map(h => `<tr><td>${h.numero_habitacion}</td><td>${h.categoria||'N/A'}</td><td>${h.piso||'-'}</td><td>${h.capacidad||'-'}</td><td>${h.precio_por_dia||'-'}</td><td>${h.disponible? 'Sí':'No'}</td></tr>`).join('') +
+            container.innerHTML = '<table class="rooms-table"><thead><tr><th>#</th><th>Categoría</th><th>Piso</th><th>Capacidad</th><th>Precio/Día</th><th>Disponible</th><th>Acciones</th></tr></thead><tbody>' +
+                habitaciones.map(h => `<tr><td>${h.numero_habitacion}</td><td>${h.categoria||'N/A'}</td><td>${h.piso||'-'}</td><td>${h.capacidad||'-'}</td><td>${h.precio_por_dia||'-'}</td><td>${h.disponible? 'Sí':'No'}</td><td><button class="btn fotos-btn" data-id="${h.id_habitacion}">Fotos</button></td></tr>`).join('') +
                 '</tbody></table>';
         } catch (err) {
             console.error('Error al cargar habitaciones:', err);
@@ -286,6 +286,110 @@ document.addEventListener('DOMContentLoaded', () => {
             if (modalMessage) modalMessage.innerHTML = detalles + '<br><button id="close-info" class="btn btn-secondary">Cerrar</button>';
             const closeInfo = document.getElementById('close-info');
             if (closeInfo) closeInfo.addEventListener('click', hideConfirmModal);
+        }
+    });
+
+    // --- Nuevo: gestión de fotos por el encargado ---
+    document.body.addEventListener('click', async (e) => {
+        const fotoBtn = e.target.closest('.fotos-btn');
+        if (!fotoBtn) return;
+        const id = fotoBtn.getAttribute('data-id');
+        if (!id) return;
+        try {
+            const res = await fetch(`/api/encargado/habitaciones/${id}/fotos`, { headers: getAuthHeaders() });
+            const fotos = res.ok ? await res.json() : [];
+            const fotosHtml = (Array.isArray(fotos) && fotos.length) ? fotos.map(f => `
+                <div class="inline-block m-2 text-center" style="width:120px">
+                    <img src="${f.url || f}" class="h-24 w-full object-cover rounded border">
+                    <div class="mt-1 flex justify-between">
+                        <button data-url="${f.url || f}" class="delete-foto-btn px-2 py-1 text-xs bg-red-500 text-white rounded">Eliminar</button>
+                        <a href="${f.url || f}" target="_blank" class="px-2 py-1 text-xs bg-gray-200 rounded">Abrir</a>
+                    </div>
+                </div>
+            `).join('') : '<p class="text-sm">No hay fotos aún.</p>';
+
+            // Reutilizamos el modal de confirmación para mostrar contenido personalizado
+            showConfirmModal('Fotos de la habitación', () => {});
+            const modalMessage = document.getElementById('modal-message');
+            if (!modalMessage) return;
+
+            modalMessage.innerHTML = `
+                <div id="fotos-list" class="flex flex-wrap">${fotosHtml}</div>
+                <hr class="my-3">
+                <form id="upload-fotos-form" enctype="multipart/form-data">
+                    <label class="block text-sm font-medium">Subir fotos</label>
+                    <input type="file" name="fotos" accept="image/*" multiple class="mt-2">
+                    <div class="mt-3 flex justify-end">
+                        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Subir</button>
+                    </div>
+                </form>
+            `;
+
+            // Delegación para eliminar una foto desde el modal
+            const fotosListEl = document.getElementById('fotos-list');
+            fotosListEl.addEventListener('click', async (ev) => {
+                const delBtn = ev.target.closest('.delete-foto-btn');
+                if (!delBtn) return;
+                const url = delBtn.getAttribute('data-url');
+                if (!url) return;
+                showConfirmModal('Eliminar foto permanentemente?', async () => {
+                    try {
+                        // Intentar DELETE con query param
+                        const delRes = await fetch(`/api/encargado/habitaciones/${id}/fotos?url=${encodeURIComponent(url)}`, { method: 'DELETE', headers: getAuthHeaders() });
+                        if (!delRes.ok) {
+                            // fallback a POST delete
+                            await fetch(`/api/encargado/habitaciones/${id}/fotos/delete`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify({ url }) });
+                        }
+                        // refrescar lista
+                        const updatedRes = await fetch(`/api/encargado/habitaciones/${id}/fotos`, { headers: getAuthHeaders() });
+                        const updated = updatedRes.ok ? await updatedRes.json() : [];
+                        fotosListEl.innerHTML = (Array.isArray(updated) && updated.length) ? updated.map(f => `
+                            <div class="inline-block m-2 text-center" style="width:120px">
+                                <img src="${f.url || f}" class="h-24 w-full object-cover rounded border">
+                                <div class="mt-1 flex justify-between">
+                                    <button data-url="${f.url || f}" class="delete-foto-btn px-2 py-1 text-xs bg-red-500 text-white rounded">Eliminar</button>
+                                    <a href="${f.url || f}" target="_blank" class="px-2 py-1 text-xs bg-gray-200 rounded">Abrir</a>
+                                </div>
+                            </div>
+                        `).join('') : '<p class="text-sm">No hay fotos aún.</p>';
+                    } catch (err) {
+                        console.error('Error eliminando foto:', err);
+                        alert('Error al eliminar la foto. Revisa la consola.');
+                    }
+                });
+            });
+
+            // Manejar subida de fotos
+            const uploadForm = document.getElementById('upload-fotos-form');
+            if (uploadForm) {
+                uploadForm.addEventListener('submit', async (ev) => {
+                    ev.preventDefault();
+                    const fd = new FormData(uploadForm);
+                    try {
+                        const uploadRes = await fetch(`/api/encargado/habitaciones/${id}/fotos`, { method: 'POST', headers: getAuthHeaders(), body: fd });
+                        if (!uploadRes.ok) throw new Error('Error subiendo fotos');
+                        // refrescar listado
+                        const updatedRes = await fetch(`/api/encargado/habitaciones/${id}/fotos`, { headers: getAuthHeaders() });
+                        const updated = updatedRes.ok ? await updatedRes.json() : [];
+                        fotosListEl.innerHTML = (Array.isArray(updated) && updated.length) ? updated.map(f => `
+                            <div class="inline-block m-2 text-center" style="width:120px">
+                                <img src="${f.url || f}" class="h-24 w-full object-cover rounded border">
+                                <div class="mt-1 flex justify-between">
+                                    <button data-url="${f.url || f}" class="delete-foto-btn px-2 py-1 text-xs bg-red-500 text-white rounded">Eliminar</button>
+                                    <a href="${f.url || f}" target="_blank" class="px-2 py-1 text-xs bg-gray-200 rounded">Abrir</a>
+                                </div>
+                            </div>
+                        `).join('') : '<p class="text-sm">No hay fotos aún.</p>';
+                    } catch (err) {
+                        console.error('Error subiendo fotos:', err);
+                        alert('Error al subir fotos. Revisa la consola.');
+                    }
+                });
+            }
+
+        } catch (err) {
+            console.error('Error al gestionar fotos:', err);
+            alert('Error al abrir gestión de fotos. Revisa la consola.');
         }
     });
 

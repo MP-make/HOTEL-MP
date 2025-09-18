@@ -45,21 +45,27 @@
             document.getElementById('cancel-btn').addEventListener('click', hideModal);
         }
     
-        function hideModal() {
+        function hideModal() { 
             const modal = document.getElementById('dynamicModal');
             if (modal) modal.remove();
         }
     
         // --- Helpers API ---
+        function getAuthHeader() {
+            const token = localStorage.getItem('token');
+            return token ? { 'Authorization': 'Bearer ' + token } : {};
+        }
         async function apiGet(path) {
-            const res = await fetch(`${API_BASE}${path}`);
+            const headers = { ...getAuthHeader() };
+            const res = await fetch(`${API_BASE}${path}`, { headers });
             if (!res.ok) throw new Error(`GET ${path} -> ${res.statusText}`);
             return res.json();
         }
         async function apiPost(path, body) {
+            const headers = { 'Content-Type': 'application/json', ...getAuthHeader() };
             const res = await fetch(`${API_BASE}${path}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify(body)
             });
             if (!res.ok) {
@@ -71,9 +77,10 @@
             try { return JSON.parse(text); } catch { return text; }
         }
         async function apiPut(path, body) {
+            const headers = { 'Content-Type': 'application/json', ...getAuthHeader() };
             const res = await fetch(`${API_BASE}${path}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify(body)
             });
             if (!res.ok) {
@@ -83,7 +90,8 @@
             return res.json();
         }
         async function apiDelete(path) {
-            const res = await fetch(`${API_BASE}${path}`, { method: 'DELETE' });
+            const headers = { ...getAuthHeader() };
+            const res = await fetch(`${API_BASE}${path}`, { method: 'DELETE', headers });
             if (!res.ok && res.status !== 204) {
                 const err = await res.json().catch(()=>({error:res.statusText}));
                 throw new Error(err.error || res.statusText);
@@ -141,7 +149,8 @@
                 title: 'Gestión de Habitaciones',
                 render: async () => {
                     try {
-                        const habitaciones = await apiGet('/admin/habitaciones');
+                        const habitacionesRes = await apiGet('/admin/habitaciones');
+                        const habitaciones = Array.isArray(habitacionesRes) ? habitacionesRes : (habitacionesRes.habitaciones || habitacionesRes.rows || []);
                         const categorias = await apiGet('/admin/categorias').catch(()=>[
                             { id_categoria:1, nombre:'Matrimonial' },
                             { id_categoria:2, nombre:'Simple' },
@@ -164,6 +173,7 @@
                             <td class="py-3 px-4 flex space-x-2">
                             <button data-id="${h.id_habitacion}" class="edit-btn px-3 py-1 rounded bg-blue-600 text-white text-xs">Editar</button>
                             <button data-id="${h.id_habitacion}" class="delete-btn px-3 py-1 rounded bg-red-600 text-white text-xs">Eliminar</button>
+                            <button data-id="${h.id_habitacion}" class="fotos-btn px-3 py-1 rounded bg-indigo-600 text-white text-xs">Fotos</button>
                             </td>
                         </tr>
                         `).join('');
@@ -225,6 +235,7 @@
                                     <td class="py-3 px-4 flex space-x-2">
                                     <button data-id="${h.id_habitacion}" class="edit-btn px-3 py-1 rounded bg-blue-600 text-white text-xs">Editar</button>
                                     <button data-id="${h.id_habitacion}" class="delete-btn px-3 py-1 rounded bg-red-600 text-white text-xs">Eliminar</button>
+                                    <button data-id="${h.id_habitacion}" class="fotos-btn px-3 py-1 rounded bg-indigo-600 text-white text-xs">Fotos</button>
                                     </td>
                                 </tr>
                                 `).join('');
@@ -235,12 +246,99 @@
                     }
                 }
             },
-    
+
+            'gestion-carrusel': {
+                title: 'Gestión del Carrusel',
+                render: async () => {
+                    try {
+                        const imgsRes = await apiGet('/admin/carrusel');
+                        const images = Array.isArray(imgsRes) ? imgsRes : (imgsRes.images || imgsRes.rows || []);
+                        const listHtml = (images && images.length) ? images.map(img => `
+                            <div class="inline-block m-2 text-center" style="width:150px">
+                                <img src="${img.url || img}" class="h-24 w-full object-cover rounded border">
+                                <div class="mt-2 flex justify-between">
+                                    <button data-id="${img.id || ''}" data-url="${img.url || img}" class="delete-carrusel-btn px-2 py-1 text-xs bg-red-500 text-white rounded">Eliminar</button>
+                                    <a href="${img.url || img}" target="_blank" class="px-2 py-1 text-xs bg-gray-200 rounded">Abrir</a>
+                                </div>
+                            </div>
+                        `).join('') : '<p class="text-sm">No hay imágenes en el carrusel.</p>';
+
+                        return `
+                        <div class="admin-card">
+                            <h2 class="text-xl font-semibold mb-4">Imágenes del Carrusel</h2>
+                            <div id="carrusel-list" class="flex flex-wrap">${listHtml}</div>
+                            <hr class="my-4">
+                            <form id="upload-carrusel-form" enctype="multipart/form-data">
+                                <label class="block text-sm font-medium">Seleccionar imágenes para el carrusel</label>
+                                <input type="file" name="fotos" accept="image/*" multiple class="mt-2">
+                                <div class="mt-3 flex justify-end">
+                                    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Subir imágenes</button>
+                                </div>
+                            </form>
+                            <p class="text-xs text-gray-500 mt-2">Las imágenes subirán al servidor y se mostrarán en el índice.</p>
+                        </div>
+                        `;
+                    } catch (err) {
+                        return `<div class="admin-card"><p class="text-red-500">Error cargando carrusel: ${err.message}</p></div>`;
+                    }
+                },
+                postRender: () => {
+                    // manejar eliminación mediante delegación
+                    const listEl = document.getElementById('carrusel-list');
+                    if (listEl) {
+                        listEl.addEventListener('click', async (e) => {
+                            const btn = e.target.closest('.delete-carrusel-btn');
+                            if (!btn) return;
+                            const id = btn.getAttribute('data-id');
+                            const url = btn.getAttribute('data-url');
+                            showConfirmModal('Eliminar imagen del carrusel?', async () => {
+                                try {
+                                    if (id) {
+                                        await apiDelete(`/admin/carrusel/${id}`);
+                                    } else {
+                                        await apiPost('/admin/carrusel/delete', { url });
+                                    }
+                                    loadSection('gestion-carrusel');
+                                    showModal('Éxito', '<p>Imagen eliminada.</p>');
+                                } catch (err) {
+                                    showModal('Error', `<p>${err.message}</p>`);
+                                }
+                            });
+                        });
+                    }
+
+                    // manejar subida
+                    const uploadForm = document.getElementById('upload-carrusel-form');
+                    if (uploadForm) {
+                        uploadForm.addEventListener('submit', async (ev) => {
+                            ev.preventDefault();
+                            const fd = new FormData(uploadForm);
+                            // Attach token both as form field and Authorization header for compatibility
+                            const token = localStorage.getItem('token') || '';
+                            if (token) fd.append('token', token);
+                            try {
+                                const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+                                const res = await fetch('/api/admin/carrusel', { method: 'POST', body: fd, headers });
+                                if (!res.ok) throw new Error('Error subiendo imágenes');
+                                await res.json().catch(()=>null);
+                                loadSection('gestion-carrusel');
+                                showModal('Éxito', '<p>Imágenes subidas correctamente.</p>');
+                            } catch (err) {
+                                showModal('Error', `<p>${err.message}</p>`);
+                            }
+                        });
+                        // evitar doble envío por el handler global
+                        uploadForm.dataset.skipGlobal = 'true';
+                    }
+                }
+            },
+
             'gestion-reservas': {
                 title: 'Gestión de Reservas',
                 render: async () => {
                     try {
-                        const reservas = await apiGet('/admin/reservas');
+                        const reservasRes = await apiGet('/admin/reservas');
+                        const reservas = Array.isArray(reservasRes) ? reservasRes : (reservasRes.reservas || reservasRes.rows || []);
                         const rows = reservas.map(r => `
                         <tr class="border-b hover:bg-gray-50">
                             <td class="py-3 px-4">${r.id_reserva}</td>
@@ -287,7 +385,8 @@
                 title: 'Gestión de Encargados',
                 render: async () => {
                     try {
-                        const encargados = await apiGet('/admin/encargados');
+                        const encargadosRes = await apiGet('/admin/encargados');
+                        const encargados = Array.isArray(encargadosRes) ? encargadosRes : (encargadosRes.encargados || encargadosRes.rows || []);
                         const rows = encargados.map(e => `
                         <tr class="border-b hover:bg-gray-50">
                             <td class="py-3 px-4">${e.id}</td>
@@ -606,6 +705,108 @@
             });
             return;
         }
+
+        // Gestionar fotos de habitación
+        if (target && target.classList.contains('fotos-btn')) {
+            const id = target.getAttribute('data-id');
+            try {
+                // Obtener fotos (puede devolver [{ id, url }] o simplemente [url])
+                const fotos = await apiGet(`/admin/habitaciones/${id}/fotos`).catch(() => []);
+                const fotosHtml = (fotos && fotos.length) ? fotos.map(f => `
+                    <div class="inline-block m-2 text-center" style="width:120px">
+                        <img src="${f.url || f}" class="h-24 w-full object-cover rounded border">
+                        <div class="mt-1 flex justify-between">
+                            <button data-url="${f.url || f}" class="delete-foto-btn px-2 py-1 text-xs bg-red-500 text-white rounded">Eliminar</button>
+                            <a href="${f.url || f}" target="_blank" class="px-2 py-1 text-xs bg-gray-200 rounded">Abrir</a>
+                        </div>
+                    </div>
+                `).join('') : '<p class="text-sm">No hay fotos aún.</p>';
+
+                const modalHtml = `
+                    <div>
+                        <div id="fotos-list" class="flex flex-wrap">${fotosHtml}</div>
+                        <hr class="my-3">
+                        <form id="upload-fotos-form" enctype="multipart/form-data">
+                            <label class="block text-sm font-medium">Subir fotos</label>
+                            <input type="file" name="fotos" accept="image/*" multiple class="mt-2">
+                            <div class="mt-3 flex justify-end">
+                                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Subir</button>
+                            </div>
+                        </form>
+                    </div>
+                `;
+
+                showModal('Fotos de la habitación', modalHtml, () => {
+                    // manejar eliminación
+                    document.getElementById('dynamicModal').addEventListener('click', async (ev) => {
+                        const delBtn = ev.target.closest('.delete-foto-btn');
+                        if (!delBtn) return;
+                        const url = delBtn.getAttribute('data-url');
+                        showConfirmModal('Eliminar foto permanentemente?', async () => {
+                            try {
+                                // intentar endpoint DELETE por id/url; usar POST de respaldo
+                                try {
+                                    await apiDelete(`/admin/habitaciones/${id}/fotos?url=${encodeURIComponent(url)}`);
+                                } catch (_) {
+                                    await apiPost(`/admin/habitaciones/${id}/fotos/delete`, { url });
+                                }
+                                // refrescar listado de fotos en modal
+                                const updated = await apiGet(`/admin/habitaciones/${id}/fotos`).catch(() => []);
+                                const listEl = document.getElementById('fotos-list');
+                                if (listEl) {
+                                    listEl.innerHTML = (updated && updated.length) ? updated.map(f => `
+                                        <div class="inline-block m-2 text-center" style="width:120px">
+                                            <img src="${f.url || f}" class="h-24 w-full object-cover rounded border">
+                                            <div class="mt-1 flex justify-between">
+                                                <button data-url="${f.url || f}" class="delete-foto-btn px-2 py-1 text-xs bg-red-500 text-white rounded">Eliminar</button>
+                                                <a href="${f.url || f}" target="_blank" class="px-2 py-1 text-xs bg-gray-200 rounded">Abrir</a>
+                                            </div>
+                                        </div>
+                                    `).join('') : '<p class="text-sm">No hay fotos aún.</p>';
+                                }
+                            } catch (err) {
+                                showModal('Error', `<p>${err.message}</p>`);
+                            }
+                        });
+                    });
+
+                    // manejar subida
+                    const uploadForm = document.getElementById('upload-fotos-form');
+                    if (uploadForm) {
+                        uploadForm.addEventListener('submit', async (ev) => {
+                            ev.preventDefault();
+                            const fd = new FormData(uploadForm);
+                            try {
+                                const res = await fetch(`/api/admin/habitaciones/${id}/fotos`, { method: 'POST', body: fd });
+                                if (!res.ok) throw new Error('Error subiendo fotos');
+                                // refrescar
+                                const updated = await apiGet(`/admin/habitaciones/${id}/fotos`).catch(() => []);
+                                const listEl = document.getElementById('fotos-list');
+                                if (listEl) {
+                                    listEl.innerHTML = (updated && updated.length) ? updated.map(f => `
+                                        <div class="inline-block m-2 text-center" style="width:120px">
+                                            <img src="${f.url || f}" class="h-24 w-full object-cover rounded border">
+                                            <div class="mt-1 flex justify-between">
+                                                <button data-url="${f.url || f}" class="delete-foto-btn px-2 py-1 text-xs bg-red-500 text-white rounded">Eliminar</button>
+                                                <a href="${f.url || f}" target="_blank" class="px-2 py-1 text-xs bg-gray-200 rounded">Abrir</a>
+                                            </div>
+                                        </div>
+                                    `).join('') : '<p class="text-sm">No hay fotos aún.</p>';
+                                }
+                            } catch (err) {
+                                showModal('Error', `<p>${err.message}</p>`);
+                            }
+                        });
+                        // evitar que el handler global intente re-procesar este form
+                        uploadForm.dataset.skipGlobal = 'true';
+                    }
+                });
+            } catch (err) {
+                showModal('Error', `<p>${err.message}</p>`);
+            }
+            return;
+        }
+
             // Añadir encargado (crear nuevo usuario con rol encargado)
             if (target && target.id === 'add-encargado-btn') {
                 const formHtml = `

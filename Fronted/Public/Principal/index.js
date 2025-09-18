@@ -376,4 +376,81 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         checkSession();
     
-    });
+        // --- CARRUSEL DINÁMICO ---
+        async function loadCarousel() {
+            const track = document.getElementById('carouselTrack');
+            const indicators = document.getElementById('carouselIndicators');
+            const prevBtn = document.querySelector('#heroCarousel .prev');
+            const nextBtn = document.querySelector('#heroCarousel .next');
+            if (!track || !indicators) return;
+            try {
+                const res = await fetch('/api/carrusel');
+                if (!res.ok) throw new Error('No se pudo cargar el carrusel');
+                const data = await res.json();
+                const images = data.images || [];
+                track.innerHTML = '';
+                indicators.innerHTML = '';
+
+                if (images.length === 0) {
+                    // Si no hay imágenes, mostrar una imagen por defecto
+                    const slide = document.createElement('div');
+                    slide.className = 'carousel-slide active';
+                    slide.innerHTML = `<img src="/img/logo_pequeño.png" alt="Casa del Inka" class="carousel-image">`;
+                    track.appendChild(slide);
+                    return;
+                }
+
+                images.forEach((src, idx) => {
+                    const slide = document.createElement('div');
+                    slide.className = 'carousel-slide' + (idx === 0 ? ' active' : '');
+                    const imgSrc = src.startsWith('/') ? src : '/' + src;
+                    slide.innerHTML = `<img src="${imgSrc}" alt="Slide ${idx+1}" class="carousel-image">`;
+                    track.appendChild(slide);
+
+                    const dot = document.createElement('button');
+                    dot.className = 'carousel-dot' + (idx === 0 ? ' active' : '');
+                    dot.setAttribute('data-slide', idx.toString());
+                    indicators.appendChild(dot);
+                });
+
+                let current = 0;
+                const slides = Array.from(track.querySelectorAll('.carousel-slide'));
+                const dots = Array.from(indicators.querySelectorAll('.carousel-dot'));
+
+                function goTo(index) {
+                    slides.forEach((s, i) => s.classList.toggle('active', i === index));
+                    dots.forEach((d, i) => d.classList.toggle('active', i === index));
+                    current = index;
+                }
+
+                function next() { goTo((current + 1) % slides.length); }
+                function prev() { goTo((current - 1 + slides.length) % slides.length); }
+
+                if (nextBtn) nextBtn.addEventListener('click', () => { next(); resetAutoplay(); });
+                if (prevBtn) prevBtn.addEventListener('click', () => { prev(); resetAutoplay(); });
+
+                dots.forEach(d => d.addEventListener('click', (e) => { const idx = parseInt(e.currentTarget.getAttribute('data-slide'),10); goTo(idx); resetAutoplay(); }));
+
+                // Autoplay
+                let autoplayId = null;
+                function startAutoplay() { autoplayId = setInterval(next, 5000); }
+                function stopAutoplay() { if (autoplayId) { clearInterval(autoplayId); autoplayId = null; } }
+                function resetAutoplay() { stopAutoplay(); startAutoplay(); }
+
+                // Iniciar autoplay si hay más de 1 slide
+                if (slides.length > 1) startAutoplay();
+
+                // Pausar autoplay al entrar con el mouse
+                const carousel = document.getElementById('heroCarousel');
+                if (carousel) {
+                    carousel.addEventListener('mouseenter', stopAutoplay);
+                    carousel.addEventListener('mouseleave', startAutoplay);
+                }
+
+            } catch (err) {
+                console.error('Error cargando carrusel:', err);
+            }
+        }
+        // Cargar carrusel al inicio
+        loadCarousel();
+});
