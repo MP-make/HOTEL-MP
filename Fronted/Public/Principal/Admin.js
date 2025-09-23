@@ -157,7 +157,7 @@
 
                         // ahora cada categoría puede tener: nombre, capacidad, precio_min_dia, precio_min_hora, cantidad_banos, cantidad_camas
                         const categoriasHtml = (categorias.length ? categorias : [{ nombre:'Matrimonial', capacidad:2, precio_min_dia:'', precio_min_hora:'', cantidad_banos:1, cantidad_camas:1 }]).map((c, idx) => `
-                            <div class="categoria-row" data-index="${idx}">
+                            <div class="categoria-row grid grid-cols-6 gap-2 items-center" data-index="${idx}">
                                 <input class="cat-nombre mt-1 border border-gray-300 rounded p-2" placeholder="Categoría" value="${c.nombre || ''}">
                                 <input class="cat-precio-dia mt-1 border border-gray-300 rounded p-2" type="number" step="0.01" placeholder="Precio mínimo por día" value="${c.precio_min_dia || ''}">
                                 <input class="cat-precio-hora mt-1 border border-gray-300 rounded p-2" type="number" step="0.01" placeholder="Precio mínimo por hora" value="${c.precio_min_hora || ''}">
@@ -185,7 +185,16 @@
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm text-gray-600">Categorías / Plantilla de Habitaciones</label>
+                                    <label class="block text-sm text-gray-600">AÑADIR CATEGORIAS DE HABITACIONES</label>
+                                   <!-- Guía visual encima de los cuadros -->
+                                   <div class="mt-2 grid grid-cols-6 gap-2 text-xs text-gray-700 font-medium">
+                                       <div class="px-2">Categoría</div>
+                                       <div class="px-2">Precio mínimo / día</div>
+                                       <div class="px-2">Precio mínimo / hora</div>
+                                       <div class="px-2">Cantidad de baños</div>
+                                       <div class="px-2">Cantidad de camas</div>
+                                       <div class="px-2">Capacidad (personas)</div>
+                                   </div>
                                     <div id="categorias-container" class="mt-2 flex flex-col gap-2">
                                         ${categoriasHtml || ''}
                                     </div>
@@ -216,7 +225,7 @@
                     function addCategoriaRow(data) {
                         const idx = Date.now();
                         const div = document.createElement('div');
-                        div.className = 'categoria-row';
+                        div.className = 'categoria-row grid grid-cols-6 gap-2 items-center';
                         div.dataset.index = idx;
                         div.innerHTML = `
                             <input class="cat-nombre mt-1 border border-gray-300 rounded p-2" placeholder="Categoría" value="${(data && data.nombre) || ''}">
@@ -740,15 +749,6 @@
                               </div>
                               <div>
                                 <label class="block text-sm text-gray-600">Fecha Hasta</label>
-                                <input id="filter-fecha-hasta" type="date" class="mt-1 border border-gray-300 rounded p-2">
-                              </div>
-                              <div>
-                                <label class="block text-sm text-gray-600">Estado</label>
-                                <select id="filter-estado" class="mt-1 border border-gray-300 rounded p-2">
-                                  <option value="">Todas</option>
-                                  <option value="pendiente">Pendiente</option>
-                                  <option value="completada">Completada</option>
-                                </select>
                               </div>
                               <div class="ml-auto flex gap-2">
                                 <button id="btn-filtrar-reservas" class="bg-blue-600 text-white px-4 py-2 rounded">Buscar</button>
@@ -943,7 +943,6 @@
                                     <th class="py-3 px-4">ID</th>
                                     <th class="py-3 px-4">Nombre</th>
                                     <th class="py-3 px-4">Email</th>
-                                    <th class="py-3 px-4">Rol</th>
                                     <th class="py-3 px-4">Acciones</th>
                                 </tr>
                                 </thead>
