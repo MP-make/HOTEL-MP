@@ -155,14 +155,15 @@
                         const habitaciones_por_piso = cfg.habitaciones_por_piso || 10;
                         const categorias = Array.isArray(cfg.categorias) ? cfg.categorias : [];
 
-                        // ahora cada categoría puede tener: nombre (categoria), tipo, capacidad, precio_min_dia, precio_min_hora, piso
-                        const categoriasHtml = (categorias.length ? categorias : [{ nombre:'Matrimonial', tipo:'Matrimonial', capacidad:2, precio_min_dia:'', precio_min_hora:'', piso:'' }]).map((c, idx) => `
+                        // ahora cada categoría puede tener: nombre, capacidad, precio_min_dia, precio_min_hora, cantidad_banos, cantidad_camas
+                        const categoriasHtml = (categorias.length ? categorias : [{ nombre:'Matrimonial', capacidad:2, precio_min_dia:'', precio_min_hora:'', cantidad_banos:1, cantidad_camas:1 }]).map((c, idx) => `
                             <div class="categoria-row" data-index="${idx}">
                                 <input class="cat-nombre mt-1 border border-gray-300 rounded p-2" placeholder="Categoría" value="${c.nombre || ''}">
                                 <input class="cat-precio-dia mt-1 border border-gray-300 rounded p-2" type="number" step="0.01" placeholder="Precio mínimo por día" value="${c.precio_min_dia || ''}">
                                 <input class="cat-precio-hora mt-1 border border-gray-300 rounded p-2" type="number" step="0.01" placeholder="Precio mínimo por hora" value="${c.precio_min_hora || ''}">
-                                <input class="cat-piso mt-1 border border-gray-300 rounded p-2" type="number" placeholder="Piso" value="${c.piso || ''}">
-                                <input class="cat-capacidad mt-1 border border-gray-300 rounded p-2" type="number" min="1" placeholder="Capacidad" value="${c.capacidad || 1}">
+                                <input class="cat-cantidad-banos mt-1 border border-gray-300 rounded p-2" type="number" min="0" placeholder="Cantidad de baños" value="${c.cantidad_banos != null ? c.cantidad_banos : 1}">
+                                <input class="cat-cantidad-camas mt-1 border border-gray-300 rounded p-2" type="number" min="0" placeholder="Cantidad de camas" value="${c.cantidad_camas != null ? c.cantidad_camas : 1}">
+                                <input class="cat-capacidad mt-1 border border-gray-300 rounded p-2" type="number" min="1" placeholder="Capacidad (personas)" value="${c.capacidad || 1}">
                                 <button type="button" class="remove-cat btn-minimal">Quitar</button>
                             </div>
                         `).join('');
@@ -221,8 +222,9 @@
                             <input class="cat-nombre mt-1 border border-gray-300 rounded p-2" placeholder="Categoría" value="${(data && data.nombre) || ''}">
                             <input class="cat-precio-dia mt-1 border border-gray-300 rounded p-2" type="number" step="0.01" placeholder="Precio mínimo por día" value="${(data && data.precio_min_dia) || ''}">
                             <input class="cat-precio-hora mt-1 border border-gray-300 rounded p-2" type="number" step="0.01" placeholder="Precio mínimo por hora" value="${(data && data.precio_min_hora) || ''}">
-                            <input class="cat-piso mt-1 border border-gray-300 rounded p-2" type="number" placeholder="Piso" value="${(data && data.piso) || ''}">
-                            <input class="cat-capacidad mt-1 border border-gray-300 rounded p-2" type="number" min="1" placeholder="Capacidad" value="${(data && data.capacidad) || 1}">
+                            <input class="cat-cantidad-banos mt-1 border border-gray-300 rounded p-2" type="number" min="0" placeholder="Cantidad de baños" value="${(data && data.cantidad_banos) || 1}">
+                            <input class="cat-cantidad-camas mt-1 border border-gray-300 rounded p-2" type="number" min="0" placeholder="Cantidad de camas" value="${(data && data.cantidad_camas) || 1}">
+                            <input class="cat-capacidad mt-1 border border-gray-300 rounded p-2" type="number" min="1" placeholder="Capacidad (personas)" value="${(data && data.capacidad) || 1}">
                             <button type="button" class="remove-cat btn-minimal">Quitar</button>
                         `;
                         container.appendChild(div);
@@ -235,13 +237,13 @@
                         const rows = container.querySelectorAll('.categoria-row');
                         rows.forEach(r => {
                             const nombre = (r.querySelector('.cat-nombre') || {}).value || '';
-                            const tipo = (r.querySelector('.cat-tipo') || {}) && (r.querySelector('.cat-tipo').value) || '';
                             const capacidad = parseInt((r.querySelector('.cat-capacidad') || {}).value || '1', 10) || 1;
+                            const cantidad_banos = parseInt((r.querySelector('.cat-cantidad-banos') || {}).value || '1', 10) || 1;
+                            const cantidad_camas = parseInt((r.querySelector('.cat-cantidad-camas') || {}).value || '1', 10) || 1;
                             const precio_min_dia = parseFloat((r.querySelector('.cat-precio-dia') || {}).value || '') || '';
                             const precio_min_hora = parseFloat((r.querySelector('.cat-precio-hora') || {}).value || '') || '';
-                            const piso = (r.querySelector('.cat-piso') || {}).value || '';
                             // only push if there's a category name to avoid empty rows
-                            if (nombre) cats.push({ nombre, tipo, capacidad, precio_min_dia, precio_min_hora, piso });
+                            if (nombre) cats.push({ nombre, capacidad, cantidad_banos, cantidad_camas, precio_min_dia, precio_min_hora });
                         });
                         return { pisos, habitaciones_por_piso: habPorPiso, categorias: cats };
                     }
@@ -913,32 +915,14 @@
         // Añadir habitación (abre modal)
         if (target && target.id === 'add-habitacion-btn') {
             try {
-                // obtener configuración local del hotel (pisos, hab por piso, categorías)
+                // obtener configuración local del hotel (plantillas de categorías)
                 const cfg = JSON.parse(localStorage.getItem('hotel_config') || '{}');
-                const pisosCfg = parseInt(cfg.pisos || 1, 10) || 1;
-                const habPorPisoCfg = parseInt(cfg.habitaciones_por_piso || 10, 10) || 10;
 
                 // obtener categorías del backend y combinarlas con las del config (config tiene prioridad visual)
                 const serverCats = await apiGet('/admin/categorias').catch(() => []);
-                const cfgCats = Array.isArray(cfg.categorias) ? cfg.categorias.map((c, i) => ({ id: `cfg-${i}`, nombre: c.nombre, capacidad: c.capacidad || 1, tipo: c.tipo || '', precio_min_dia: c.precio_min_dia || '', precio_min_hora: c.precio_min_hora || '', piso: c.piso || '' })) : [];
-                const allCats = (cfgCats.length ? cfgCats : []).concat(serverCats.map(sc => ({ id: sc.id_categoria || sc.id, nombre: sc.nombre || sc.tipo || 'Sin nombre', capacidad: sc.capacidad || '', tipo: sc.tipo || '', precio_min_dia: sc.precio_min_dia || '', precio_min_hora: sc.precio_min_hora || '', piso: sc.piso || '' })));
-                const options = allCats.map(c => `<option value="${c.id}" data-capacidad="${c.capacidad || ''}" data-precio-dia="${c.precio_min_dia || ''}" data-precio-hora="${c.precio_min_hora || ''}" data-piso="${c.piso || ''}" data-tipo="${c.tipo || ''}">${c.nombre}${c.capacidad ? ` (cap ${c.capacidad})` : ''}</option>`).join('');
-
-                // calcular disponibilidad por piso consultando habitaciones actuales
-                const habitacionesActuales = await apiGet('/admin/habitaciones').catch(()=>[]);
-                const countsByFloor = {};
-                (Array.isArray(habitacionesActuales) ? habitacionesActuales : (habitacionesActuales.habitaciones||[])).forEach(h => {
-                    const p = String(h.piso || '1');
-                    countsByFloor[p] = (countsByFloor[p] || 0) + 1;
-                });
-
-                // construir select pisos y mostrar disponibilidad
-                let pisosOptionsHtml = '';
-                for (let i = 1; i <= pisosCfg; i++) {
-                    const used = countsByFloor[String(i)] || 0;
-                    const avail = Math.max(0, habPorPisoCfg - used);
-                    pisosOptionsHtml += `<option value="${i}" data-avail="${avail}">Piso ${i} (Disponibles: ${avail})</option>`;
-                }
+                const cfgCats = Array.isArray(cfg.categorias) ? cfg.categorias.map((c, i) => ({ id: `cfg-${i}`, nombre: c.nombre, capacidad: c.capacidad || 1, precio_min_dia: c.precio_min_dia || '', precio_min_hora: c.precio_min_hora || '', cantidad_banos: c.cantidad_banos || 1, cantidad_camas: c.cantidad_camas || 1 })) : [];
+                const allCats = (cfgCats.length ? cfgCats : []).concat(serverCats.map(sc => ({ id: sc.id_categoria || sc.id, nombre: sc.nombre || sc.tipo || 'Sin nombre', capacidad: sc.capacidad || '', precio_min_dia: sc.precio_min_dia || '', precio_min_hora: sc.precio_min_hora || '', cantidad_banos: sc.cantidad_banos || 1, cantidad_camas: sc.cantidad_camas || 1 })));
+                const options = allCats.map(c => `<option value="${c.id}" data-capacidad="${c.capacidad || ''}" data-precio-dia="${c.precio_min_dia || ''}" data-precio-hora="${c.precio_min_hora || ''}" data-cantidad-banos="${c.cantidad_banos || ''}" data-cantidad-camas="${c.cantidad_camas || ''}">${c.nombre}${c.capacidad ? ` (cap ${c.capacidad})` : ''}</option>`).join('');
 
                 const formHtml = `
                 <form id="habitacion-form" class="space-y-4" enctype="multipart/form-data">
@@ -949,10 +933,6 @@
                     <div>
                     <label class="block text-sm font-medium text-gray-700">Categoría</label>
                     <select name="id_categoria" id="select-categoria" class="mt-1 block w-full border border-gray-300 rounded p-2">${options}</select>
-                    </div>
-                    <div>
-                    <label class="block text-sm font-medium text-gray-700">Tipo</label>
-                    <input name="tipo" id="input-tipo" placeholder="Ej. Matrimonial" class="mt-1 block w-full border border-gray-300 rounded p-2">
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <div>
@@ -966,12 +946,16 @@
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-2 items-end">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Piso</label>
-                        <select name="piso" id="select-piso" class="mt-1 block w-full border border-gray-300 rounded p-2">${pisosOptionsHtml}</select>
-                    </div>
-                    <div>
                         <label class="block text-sm font-medium text-gray-700">Capacidad (personas)</label>
                         <input type="number" name="capacidad" id="input-capacidad" class="mt-1 block w-full border border-gray-300 rounded p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Cantidad de baños</label>
+                        <input type="number" name="cantidad_banos" id="input-cantidad-banos" class="mt-1 block w-full border border-gray-300 rounded p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Cantidad de camas</label>
+                        <input type="number" name="cantidad_camas" id="input-cantidad-camas" class="mt-1 block w-full border border-gray-300 rounded p-2">
                     </div>
                     </div>
                     <div>
@@ -990,13 +974,13 @@
                 `;
                  showModal('Añadir Habitación', formHtml, () => {
                     const form = document.getElementById('habitacion-form');
-                    // actualizar tipo/capacidad/precios/piso según categoría seleccionada (si config provee valores)
+                    // actualizar capacidad/precios/cantidad de baños y camas según categoría seleccionada
                     const selectCat = document.getElementById('select-categoria');
-                    const inputTipo = document.getElementById('input-tipo');
                     const inputCap = document.getElementById('input-capacidad');
-                    const inputPrecioDia = form.querySelector('input[name="precio_por_dia"]');
-                    const inputPrecioHora = form.querySelector('input[name="precio_por_hora"]');
-                    const selectPiso = document.getElementById('select-piso');
+                    const inputPrecioDia = document.getElementById('input-precio-dia');
+                    const inputPrecioHora = document.getElementById('input-precio-hora');
+                    const inputBanos = document.getElementById('input-cantidad-banos');
+                    const inputCamas = document.getElementById('input-cantidad-camas');
 
                     if (selectCat) {
                         selectCat.addEventListener('change', (ev) => {
@@ -1005,43 +989,14 @@
                             const cap = opt.getAttribute('data-capacidad');
                             const precioDia = opt.getAttribute('data-precio-dia');
                             const precioHora = opt.getAttribute('data-precio-hora');
-                            const pisoVal = opt.getAttribute('data-piso');
-                            const tipoVal = opt.getAttribute('data-tipo');
+                            const cantidadBanos = opt.getAttribute('data-cantidad-banos');
+                            const cantidadCamas = opt.getAttribute('data-cantidad-camas');
                             if (cap) inputCap.value = cap;
                             if (precioDia !== null && precioDia !== '') inputPrecioDia.value = precioDia;
                             if (precioHora !== null && precioHora !== '') inputPrecioHora.value = precioHora;
-                            if (pisoVal) {
-                                // intentar seleccionar el piso configurado
-                                try { selectPiso.value = String(pisoVal); } catch (__) {}
-                                // actualizar texto de disponibilidad
-                                const evt = new Event('change');
-                                selectPiso.dispatchEvent(evt);
-                            }
-                            if (tipoVal) inputTipo.value = tipoVal;
-                            // si la opción proviene de config id (starts with cfg-) y no tiene tipo, usar el nombre
-                            if (opt.value && String(opt.value).startsWith('cfg-') && !tipoVal) {
-                                inputTipo.value = opt.textContent.split(' (')[0] || '';
-                            }
+                            if (cantidadBanos !== null && cantidadBanos !== '') inputBanos.value = cantidadBanos;
+                            if (cantidadCamas !== null && cantidadCamas !== '') inputCamas.value = cantidadCamas;
                         });
-                    }
-
-                    // mostrar disponibilidad dinámica al cambiar piso
-                    function updatePisoAvail() {
-                        const opt = selectPiso.selectedOptions[0];
-                        if (!opt) return;
-                        const avail = opt.getAttribute('data-avail');
-                        // añadir o actualizar pequeño texto debajo del select
-                        let span = selectPiso.parentNode.querySelector('.piso-avail');
-                        if (!span) {
-                            span = document.createElement('div');
-                            span.className = 'text-sm text-gray-600 piso-avail mt-1';
-                            selectPiso.parentNode.appendChild(span);
-                        }
-                        span.textContent = `Habitaciones disponibles en este piso: ${avail}`;
-                    }
-                    if (selectPiso) {
-                        selectPiso.addEventListener('change', updatePisoAvail);
-                        updatePisoAvail();
                     }
 
                     form.addEventListener('submit', async (e) => {
