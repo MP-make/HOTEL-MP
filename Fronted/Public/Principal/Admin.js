@@ -438,6 +438,183 @@
                     });
 
                     // Nota: los botones Editar/Eliminar siguen siendo manejados por la delegación global en mainContentArea
+
+                    // --- Handler para 'Añadir Habitación' (modal con validaciones según configuración del hotel) ---
+                    async function openAddHabitacionModal() {
+                        try {
+                            // cargar configuración local (puede venir del formulario de configuración de hotel)
+                            const cfg = JSON.parse(localStorage.getItem('hotel_config') || '{}');
+                            const pisos = parseInt(cfg.pisos || 1, 10) || 1;
+                            const habPorPiso = parseInt(cfg.habitaciones_por_piso || 10, 10) || 10;
+                            const categoriasCfg = Array.isArray(cfg.categorias) ? cfg.categorias : [];
+
+                            // fallback de categorias desde API si no hay configuración local
+                            let categoriasApi = [];
+                            try { categoriasApi = await apiGet('/admin/categorias'); } catch(e){ /* ignore */ }
+                            const categorias = (categoriasCfg.length ? categoriasCfg : categoriasApi.map(c=>({ nombre: c.nombre, id_categoria: c.id_categoria, precio_min_dia: c.precio_min_dia, precio_min_hora: c.precio_min_hora }))) || [];
+
+                            // obtener habitaciones existentes para calcular números ocupados
+                            const habitacionesRes = await apiGet('/admin/habitaciones').catch(()=>[]);
+                            const habitaciones = Array.isArray(habitacionesRes) ? habitacionesRes : (habitacionesRes.habitaciones || habitacionesRes.rows || []);
+                            const usados = new Set((habitaciones || []).map(h => String(h.numero_habitacion)));
+
+                            // helpers para generar opciones de piso y número
+                            const pisoOptions = Array.from({length: pisos}, (_,i) => i+1).map(p => `<option value="${p}">${p}</option>`).join('');
+
+                            function generarNumerosOptions(piso) {
+                                const base = parseInt(piso,10) * 100;
+                                const opts = [];
+                                for (let i = 1; i <= habPorPiso; i++) {
+                                    const num = base + i;
+                                    if (!usados.has(String(num))) opts.push(`<option value="${num}">${num}</option>`);
+                                }
+                                return opts.join('') || '<option value="">(No hay números disponibles en este piso)</option>';
+                            }
+
+                            const categoriasOptions = (categorias.map((c,idx) => {
+                                const precioMinDia = c.precio_min_dia != null ? c.precio_min_dia : (c.precio_min || '');
+                                const precioMinHora = c.precio_min_hora != null ? c.precio_min_hora : (c.precio_hora_min || '');
+                                return `<option data-precio-dia="${precioMinDia}" data-precio-hora="${precioMinHora}" value="${c.id_categoria || idx}">${c.nombre}</option>`;
+                            }).join('')) || '<option value="">Sin categorías</option>';
+
+                            const formHtml = `
+                                <form id="add-habitacion-form" enctype="multipart/form-data">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                            <label>Número de Piso</label>
+                                            <select id="add-piso" class="mt-1 border rounded p-2">${pisoOptions}</select>
+                                        </div>
+                                        <div>
+                                            <label>Número de Habitación</label>
+                                            <select id="add-numero" class="mt-1 border rounded p-2">${generarNumerosOptions(1)}</select>
+                                        </div>
+                                        <div class="md:col-span-2">
+                                            <label>Categoría</label>
+                                            <select id="add-categoria" class="mt-1 border rounded p-2">${categoriasOptions}</select>
+                                        </div>
+                                        <div>
+                                            <label>Precio por Día (USD)</label>
+                                            <input id="add-precio-dia" type="number" step="0.01" class="mt-1 border rounded p-2" required>
+                                            <p id="min-dia-msg" class="text-sm text-gray-500 mt-1"></p>
+                                        </div>
+                                        <div>
+                                            <label>Precio por Hora (USD)</label>
+                                            <input id="add-precio-hora" type="number" step="0.01" class="mt-1 border rounded p-2">
+                                            <p id="min-hora-msg" class="text-sm text-gray-500 mt-1"></p>
+                                        </div>
+                                        <div class="md:col-span-2">
+                                            <label>Capacidad (personas)</label>
+                                            <input id="add-capacidad" type="number" min="1" class="mt-1 border rounded p-2">
+                                        </div>
+                                        <div class="md:col-span-2">
+                                            <label>Descripción</label>
+                                            <textarea id="add-descripcion" class="mt-1 border rounded p-2 w-full" rows="3"></textarea>
+                                        </div>
+                                        <div class="md:col-span-2">
+                                            <label>Fotos de referencia</label>
+                                            <input id="add-fotos" type="file" accept="image/*" multiple class="mt-1">
+                                        </div>
+                                        <div class="md:col-span-2 flex justify-end">
+                                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Guardar</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            `;
+
+                            showModal('Añadir Habitación', formHtml, () => {
+                                const selectPiso = document.getElementById('add-piso');
+                                const selectNumero = document.getElementById('add-numero');
+                                const selectCategoria = document.getElementById('add-categoria');
+                                const inputPrecioDia = document.getElementById('add-precio-dia');
+                                const inputPrecioHora = document.getElementById('add-precio-hora');
+                                const minDiaMsg = document.getElementById('min-dia-msg');
+                                const minHoraMsg = document.getElementById('min-hora-msg');
+                                const form = document.getElementById('add-habitacion-form');
+
+                                function updateNumeroOptions() {
+                                    const pisoVal = selectPiso.value || '1';
+                                    selectNumero.innerHTML = generarNumerosOptions(pisoVal);
+                                }
+
+                                function updateMinPrices() {
+                                    const sel = selectCategoria.selectedOptions[0];
+                                    if (!sel) return;
+                                    const minDia = sel.getAttribute('data-precio-dia');
+                                    const minHora = sel.getAttribute('data-precio-hora');
+                                    minDiaMsg.textContent = minDia ? `Precio mínimo por día: $${parseFloat(minDia).toFixed(2)}` : '';
+                                    minHoraMsg.textContent = minHora ? `Precio mínimo por hora: $${parseFloat(minHora).toFixed(2)}` : '';
+                                    if (minDia) inputPrecioDia.min = minDia; else inputPrecioDia.removeAttribute('min');
+                                    if (minHora) inputPrecioHora.min = minHora; else inputPrecioHora.removeAttribute('min');
+                                }
+
+                                selectPiso.addEventListener('change', updateNumeroOptions);
+                                selectCategoria.addEventListener('change', updateMinPrices);
+
+                                // inicializar valores
+                                updateNumeroOptions();
+                                updateMinPrices();
+
+                                form.addEventListener('submit', async (ev) => {
+                                    ev.preventDefault();
+                                    try {
+                                        const numero = (document.getElementById('add-numero') || {}).value;
+                                        const piso = (document.getElementById('add-piso') || {}).value;
+                                        const categoriaSel = (document.getElementById('add-categoria') || {}).selectedOptions[0];
+                                        const idCategoria = categoriaSel ? categoriaSel.value : '';
+                                        const precioDia = parseFloat((document.getElementById('add-precio-dia') || {}).value || '0');
+                                        const precioHora = parseFloat((document.getElementById('add-precio-hora') || {}).value || '0');
+                                        const capacidad = parseInt((document.getElementById('add-capacidad') || {}).value || '', 10) || undefined;
+                                        const descripcion = (document.getElementById('add-descripcion') || {}).value || '';
+                                        const fotosEl = document.getElementById('add-fotos');
+
+                                        if (!numero) return showModal('Error', '<p>Seleccione un número de habitación disponible.</p>');
+
+                                        // validar precios mínimos según categoría
+                                        const minDia = parseFloat(categoriaSel.getAttribute('data-precio-dia') || '0') || 0;
+                                        const minHora = parseFloat(categoriaSel.getAttribute('data-precio-hora') || '0') || 0;
+                                        if (minDia && precioDia < minDia) return showModal('Error', `<p>El precio por día no puede ser inferior a $${minDia.toFixed(2)} para esta categoría.</p>`);
+                                        if (minHora && precioHora && precioHora < minHora) return showModal('Error', `<p>El precio por hora no puede ser inferior a $${minHora.toFixed(2)} para esta categoría.</p>`);
+
+                                        // construir FormData para incluir imágenes
+                                        const fd = new FormData();
+                                        fd.append('numero_habitacion', numero);
+                                        fd.append('piso', piso);
+                                        fd.append('id_categoria', idCategoria);
+                                        fd.append('precio_por_dia', precioDia);
+                                        if (!isNaN(precioHora) && precioHora > 0) fd.append('precio_por_hora', precioHora);
+                                        if (capacidad) fd.append('capacidad', capacidad);
+                                        if (descripcion) fd.append('descripcion', descripcion);
+
+                                        if (fotosEl && fotosEl.files && fotosEl.files.length) {
+                                            for (let i = 0; i < fotosEl.files.length; i++) fd.append('fotos', fotosEl.files[i]);
+                                        }
+
+                                        // enviar con fetch para multipart/form-data
+                                        const token = localStorage.getItem('token') || '';
+                                        const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+                                        const res = await fetch('/api/admin/habitaciones', { method: 'POST', body: fd, headers });
+                                        if (!res.ok) {
+                                            const body = await res.json().catch(()=>({ error: res.statusText }));
+                                            throw new Error(body.error || 'Error creando habitación');
+                                        }
+
+                                        // cerrar modal y recargar sección
+                                        hideModal();
+                                        loadSection('gestion-habitaciones');
+                                        showModal('Éxito', '<p>Habitación creada correctamente.</p>');
+                                    } catch (err) {
+                                        showModal('Error', `<p>${err.message}</p>`);
+                                    }
+                                });
+                            });
+
+                        } catch (err) {
+                            showModal('Error', `<p>${err.message}</p>`);
+                        }
+                    }
+
+                    const addBtnEl = document.getElementById('add-habitacion-btn');
+                    if (addBtnEl) addBtnEl.addEventListener('click', openAddHabitacionModal);
                 }
             },
 
