@@ -149,6 +149,7 @@
                 title: 'Gestión de Habitaciones',
                 render: async () => {
                     try {
+                        // cargar datos iniciales
                         const habitacionesRes = await apiGet('/admin/habitaciones');
                         const habitaciones = Array.isArray(habitacionesRes) ? habitacionesRes : (habitacionesRes.habitaciones || habitacionesRes.rows || []);
                         const categorias = await apiGet('/admin/categorias').catch(()=>[
@@ -158,9 +159,10 @@
                             { id_categoria:4, nombre:'Familiar' }
                         ]);
                         const categoriasMap = new Map(categorias.map(c => [c.id_categoria, c.nombre]));
-    
+
                         const rows = habitaciones.map(h => `
                         <tr class="border-b hover:bg-gray-50">
+                            <td class="py-3 px-4">${h.id_habitacion || ''}</td>
                             <td class="py-3 px-4">${h.numero_habitacion}</td>
                             <td class="py-3 px-4">${categoriasMap.get(h.id_categoria) || h.categoria || 'N/A'}</td>
                             <td class="py-3 px-4">$${(h.precio_por_dia || 0).toFixed ? (h.precio_por_dia||0).toFixed(2) : (h.precio_por_dia||0)}</td>
@@ -173,25 +175,56 @@
                             <td class="py-3 px-4 flex space-x-2">
                             <button data-id="${h.id_habitacion}" class="edit-btn px-3 py-1 rounded bg-blue-600 text-white text-xs">Editar</button>
                             <button data-id="${h.id_habitacion}" class="delete-btn px-3 py-1 rounded bg-red-600 text-white text-xs">Eliminar</button>
-                            <button data-id="${h.id_habitacion}" class="fotos-btn px-3 py-1 rounded bg-indigo-600 text-white text-xs">Fotos</button>
                             </td>
                         </tr>
                         `).join('');
-    
+
                         return `
                         <div class="flex items-center justify-between mb-4">
                             <h2 class="text-xl font-semibold text-gray-700">Habitaciones</h2>
                             <div class="flex gap-2">
                             <button id="add-habitacion-btn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Añadir Habitación</button>
-                            <button id="filter-available-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Mostrar solo disponibles</button>
                             </div>
                         </div>
-    
+
+                        <!-- Filtros de búsqueda: id/numero/categoria/piso/capacidad/disponibilidad -->
+                        <div class="mb-4 p-4 bg-white rounded shadow flex flex-wrap gap-3 items-end">
+                          <div>
+                            <label class="block text-sm text-gray-600">ID / Número</label>
+                            <input id="filter-q" type="text" class="mt-1 border border-gray-300 rounded p-2" placeholder="ID o número">
+                          </div>
+                          <div>
+                            <label class="block text-sm text-gray-600">Categoría</label>
+                            <input id="filter-categoria" type="text" class="mt-1 border border-gray-300 rounded p-2" placeholder="Ej. Matrimonial">
+                          </div>
+                          <div>
+                            <label class="block text-sm text-gray-600">Piso</label>
+                            <input id="filter-piso" type="number" class="mt-1 border border-gray-300 rounded p-2" placeholder="Piso">
+                          </div>
+                          <div>
+                            <label class="block text-sm text-gray-600">Capacidad</label>
+                            <input id="filter-capacidad" type="number" class="mt-1 border border-gray-300 rounded p-2" placeholder="Personas">
+                          </div>
+                          <div>
+                            <label class="block text-sm text-gray-600">Disponibilidad</label>
+                            <select id="filter-disponible" class="mt-1 border border-gray-300 rounded p-2">
+                              <option value="">Todas</option>
+                              <option value="true">Disponible</option>
+                              <option value="false">Ocupada</option>
+                            </select>
+                          </div>
+                          <div class="ml-auto flex gap-2">
+                            <button id="btn-filtrar-habitaciones" class="bg-blue-600 text-white px-4 py-2 rounded">Buscar</button>
+                            <button id="btn-limpiar-filtros-habitaciones" class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Limpiar</button>
+                          </div>
+                        </div>
+
                         <div class="admin-card">
                             <div class="overflow-x-auto">
                             <table class="min-w-full bg-white rounded-lg shadow overflow-hidden">
                                 <thead class="bg-gray-100">
                                 <tr>
+                                    <th class="py-3 px-4 text-left">ID</th>
                                     <th class="py-3 px-4 text-left">Número</th>
                                     <th class="py-3 px-4 text-left">Categoría</th>
                                     <th class="py-3 px-4 text-left">Precio/Día</th>
@@ -203,7 +236,7 @@
                                 </tr>
                                 </thead>
                                 <tbody id="habitaciones-tbody" class="divide-y divide-gray-200">
-                                ${rows || `<tr><td colspan="8" class="text-center py-4">No hay habitaciones registradas.</td></tr>`}
+                                ${rows || `<tr><td colspan="9" class="text-center py-4">No hay habitaciones registradas.</td></tr>`}
                                 </tbody>
                             </table>
                             </div>
@@ -214,36 +247,65 @@
                     }
                 },
                 postRender: () => {
-                    // postRender: attach filter button handler
-                    const filterBtn = document.getElementById('filter-available-btn');
-                    if (filterBtn) {
-                        filterBtn.addEventListener('click', async () => {
-                            try {
-                                const all = await apiGet('/admin/habitaciones');
-                                const available = all.filter(h => h.disponible);
-                                // render simplified table for available
-                                const tbody = document.getElementById('habitaciones-tbody');
-                                tbody.innerHTML = available.map(h => `
+                    // Reemplaza el antiguo botón "Mostrar solo disponibles" por filtros avanzados
+                    async function renderTableWithFilters() {
+                        const q = document.getElementById('filter-q').value.trim();
+                        const categoria = document.getElementById('filter-categoria').value.trim();
+                        const piso = document.getElementById('filter-piso').value;
+                        const capacidad = document.getElementById('filter-capacidad').value;
+                        const disponible = document.getElementById('filter-disponible').value;
+
+                        const params = new URLSearchParams();
+                        if (q) params.append('q', q);
+                        if (categoria) params.append('categoria', categoria);
+                        if (piso) params.append('piso', piso);
+                        if (capacidad) params.append('capacidad', capacidad);
+                        if (disponible !== '') params.append('disponible', disponible);
+
+                        try {
+                            const path = '/admin/habitaciones' + (params.toString() ? `?${params.toString()}` : '');
+                            const habitacionesRes = await apiGet(path);
+                            const habitaciones = Array.isArray(habitacionesRes) ? habitacionesRes : (habitacionesRes.habitaciones || habitacionesRes.rows || []);
+                            const tbody = document.getElementById('habitaciones-tbody');
+                            if (!tbody) return;
+                            const rows = habitaciones.map(h => `
                                 <tr class="border-b hover:bg-gray-50">
+                                    <td class="py-3 px-4">${h.id_habitacion || ''}</td>
                                     <td class="py-3 px-4">${h.numero_habitacion}</td>
                                     <td class="py-3 px-4">${h.categoria || '-'}</td>
                                     <td class="py-3 px-4">$${(h.precio_por_dia||0).toFixed ? (h.precio_por_dia||0).toFixed(2) : (h.precio_por_dia||0)}</td>
                                     <td class="py-3 px-4">${h.precio_por_hora|| '-'}</td>
                                     <td class="py-3 px-4">${h.piso || '-'}</td>
                                     <td class="py-3 px-4">${h.capacidad || '-'}</td>
-                                    <td class="py-3 px-4"><span class="status-available">Disponible</span></td>
+                                    <td class="py-3 px-4"><span class="${h.disponible ? 'status-available' : 'status-occupied'}">${h.disponible ? 'Disponible' : 'Ocupada'}</span></td>
                                     <td class="py-3 px-4 flex space-x-2">
                                     <button data-id="${h.id_habitacion}" class="edit-btn px-3 py-1 rounded bg-blue-600 text-white text-xs">Editar</button>
                                     <button data-id="${h.id_habitacion}" class="delete-btn px-3 py-1 rounded bg-red-600 text-white text-xs">Eliminar</button>
-                                    <button data-id="${h.id_habitacion}" class="fotos-btn px-3 py-1 rounded bg-indigo-600 text-white text-xs">Fotos</button>
                                     </td>
                                 </tr>
-                                `).join('');
-                            } catch (err) {
-                                showModal('Error', `<p>${err.message}</p>`);
-                            }
-                        });
+                            `).join('');
+                            tbody.innerHTML = rows.length ? rows : `<tr><td colspan="9" class="text-center py-4">No hay habitaciones.</td></tr>`;
+                        } catch (err) {
+                            showModal('Error', `<p>${err.message}</p>`);
+                        }
                     }
+
+                    // Inicializar tabla (sin filtros)
+                    renderTableWithFilters();
+
+                    const btnBuscar = document.getElementById('btn-filtrar-habitaciones');
+                    if (btnBuscar) btnBuscar.addEventListener('click', renderTableWithFilters);
+                    const btnLimpiar = document.getElementById('btn-limpiar-filtros-habitaciones');
+                    if (btnLimpiar) btnLimpiar.addEventListener('click', () => {
+                        document.getElementById('filter-q').value = '';
+                        document.getElementById('filter-categoria').value = '';
+                        document.getElementById('filter-piso').value = '';
+                        document.getElementById('filter-capacidad').value = '';
+                        document.getElementById('filter-disponible').value = '';
+                        renderTableWithFilters();
+                    });
+
+                    // Nota: los botones Editar/Eliminar siguen siendo manejados por la delegación global en mainContentArea
                 }
             },
 
@@ -576,11 +638,24 @@
                         const formData = new FormData(form); // incluye archivo
 
                         try {
+                            const token = localStorage.getItem('token') || '';
+                            const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
                             const res = await fetch('/api/admin/habitaciones', {
                                 method: 'POST',
-                                body: formData
+                                body: formData,
+                                headers
                             });
-                            if (!res.ok) throw new Error('Error al crear habitación');
+                            if (!res.ok) {
+                                // intentar extraer un mensaje de error más descriptivo del body
+                                let errMsg = res.statusText || 'Error al crear habitación';
+                                try {
+                                    const body = await res.json();
+                                    errMsg = body.error || body.message || body.detalle || JSON.stringify(body) || errMsg;
+                                } catch (e) {
+                                    try { const txt = await res.text(); if (txt) errMsg = txt; } catch (__){}
+                                }
+                                throw new Error(errMsg);
+                            }
                             await res.json();
 
                             loadSection('gestion-habitaciones');
@@ -667,11 +742,23 @@
                         const formData = new FormData(form); // incluye archivo si se selecciona
 
                         try {
+                            const token = localStorage.getItem('token') || '';
+                            const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
                             const res = await fetch(`/api/admin/habitaciones/${habitacion.id_habitacion}`, {
                                 method: 'PUT',
-                                body: formData
+                                body: formData,
+                                headers
                             });
-                            if (!res.ok) throw new Error('Error al actualizar habitación');
+                            if (!res.ok) {
+                                let errMsg = res.statusText || 'Error al actualizar habitación';
+                                try {
+                                    const body = await res.json();
+                                    errMsg = body.error || body.message || body.detalle || JSON.stringify(body) || errMsg;
+                                } catch (e) {
+                                    try { const txt = await res.text(); if (txt) errMsg = txt; } catch (__){}
+                                }
+                                throw new Error(errMsg);
+                            }
                             await res.json();
 
                             loadSection('gestion-habitaciones');
@@ -706,107 +793,6 @@
             return;
         }
 
-        // Gestionar fotos de habitación
-        if (target && target.classList.contains('fotos-btn')) {
-            const id = target.getAttribute('data-id');
-            try {
-                // Obtener fotos (puede devolver [{ id, url }] o simplemente [url])
-                const fotos = await apiGet(`/admin/habitaciones/${id}/fotos`).catch(() => []);
-                const fotosHtml = (fotos && fotos.length) ? fotos.map(f => `
-                    <div class="inline-block m-2 text-center" style="width:120px">
-                        <img src="${f.url || f}" class="h-24 w-full object-cover rounded border">
-                        <div class="mt-1 flex justify-between">
-                            <button data-url="${f.url || f}" class="delete-foto-btn px-2 py-1 text-xs bg-red-500 text-white rounded">Eliminar</button>
-                            <a href="${f.url || f}" target="_blank" class="px-2 py-1 text-xs bg-gray-200 rounded">Abrir</a>
-                        </div>
-                    </div>
-                `).join('') : '<p class="text-sm">No hay fotos aún.</p>';
-
-                const modalHtml = `
-                    <div>
-                        <div id="fotos-list" class="flex flex-wrap">${fotosHtml}</div>
-                        <hr class="my-3">
-                        <form id="upload-fotos-form" enctype="multipart/form-data">
-                            <label class="block text-sm font-medium">Subir fotos</label>
-                            <input type="file" name="fotos" accept="image/*" multiple class="mt-2">
-                            <div class="mt-3 flex justify-end">
-                                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Subir</button>
-                            </div>
-                        </form>
-                    </div>
-                `;
-
-                showModal('Fotos de la habitación', modalHtml, () => {
-                    // manejar eliminación
-                    document.getElementById('dynamicModal').addEventListener('click', async (ev) => {
-                        const delBtn = ev.target.closest('.delete-foto-btn');
-                        if (!delBtn) return;
-                        const url = delBtn.getAttribute('data-url');
-                        showConfirmModal('Eliminar foto permanentemente?', async () => {
-                            try {
-                                // intentar endpoint DELETE por id/url; usar POST de respaldo
-                                try {
-                                    await apiDelete(`/admin/habitaciones/${id}/fotos?url=${encodeURIComponent(url)}`);
-                                } catch (_) {
-                                    await apiPost(`/admin/habitaciones/${id}/fotos/delete`, { url });
-                                }
-                                // refrescar listado de fotos en modal
-                                const updated = await apiGet(`/admin/habitaciones/${id}/fotos`).catch(() => []);
-                                const listEl = document.getElementById('fotos-list');
-                                if (listEl) {
-                                    listEl.innerHTML = (updated && updated.length) ? updated.map(f => `
-                                        <div class="inline-block m-2 text-center" style="width:120px">
-                                            <img src="${f.url || f}" class="h-24 w-full object-cover rounded border">
-                                            <div class="mt-1 flex justify-between">
-                                                <button data-url="${f.url || f}" class="delete-foto-btn px-2 py-1 text-xs bg-red-500 text-white rounded">Eliminar</button>
-                                                <a href="${f.url || f}" target="_blank" class="px-2 py-1 text-xs bg-gray-200 rounded">Abrir</a>
-                                            </div>
-                                        </div>
-                                    `).join('') : '<p class="text-sm">No hay fotos aún.</p>';
-                                }
-                            } catch (err) {
-                                showModal('Error', `<p>${err.message}</p>`);
-                            }
-                        });
-                    });
-
-                    // manejar subida
-                    const uploadForm = document.getElementById('upload-fotos-form');
-                    if (uploadForm) {
-                        uploadForm.addEventListener('submit', async (ev) => {
-                            ev.preventDefault();
-                            const fd = new FormData(uploadForm);
-                            try {
-                                const res = await fetch(`/api/admin/habitaciones/${id}/fotos`, { method: 'POST', body: fd });
-                                if (!res.ok) throw new Error('Error subiendo fotos');
-                                // refrescar
-                                const updated = await apiGet(`/admin/habitaciones/${id}/fotos`).catch(() => []);
-                                const listEl = document.getElementById('fotos-list');
-                                if (listEl) {
-                                    listEl.innerHTML = (updated && updated.length) ? updated.map(f => `
-                                        <div class="inline-block m-2 text-center" style="width:120px">
-                                            <img src="${f.url || f}" class="h-24 w-full object-cover rounded border">
-                                            <div class="mt-1 flex justify-between">
-                                                <button data-url="${f.url || f}" class="delete-foto-btn px-2 py-1 text-xs bg-red-500 text-white rounded">Eliminar</button>
-                                                <a href="${f.url || f}" target="_blank" class="px-2 py-1 text-xs bg-gray-200 rounded">Abrir</a>
-                                            </div>
-                                        </div>
-                                    `).join('') : '<p class="text-sm">No hay fotos aún.</p>';
-                                }
-                            } catch (err) {
-                                showModal('Error', `<p>${err.message}</p>`);
-                            }
-                        });
-                        // evitar que el handler global intente re-procesar este form
-                        uploadForm.dataset.skipGlobal = 'true';
-                    }
-                });
-            } catch (err) {
-                showModal('Error', `<p>${err.message}</p>`);
-            }
-            return;
-        }
-
             // Añadir encargado (crear nuevo usuario con rol encargado)
             if (target && target.id === 'add-encargado-btn') {
                 const formHtml = `
@@ -817,12 +803,6 @@
                     </div>
                     <div>
                     <label class="block text-sm font-medium text-gray-700">Email</label>
-                    <input type="email" name="email" required class="mt-1 block w-full border border-gray-300 rounded p-2">
-                    </div>
-                    <div>
-                    <label class="block text-sm font-medium text-gray-700">Contraseña</label>
-                    <input type="password" name="password" required class="mt-1 block w-full border border-gray-300 rounded p-2">
-                    </div>
                     <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Crear Encargado</button>
                 </form>
                 `;
@@ -961,7 +941,9 @@
                     try {
                         const url = id ? `/api/admin/habitaciones/${id}` : '/api/admin/habitaciones';
                         const method = id ? 'PUT' : 'POST';
-                        const res = await fetch(url, { method, body: fd });
+                        const token = localStorage.getItem('token') || '';
+                        const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+                        const res = await fetch(url, { method, body: fd, headers });
                         if (!res.ok) {
                             const err = await res.json().catch(()=>({ error: res.statusText }));
                             throw new Error(err.error || res.statusText);

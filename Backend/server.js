@@ -115,8 +115,17 @@ async function queryWithRetry(queryText, params = [], retries = 4, delayMs = 500
 
 // Reemplazar la verificación inicial de la BD por una versión con reintentos
 queryWithRetry('SELECT NOW()', [], 6, 500)
-.then(() => console.log('Conexión a la base de datos verificada correctamente.'))
-.catch(err => console.error('Error al conectar a la base de datos (después de reintentos):', err.message));
+  .then(() => {
+    console.log('Conexión a la base de datos verificada correctamente.');
+    // Iniciar el servidor SOLO si la BD está lista
+    app.listen(PORT, () => {
+      console.log(`Servidor corriendo en http://localhost:${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('Error CRÍTICO al conectar a la base de datos (después de reintentos):', err.message);
+    process.exit(1); // Salir si no se puede conectar a la BD
+  });
 
 // Define la ruta absoluta para guardar las fotos
 // La carpeta de destino será 'Fronted/Public/img/habitaciones' para coincidir con las rutas guardadas en DB
@@ -427,24 +436,48 @@ try {
  */
 app.get("/api/admin/habitaciones", authenticateToken, requireAdmin, async (req, res) => {
 try {
-    const { page = 1, pageSize = 20, q } = req.query;
+    const { page = 1, pageSize = 20, q, categoria, piso, capacidad, disponible } = req.query;
     const offset = (parseInt(page,10) -1) * parseInt(pageSize,10);
-    const params = [];
+
     const where = [];
+    const params = [];
     let idx = 1;
+
     if (q) {
-      where.push(`(h.numero_habitacion::text ILIKE $${idx} OR c.nombre ILIKE $${idx} OR h.tipo ILIKE $${idx})`);
+      where.push(`(h.numero_habitacion::text ILIKE $${idx} OR c.nombre ILIKE $${idx} OR h.tipo ILIKE $${idx} OR h.id_habitacion::text ILIKE $${idx})`);
       params.push('%' + q + '%');
       idx++;
     }
+    if (categoria) {
+      where.push(`c.nombre ILIKE $${idx}`);
+      params.push('%' + categoria + '%');
+      idx++;
+    }
+    if (piso) {
+      where.push(`h.piso = $${idx}`);
+      params.push(parseInt(piso, 10));
+      idx++;
+    }
+    if (capacidad) {
+      where.push(`h.capacidad = $${idx}`);
+      params.push(parseInt(capacidad, 10));
+      idx++;
+    }
+    if (disponible === 'true' || disponible === 'false') {
+      where.push(`h.disponible = $${idx}`);
+      params.push(disponible === 'true');
+      idx++;
+    }
+
     const whereSQL = where.length ? 'WHERE ' + where.join(' AND ') : '';
 
-    const totalRes = await queryWithRetry(`SELECT COUNT(*)::int AS total FROM public.habitaciones h LEFT JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria ${whereSQL}`, params);
+    // total
+    const totalParams = [...params];
+    const totalRes = await queryWithRetry(`SELECT COUNT(*)::int AS total FROM public.habitaciones h LEFT JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria ${whereSQL}`, totalParams);
     const total = totalRes.rows[0].total || 0;
 
-    params.push(parseInt(pageSize,10));
-    params.push(offset);
-
+    // data
+    const dataParams = [...params, parseInt(pageSize,10), offset];
     const dataQ = `
       SELECT
         h.id_habitacion, h.numero_habitacion, h.tipo, h.precio_por_dia, h.precio_por_hora, h.piso, h.capacidad, h.disponible, c.nombre AS categoria, h.id_categoria
@@ -452,9 +485,10 @@ try {
       LEFT JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria
       ${whereSQL}
       ORDER BY h.id_habitacion ASC
-      LIMIT $${idx++} OFFSET $${idx++};
+      LIMIT $${idx} OFFSET $${idx+1};
     `;
-    const result = await queryWithRetry(dataQ, params);
+
+    const result = await queryWithRetry(dataQ, dataParams);
     // Return direct array for compatibility with frontend that expects an array
     res.json(result.rows);
 } catch (err) {
@@ -1163,10 +1197,4 @@ app.delete('/api/admin/carrusel/:name', authenticateToken, requireAdmin, async (
     console.error('Error eliminando imagen del carrusel:', err);
     res.status(500).json({ error: 'Error al eliminar imagen' });
   }
-});
-
-// Iniciar el servidor
-console.log('Server is starting...');
-app.listen(PORT, () => {
-console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
