@@ -316,28 +316,24 @@
                         const imgsRes = await apiGet('/admin/carrusel');
                         const images = Array.isArray(imgsRes) ? imgsRes : (imgsRes.images || imgsRes.rows || []);
                         const listHtml = (images && images.length) ? images.map(img => `
-                            <div class="inline-block m-2 text-center" style="width:150px">
-                                <img src="${img.url || img}" class="h-24 w-full object-cover rounded border">
-                                <div class="mt-2 flex justify-between">
-                                    <button data-id="${img.id || ''}" data-url="${img.url || img}" class="delete-carrusel-btn px-2 py-1 text-xs bg-red-500 text-white rounded">Eliminar</button>
-                                    <a href="${img.url || img}" target="_blank" class="px-2 py-1 text-xs bg-gray-200 rounded">Abrir</a>
+                            <div class="carrusel-thumb">
+                                <img src="${img.url || img}" alt="carrusel">
+                                <div class="thumb-actions">
+                                    <button data-id="${img.id || ''}" data-url="${img.url || img}" class="delete-carrusel-btn btn-minimal">Eliminar</button>
+                                    <a href="${img.url || img}" target="_blank" class="btn-minimal">Abrir</a>
                                 </div>
                             </div>
-                        `).join('') : '<p class="text-sm">No hay imágenes en el carrusel.</p>';
+                        `).join('') : `<p class="carrusel-empty">No hay imágenes en el carrusel.</p>`;
 
                         return `
-                        <div class="admin-card">
+                        <div class="admin-card carrusel-wrap">
                             <h2 class="text-xl font-semibold mb-4">Imágenes del Carrusel</h2>
-                            <div id="carrusel-list" class="flex flex-wrap">${listHtml}</div>
-                            <hr class="my-4">
-                            <form id="upload-carrusel-form" enctype="multipart/form-data">
-                                <label class="block text-sm font-medium">Seleccionar imágenes para el carrusel</label>
-                                <input type="file" name="fotos" accept="image/*" multiple class="mt-2">
-                                <div class="mt-3 flex justify-end">
-                                    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Subir imágenes</button>
-                                </div>
+                            <div id="carrusel-list" class="carrusel-row">${listHtml}</div>
+
+                            <form id="carrusel-upload-form" class="carrusel-upload-form" enctype="multipart/form-data">
+                                <input id="carrusel-input" type="file" name="fotos" accept="image/*" multiple>
+                                <button type="submit" class="submit-small">Subir imágenes</button>
                             </form>
-                            <p class="text-xs text-gray-500 mt-2">Las imágenes subirán al servidor y se mostrarán en el índice.</p>
                         </div>
                         `;
                     } catch (err) {
@@ -345,7 +341,7 @@
                     }
                 },
                 postRender: () => {
-                    // manejar eliminación mediante delegación
+                    // delegación para eliminar imagenes (botones dentro de .carrusel-row)
                     const listEl = document.getElementById('carrusel-list');
                     if (listEl) {
                         listEl.addEventListener('click', async (e) => {
@@ -369,27 +365,35 @@
                         });
                     }
 
-                    // manejar subida
-                    const uploadForm = document.getElementById('upload-carrusel-form');
+                    // manejo de subida mediante formulario simple
+                    const uploadForm = document.getElementById('carrusel-upload-form');
                     if (uploadForm) {
                         uploadForm.addEventListener('submit', async (ev) => {
                             ev.preventDefault();
-                            const fd = new FormData(uploadForm);
-                            // Attach token both as form field and Authorization header for compatibility
-                            const token = localStorage.getItem('token') || '';
-                            if (token) fd.append('token', token);
+                            const input = document.getElementById('carrusel-input');
+                            const files = input.files;
+                            if (!files || files.length === 0) return showModal('Error', '<p>Seleccione al menos una imagen.</p>');
+
+                            const fd = new FormData();
+                            for (let i = 0; i < files.length; i++) fd.append('fotos', files[i]);
+
                             try {
+                                const token = localStorage.getItem('token') || '';
                                 const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
                                 const res = await fetch('/api/admin/carrusel', { method: 'POST', body: fd, headers });
-                                if (!res.ok) throw new Error('Error subiendo imágenes');
+                                if (!res.ok) {
+                                    const body = await res.json().catch(()=>({ error: res.statusText }));
+                                    throw new Error(body.error || 'Error subiendo imágenes');
+                                }
                                 await res.json().catch(()=>null);
+                                uploadForm.reset();
                                 loadSection('gestion-carrusel');
                                 showModal('Éxito', '<p>Imágenes subidas correctamente.</p>');
                             } catch (err) {
                                 showModal('Error', `<p>${err.message}</p>`);
                             }
                         });
-                        // evitar doble envío por el handler global
+                        // evitar que el handler global procese este formulario
                         uploadForm.dataset.skipGlobal = 'true';
                     }
                 }

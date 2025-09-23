@@ -104,3 +104,89 @@ th, td {
 tbody tr:nth-child(even) {
   background-color: #FAF9F7;
 }
+
+/* =======================
+   CARRUSEL - ESTILOS MINIMALISTAS (AJUSTADOS)
+======================= */
+.carrusel-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+}
+.carrusel-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding: 12px 6px;
+}
+.carrusel-thumb {
+  position: relative;
+  width: 200px; /* aumentado */
+  height: auto;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  overflow: visible;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  background: #fff;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 8px;
+}
+.carrusel-thumb img {
+  width: 100%;
+  height: 140px; /* más alto */
+  object-fit: cover;
+  border-radius: 6px;
+  display: block;
+}
+.carrusel-thumb .thumb-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+.btn-minimal {
+  background: rgba(0,0,0,0.65);
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-minimal:hover { background: rgba(0,0,0,0.8); }
+.carrusel-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+/* formulario de subida compacto */
+.carrusel-upload-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+}
+.carrusel-upload-form input[type=file] {
+  font-size: 13px;
+}
+.carrusel-upload-form .submit-small {
+  background: #0ea5a4;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.carrusel-empty {
+  color: #6b7280;
+  font-size: 14px;
+}
