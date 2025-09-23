@@ -144,7 +144,137 @@
                     }
                 },
             },
-    
+
+            // CONFIGURACIÓN DE HOTEL: permite establecer pisos, habitaciones por piso y categorías
+            'configuracion-hotel': {
+                title: 'Configuración de Hotel',
+                render: async () => {
+                    try {
+                        const cfg = JSON.parse(localStorage.getItem('hotel_config') || '{}');
+                        const pisos = cfg.pisos || 1;
+                        const habitaciones_por_piso = cfg.habitaciones_por_piso || 10;
+                        const categorias = Array.isArray(cfg.categorias) ? cfg.categorias : [];
+
+                        // ahora cada categoría puede tener: nombre (categoria), tipo, capacidad, precio_min_dia, precio_min_hora, piso
+                        const categoriasHtml = (categorias.length ? categorias : [{ nombre:'Matrimonial', tipo:'Matrimonial', capacidad:2, precio_min_dia:'', precio_min_hora:'', piso:'' }]).map((c, idx) => `
+                            <div class="categoria-row" data-index="${idx}">
+                                <input class="cat-nombre mt-1 border border-gray-300 rounded p-2" placeholder="Categoría" value="${c.nombre || ''}">
+                                <input class="cat-precio-dia mt-1 border border-gray-300 rounded p-2" type="number" step="0.01" placeholder="Precio mínimo por día" value="${c.precio_min_dia || ''}">
+                                <input class="cat-precio-hora mt-1 border border-gray-300 rounded p-2" type="number" step="0.01" placeholder="Precio mínimo por hora" value="${c.precio_min_hora || ''}">
+                                <input class="cat-piso mt-1 border border-gray-300 rounded p-2" type="number" placeholder="Piso" value="${c.piso || ''}">
+                                <input class="cat-capacidad mt-1 border border-gray-300 rounded p-2" type="number" min="1" placeholder="Capacidad" value="${c.capacidad || 1}">
+                                <button type="button" class="remove-cat btn-minimal">Quitar</button>
+                            </div>
+                        `).join('');
+
+                        return `
+                        <div class="admin-card">
+                            <h2 class="text-xl font-semibold mb-4">Configuración de Hotel</h2>
+
+                            <form id="hotel-config-form" class="space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm text-gray-600">Cantidad de Pisos</label>
+                                        <input id="cfg-pisos" type="number" min="1" class="mt-1 border border-gray-300 rounded p-2" value="${pisos}">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm text-gray-600">Habitaciones por Piso</label>
+                                        <input id="cfg-hab-por-piso" type="number" min="1" class="mt-1 border border-gray-300 rounded p-2" value="${habitaciones_por_piso}">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm text-gray-600">Categorías / Plantilla de Habitaciones</label>
+                                    <div id="categorias-container" class="mt-2 flex flex-col gap-2">
+                                        ${categoriasHtml || ''}
+                                    </div>
+                                    <div class="mt-2">
+                                        <button id="add-categoria-btn" type="button" class="bg-blue-600 text-white px-3 py-1 rounded">Añadir Categoría / Plantilla</button>
+                                    </div>
+                                </div>
+
+                                <div class="flex justify-end gap-2">
+                                    <button id="reset-hotel-config" type="button" class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Restablecer</button>
+                                    <button id="save-hotel-config" type="button" class="bg-green-600 text-white px-4 py-2 rounded">Guardar Configuración</button>
+                                </div>
+                            </form>
+
+                            <p class="text-sm text-gray-500 mt-3">Esta configuración se guarda en el navegador (localStorage). En una futura versión puede sincronizarse con el backend.</p>
+                        </div>
+                        `;
+                    } catch (err) {
+                        return `<div class="admin-card"><p class="text-red-500">Error cargando configuración: ${err.message}</p></div>`;
+                    }
+                },
+                postRender: () => {
+                    const container = document.getElementById('categorias-container');
+                    const addBtn = document.getElementById('add-categoria-btn');
+                    const saveBtn = document.getElementById('save-hotel-config');
+                    const resetBtn = document.getElementById('reset-hotel-config');
+
+                    function addCategoriaRow(data) {
+                        const idx = Date.now();
+                        const div = document.createElement('div');
+                        div.className = 'categoria-row';
+                        div.dataset.index = idx;
+                        div.innerHTML = `
+                            <input class="cat-nombre mt-1 border border-gray-300 rounded p-2" placeholder="Categoría" value="${(data && data.nombre) || ''}">
+                            <input class="cat-precio-dia mt-1 border border-gray-300 rounded p-2" type="number" step="0.01" placeholder="Precio mínimo por día" value="${(data && data.precio_min_dia) || ''}">
+                            <input class="cat-precio-hora mt-1 border border-gray-300 rounded p-2" type="number" step="0.01" placeholder="Precio mínimo por hora" value="${(data && data.precio_min_hora) || ''}">
+                            <input class="cat-piso mt-1 border border-gray-300 rounded p-2" type="number" placeholder="Piso" value="${(data && data.piso) || ''}">
+                            <input class="cat-capacidad mt-1 border border-gray-300 rounded p-2" type="number" min="1" placeholder="Capacidad" value="${(data && data.capacidad) || 1}">
+                            <button type="button" class="remove-cat btn-minimal">Quitar</button>
+                        `;
+                        container.appendChild(div);
+                    }
+
+                    function readConfigFromForm() {
+                        const pisos = parseInt((document.getElementById('cfg-pisos') || {}).value || '1', 10) || 1;
+                        const habPorPiso = parseInt((document.getElementById('cfg-hab-por-piso') || {}).value || '10', 10) || 10;
+                        const cats = [];
+                        const rows = container.querySelectorAll('.categoria-row');
+                        rows.forEach(r => {
+                            const nombre = (r.querySelector('.cat-nombre') || {}).value || '';
+                            const tipo = (r.querySelector('.cat-tipo') || {}) && (r.querySelector('.cat-tipo').value) || '';
+                            const capacidad = parseInt((r.querySelector('.cat-capacidad') || {}).value || '1', 10) || 1;
+                            const precio_min_dia = parseFloat((r.querySelector('.cat-precio-dia') || {}).value || '') || '';
+                            const precio_min_hora = parseFloat((r.querySelector('.cat-precio-hora') || {}).value || '') || '';
+                            const piso = (r.querySelector('.cat-piso') || {}).value || '';
+                            // only push if there's a category name to avoid empty rows
+                            if (nombre) cats.push({ nombre, tipo, capacidad, precio_min_dia, precio_min_hora, piso });
+                        });
+                        return { pisos, habitaciones_por_piso: habPorPiso, categorias: cats };
+                    }
+
+                    if (addBtn) addBtn.addEventListener('click', () => addCategoriaRow({}));
+
+                    if (container) {
+                        container.addEventListener('click', (e) => {
+                            const rem = e.target.closest('.remove-cat');
+                            if (!rem) return;
+                            const row = rem.closest('.categoria-row');
+                            if (row) row.remove();
+                        });
+                    }
+
+                    if (saveBtn) saveBtn.addEventListener('click', () => {
+                        try {
+                            const cfg = readConfigFromForm();
+                            localStorage.setItem('hotel_config', JSON.stringify(cfg));
+                            showModal('Éxito', '<p>Configuración guardada en localStorage.</p>');
+                        } catch (err) {
+                            showModal('Error', `<p>${err.message}</p>`);
+                        }
+                    });
+
+                    if (resetBtn) resetBtn.addEventListener('click', () => {
+                        if (!confirm('¿Restablecer la configuración por defecto?')) return;
+                        localStorage.removeItem('hotel_config');
+                        loadSection('configuracion-hotel');
+                    });
+                }
+            },
+
             'gestion-habitaciones': {
                 title: 'Gestión de Habitaciones',
                 render: async () => {
@@ -783,13 +913,33 @@
         // Añadir habitación (abre modal)
         if (target && target.id === 'add-habitacion-btn') {
             try {
-                const categorias = await apiGet('/admin/categorias').catch(() => [
-                    { id_categoria: 1, nombre: 'Matrimonial' },
-                    { id_categoria: 2, nombre: 'Simple' },
-                    { id_categoria: 3, nombre: 'Doble' },
-                    { id_categoria: 4, nombre: 'Familiar' }
-                ]);
-                const options = categorias.map(c => `<option value="${c.id_categoria}">${c.nombre}</option>`).join('');
+                // obtener configuración local del hotel (pisos, hab por piso, categorías)
+                const cfg = JSON.parse(localStorage.getItem('hotel_config') || '{}');
+                const pisosCfg = parseInt(cfg.pisos || 1, 10) || 1;
+                const habPorPisoCfg = parseInt(cfg.habitaciones_por_piso || 10, 10) || 10;
+
+                // obtener categorías del backend y combinarlas con las del config (config tiene prioridad visual)
+                const serverCats = await apiGet('/admin/categorias').catch(() => []);
+                const cfgCats = Array.isArray(cfg.categorias) ? cfg.categorias.map((c, i) => ({ id: `cfg-${i}`, nombre: c.nombre, capacidad: c.capacidad || 1, tipo: c.tipo || '', precio_min_dia: c.precio_min_dia || '', precio_min_hora: c.precio_min_hora || '', piso: c.piso || '' })) : [];
+                const allCats = (cfgCats.length ? cfgCats : []).concat(serverCats.map(sc => ({ id: sc.id_categoria || sc.id, nombre: sc.nombre || sc.tipo || 'Sin nombre', capacidad: sc.capacidad || '', tipo: sc.tipo || '', precio_min_dia: sc.precio_min_dia || '', precio_min_hora: sc.precio_min_hora || '', piso: sc.piso || '' })));
+                const options = allCats.map(c => `<option value="${c.id}" data-capacidad="${c.capacidad || ''}" data-precio-dia="${c.precio_min_dia || ''}" data-precio-hora="${c.precio_min_hora || ''}" data-piso="${c.piso || ''}" data-tipo="${c.tipo || ''}">${c.nombre}${c.capacidad ? ` (cap ${c.capacidad})` : ''}</option>`).join('');
+
+                // calcular disponibilidad por piso consultando habitaciones actuales
+                const habitacionesActuales = await apiGet('/admin/habitaciones').catch(()=>[]);
+                const countsByFloor = {};
+                (Array.isArray(habitacionesActuales) ? habitacionesActuales : (habitacionesActuales.habitaciones||[])).forEach(h => {
+                    const p = String(h.piso || '1');
+                    countsByFloor[p] = (countsByFloor[p] || 0) + 1;
+                });
+
+                // construir select pisos y mostrar disponibilidad
+                let pisosOptionsHtml = '';
+                for (let i = 1; i <= pisosCfg; i++) {
+                    const used = countsByFloor[String(i)] || 0;
+                    const avail = Math.max(0, habPorPisoCfg - used);
+                    pisosOptionsHtml += `<option value="${i}" data-avail="${avail}">Piso ${i} (Disponibles: ${avail})</option>`;
+                }
+
                 const formHtml = `
                 <form id="habitacion-form" class="space-y-4" enctype="multipart/form-data">
                     <div>
@@ -798,30 +948,30 @@
                     </div>
                     <div>
                     <label class="block text-sm font-medium text-gray-700">Categoría</label>
-                    <select name="id_categoria" class="mt-1 block w-full border border-gray-300 rounded p-2">${options}</select>
+                    <select name="id_categoria" id="select-categoria" class="mt-1 block w-full border border-gray-300 rounded p-2">${options}</select>
                     </div>
                     <div>
                     <label class="block text-sm font-medium text-gray-700">Tipo</label>
-                    <input name="tipo" placeholder="Ej. Matrimonial" class="mt-1 block w-full border border-gray-300 rounded p-2">
+                    <input name="tipo" id="input-tipo" placeholder="Ej. Matrimonial" class="mt-1 block w-full border border-gray-300 rounded p-2">
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Precio por Día (USD)</label>
-                        <input type="number" step="0.01" name="precio_por_dia" class="mt-1 block w-full border border-gray-300 rounded p-2">
+                        <input type="number" step="0.01" name="precio_por_dia" id="input-precio-dia" class="mt-1 block w-full border border-gray-300 rounded p-2">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Precio por Hora (USD)</label>
-                        <input type="number" step="0.01" name="precio_por_hora" class="mt-1 block w-full border border-gray-300 rounded p-2">
+                        <input type="number" step="0.01" name="precio_por_hora" id="input-precio-hora" class="mt-1 block w-full border border-gray-300 rounded p-2">
                     </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 items-end">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Piso</label>
-                        <input type="number" name="piso" class="mt-1 block w-full border border-gray-300 rounded p-2">
+                        <select name="piso" id="select-piso" class="mt-1 block w-full border border-gray-300 rounded p-2">${pisosOptionsHtml}</select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Capacidad (personas)</label>
-                        <input type="number" name="capacidad" class="mt-1 block w-full border border-gray-300 rounded p-2">
+                        <input type="number" name="capacidad" id="input-capacidad" class="mt-1 block w-full border border-gray-300 rounded p-2">
                     </div>
                     </div>
                     <div>
@@ -838,8 +988,62 @@
                     <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Guardar</button>
                 </form>
                 `;
-                showModal('Añadir Habitación', formHtml, () => {
+                 showModal('Añadir Habitación', formHtml, () => {
                     const form = document.getElementById('habitacion-form');
+                    // actualizar tipo/capacidad/precios/piso según categoría seleccionada (si config provee valores)
+                    const selectCat = document.getElementById('select-categoria');
+                    const inputTipo = document.getElementById('input-tipo');
+                    const inputCap = document.getElementById('input-capacidad');
+                    const inputPrecioDia = form.querySelector('input[name="precio_por_dia"]');
+                    const inputPrecioHora = form.querySelector('input[name="precio_por_hora"]');
+                    const selectPiso = document.getElementById('select-piso');
+
+                    if (selectCat) {
+                        selectCat.addEventListener('change', (ev) => {
+                            const opt = ev.target.selectedOptions[0];
+                            if (!opt) return;
+                            const cap = opt.getAttribute('data-capacidad');
+                            const precioDia = opt.getAttribute('data-precio-dia');
+                            const precioHora = opt.getAttribute('data-precio-hora');
+                            const pisoVal = opt.getAttribute('data-piso');
+                            const tipoVal = opt.getAttribute('data-tipo');
+                            if (cap) inputCap.value = cap;
+                            if (precioDia !== null && precioDia !== '') inputPrecioDia.value = precioDia;
+                            if (precioHora !== null && precioHora !== '') inputPrecioHora.value = precioHora;
+                            if (pisoVal) {
+                                // intentar seleccionar el piso configurado
+                                try { selectPiso.value = String(pisoVal); } catch (__) {}
+                                // actualizar texto de disponibilidad
+                                const evt = new Event('change');
+                                selectPiso.dispatchEvent(evt);
+                            }
+                            if (tipoVal) inputTipo.value = tipoVal;
+                            // si la opción proviene de config id (starts with cfg-) y no tiene tipo, usar el nombre
+                            if (opt.value && String(opt.value).startsWith('cfg-') && !tipoVal) {
+                                inputTipo.value = opt.textContent.split(' (')[0] || '';
+                            }
+                        });
+                    }
+
+                    // mostrar disponibilidad dinámica al cambiar piso
+                    function updatePisoAvail() {
+                        const opt = selectPiso.selectedOptions[0];
+                        if (!opt) return;
+                        const avail = opt.getAttribute('data-avail');
+                        // añadir o actualizar pequeño texto debajo del select
+                        let span = selectPiso.parentNode.querySelector('.piso-avail');
+                        if (!span) {
+                            span = document.createElement('div');
+                            span.className = 'text-sm text-gray-600 piso-avail mt-1';
+                            selectPiso.parentNode.appendChild(span);
+                        }
+                        span.textContent = `Habitaciones disponibles en este piso: ${avail}`;
+                    }
+                    if (selectPiso) {
+                        selectPiso.addEventListener('change', updatePisoAvail);
+                        updatePisoAvail();
+                    }
+
                     form.addEventListener('submit', async (e) => {
                         e.preventDefault();
                         const formData = new FormData(form); // incluye archivo
@@ -853,13 +1057,12 @@
                                 headers
                             });
                             if (!res.ok) {
-                                // intentar extraer un mensaje de error más descriptivo del body
                                 let errMsg = res.statusText || 'Error al crear habitación';
                                 try {
                                     const body = await res.json();
                                     errMsg = body.error || body.message || body.detalle || JSON.stringify(body) || errMsg;
-                                } catch (e) {
-                                    try { const txt = await res.text(); if (txt) errMsg = txt; } catch (__){}
+                                } catch (ee) {
+                                    try { const txt = await res.text(); if (txt) errMsg = txt; } catch (__){ }
                                 }
                                 throw new Error(errMsg);
                             }
@@ -872,14 +1075,14 @@
                             showModal('Error', `<p>${err.message}</p>`);
                         }
                     });
-                    // Indicar al handler global que NO reprocesE este formulario (evita doble envío)
-                    form.dataset.skipGlobal = 'true';
-                });
-            } catch (err) {
-                showModal('Error', `<p>${err.message}</p>`);
-            }
-            return;
-        }
+                     // Indicar al handler global que NO reprocesE este formulario (evita doble envío)
+                     form.dataset.skipGlobal = 'true';
+                 });
+             } catch (err) {
+                 showModal('Error', `<p>${err.message}</p>`);
+             }
+             return;
+         }
 
         // Editar habitación
         if (target && target.classList.contains('edit-btn') && target.closest('#mainContent')) {
