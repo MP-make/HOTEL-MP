@@ -403,25 +403,50 @@
                 title: 'Gestión de Reservas',
                 render: async () => {
                     try {
+                        // obtenemos todas las reservas (el filtrado se hace en frontend)
                         const reservasRes = await apiGet('/admin/reservas');
                         const reservas = Array.isArray(reservasRes) ? reservasRes : (reservasRes.reservas || reservasRes.rows || []);
-                        const rows = reservas.map(r => `
-                        <tr class="border-b hover:bg-gray-50">
-                            <td class="py-3 px-4">${r.id_reserva}</td>
-                            <td class="py-3 px-4">${r.cliente_nombre} (${r.cliente_email || ''})</td>
-                            <td class="py-3 px-4">${r.numero_habitacion}</td>
-                            <td class="py-3 px-4">${new Date(r.fecha_checkin).toLocaleString()} - ${new Date(r.fecha_checkout).toLocaleString()}</td>
-                            <td class="py-3 px-4">${r.estado_reserva}</td>
-                            <td class="py-3 px-4 flex space-x-2">
-                            <button data-id="${r.id_reserva}" class="complete-res-btn px-3 py-1 rounded bg-green-600 text-white text-xs">Completar</button>
-                            <button data-id="${r.id_reserva}" class="delete-res-btn px-3 py-1 rounded bg-red-600 text-white text-xs">Eliminar</button>
-                            </td>
-                        </tr>
-                        `).join('');
-    
-                        return `
+
+                        // filtros: cliente / id / numero habitacion / fechas / estado
+                        const html = `
                         <div class="admin-card">
                             <h2 class="text-xl font-semibold mb-4">Reservas</h2>
+
+                            <div class="mb-4 p-3 bg-white rounded shadow flex flex-wrap gap-3 items-end">
+                              <div>
+                                <label class="block text-sm text-gray-600">Cliente (nombre o email)</label>
+                                <input id="filter-cliente" type="text" class="mt-1 border border-gray-300 rounded p-2" placeholder="Nombre o email">
+                              </div>
+                              <div>
+                                <label class="block text-sm text-gray-600">ID Reserva</label>
+                                <input id="filter-id" type="text" class="mt-1 border border-gray-300 rounded p-2" placeholder="ID">
+                              </div>
+                              <div>
+                                <label class="block text-sm text-gray-600">Número Habitación</label>
+                                <input id="filter-numero" type="text" class="mt-1 border border-gray-300 rounded p-2" placeholder="Número">
+                              </div>
+                              <div>
+                                <label class="block text-sm text-gray-600">Fecha Desde</label>
+                                <input id="filter-fecha-desde" type="date" class="mt-1 border border-gray-300 rounded p-2">
+                              </div>
+                              <div>
+                                <label class="block text-sm text-gray-600">Fecha Hasta</label>
+                                <input id="filter-fecha-hasta" type="date" class="mt-1 border border-gray-300 rounded p-2">
+                              </div>
+                              <div>
+                                <label class="block text-sm text-gray-600">Estado</label>
+                                <select id="filter-estado" class="mt-1 border border-gray-300 rounded p-2">
+                                  <option value="">Todas</option>
+                                  <option value="pendiente">Pendiente</option>
+                                  <option value="completada">Completada</option>
+                                </select>
+                              </div>
+                              <div class="ml-auto flex gap-2">
+                                <button id="btn-filtrar-reservas" class="bg-blue-600 text-white px-4 py-2 rounded">Buscar</button>
+                                <button id="btn-limpiar-filtros-reservas" class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Limpiar</button>
+                              </div>
+                            </div>
+
                             <div class="overflow-x-auto">
                             <table class="min-w-full bg-white rounded-lg shadow overflow-hidden">
                                 <thead class="bg-gray-100">
@@ -435,15 +460,121 @@
                                 </tr>
                                 </thead>
                                 <tbody id="reservas-tbody" class="divide-y divide-gray-200">
-                                ${rows || `<tr><td colspan="6" class="text-center py-4">No hay reservas.</td></tr>`}
+                                ${reservas.length ? reservas.map(r => `
+                                    <tr class="border-b hover:bg-gray-50">
+                                        <td class="py-3 px-4">${r.id_reserva}</td>
+                                        <td class="py-3 px-4">${r.cliente_nombre} (${r.cliente_email || ''})</td>
+                                        <td class="py-3 px-4">${r.numero_habitacion}</td>
+                                        <td class="py-3 px-4">${new Date(r.fecha_checkin).toLocaleString()} - ${new Date(r.fecha_checkout).toLocaleString()}</td>
+                                        <td class="py-3 px-4">${r.estado_reserva}</td>
+                                        <td class="py-3 px-4 flex space-x-2">
+                                        ${ (r.estado_reserva && String(r.estado_reserva).toLowerCase() !== 'completada') ? `
+                                            <button data-id="${r.id_reserva}" class="complete-res-btn px-3 py-1 rounded bg-green-600 text-white text-xs">Completar</button>
+                                            <button data-id="${r.id_reserva}" class="delete-res-btn px-3 py-1 rounded bg-red-600 text-white text-xs">Eliminar</button>
+                                        ` : `
+                                            <span class="text-sm text-gray-500">-</span>
+                                        ` }
+                                        </td>
+                                    </tr>
+                                `).join('') : `<tr><td colspan="6" class="text-center py-4">No hay reservas.</td></tr>`}
                                 </tbody>
                             </table>
                             </div>
                         </div>
                         `;
+
+                        return html;
                     } catch (err) {
                         return `<div class="admin-card"><p class="text-red-500">Error cargando reservas: ${err.message}</p></div>`;
                     }
+                },
+                postRender: () => {
+                    // función para renderizar reservas aplicando filtros en frontend
+                    async function renderReservationsWithFilters() {
+                        try {
+                            const cliente = (document.getElementById('filter-cliente') || {}).value || '';
+                            const id = (document.getElementById('filter-id') || {}).value || '';
+                            const numero = (document.getElementById('filter-numero') || {}).value || '';
+                            const fechaDesde = (document.getElementById('filter-fecha-desde') || {}).value || '';
+                            const fechaHasta = (document.getElementById('filter-fecha-hasta') || {}).value || '';
+                            const estado = (document.getElementById('filter-estado') || {}).value || '';
+
+                            const reservasRes = await apiGet('/admin/reservas');
+                            let reservas = Array.isArray(reservasRes) ? reservasRes : (reservasRes.reservas || reservasRes.rows || []);
+
+                            reservas = reservas.filter(r => {
+                                if (cliente) {
+                                    const c = (r.cliente_nombre || '') + ' ' + (r.cliente_email||'');
+                                    if (!c.toLowerCase().includes(cliente.toLowerCase())) return false;
+                                }
+                                if (id) {
+                                    if (!String(r.id_reserva).includes(id)) return false;
+                                }
+                                if (numero) {
+                                    if (!String(r.numero_habitacion).toLowerCase().includes(numero.toLowerCase())) return false;
+                                }
+                                if (estado) {
+                                    if (!r.estado_reserva || String(r.estado_reserva).toLowerCase() !== estado.toLowerCase()) return false;
+                                }
+                                if (fechaDesde) {
+                                    const from = new Date(fechaDesde);
+                                    const checkin = new Date(r.fecha_checkin);
+                                    if (isNaN(from.getTime()) || isNaN(checkin.getTime())) return false;
+                                    if (checkin < from) return false;
+                                }
+                                if (fechaHasta) {
+                                    const to = new Date(fechaHasta);
+                                    const checkout = new Date(r.fecha_checkout);
+                                    if (isNaN(to.getTime()) || isNaN(checkout.getTime())) return false;
+                                    if (checkout > to) return false;
+                                }
+                                return true;
+                            });
+
+                            const tbody = document.getElementById('reservas-tbody');
+                            if (!tbody) return;
+
+                            const rows = reservas.map(r => `
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="py-3 px-4">${r.id_reserva}</td>
+                                    <td class="py-3 px-4">${r.cliente_nombre} (${r.cliente_email || ''})</td>
+                                    <td class="py-3 px-4">${r.numero_habitacion}</td>
+                                    <td class="py-3 px-4">${new Date(r.fecha_checkin).toLocaleString()} - ${new Date(r.fecha_checkout).toLocaleString()}</td>
+                                    <td class="py-3 px-4">${r.estado_reserva}</td>
+                                    <td class="py-3 px-4 flex space-x-2">
+                                    ${ (r.estado_reserva && String(r.estado_reserva).toLowerCase() !== 'completada') ? `
+                                        <button data-id="${r.id_reserva}" class="complete-res-btn px-3 py-1 rounded bg-green-600 text-white text-xs">Completar</button>
+                                        <button data-id="${r.id_reserva}" class="delete-res-btn px-3 py-1 rounded bg-red-600 text-white text-xs">Eliminar</button>
+                                    ` : `
+                                        <span class="text-sm text-gray-500">-</span>
+                                    ` }
+                                    </td>
+                                </tr>
+                            `).join('');
+
+                            tbody.innerHTML = rows.length ? rows : `<tr><td colspan="6" class="text-center py-4">No hay reservas.</td></tr>`;
+                        } catch (err) {
+                            showModal('Error', `<p>${err.message}</p>`);
+                        }
+                    }
+
+                    // inicializar
+                    renderReservationsWithFilters();
+
+                    const btnBuscar = document.getElementById('btn-filtrar-reservas');
+                    if (btnBuscar) btnBuscar.addEventListener('click', renderReservationsWithFilters);
+                    const btnLimpiar = document.getElementById('btn-limpiar-filtros-reservas');
+                    if (btnLimpiar) btnLimpiar.addEventListener('click', () => {
+                        document.getElementById('filter-cliente').value = '';
+                        document.getElementById('filter-id').value = '';
+                        document.getElementById('filter-numero').value = '';
+                        document.getElementById('filter-fecha-desde').value = '';
+                        document.getElementById('filter-fecha-hasta').value = '';
+                        document.getElementById('filter-estado').value = '';
+                        renderReservationsWithFilters();
+                    });
+
+                    // los botones completar/eliminar seguirán siendo manejados por la delegación global en mainContentArea
                 }
             },
     
