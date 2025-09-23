@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casa del Inka - Reservas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@400;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body class="bg-principal">
+
+    <a href="index.html" class="btn-flotante" title="Volver al inicio">
+        <i class="fa-solid fa-house"></i>
+    </a>
+
+    <header class="header">
+        <nav class="top-nav">
+            <picture>
+                <source media="(max-width: 600px)" srcset="https://placehold.co/100x100/8B4513/FDF6E3?text=Logo">
+                <img src="https://res.cloudinary.com/dydwmg2qr/image/upload/v1757772254/logo_peque%C3%B1o_mzyesd.png"
+                    alt="Logo de Casa del Inka" class="logo">
+            </picture>
+            <h1>Casa del Inka</h1>
+        </nav>
+
+        <nav class="auth-nav">
+            <!-- Botones visibles si no hay sesión iniciada -->
+            <div id="authButtons">
+                <button class="btn-primary" data-modal-target="loginModal">Iniciar Sesión</button>
+                <button class="btn-secondary" data-modal-target="registerModal">Registrarse</button>
+            </div>
+            <!-- Botones visibles si hay sesión iniciada -->
+            <div id="userProfile" class="hidden flex items-center space-x-4">
+                <span id="userName" class="text-white text-lg font-semibold"></span>
+                <button id="logoutBtn" class="btn-secondary">Cerrar Sesión</button>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section>
+            <h2 class="titulo-seccion">Habitaciones Populares</h2>
+            <div id="habitacionGrid" class="habitacion-grid">
+                <!-- Las tarjetas de habitaciones se renderizarán aquí -->
+            </div>
+        </section>
+
+        <section>
+            <h2 class="titulo-seccion">Habitaciones Premium</h2>
+            <div id="habitacionGrid" class="habitacion-grid">
+                <!-- Las tarjetas de habitaciones se renderizarán aquí -->
+            </div>
+        </section>
+
+        <section>
+            <h2 class="titulo-seccion">Habitaciones A-1</h2>
+            <div id="habitacionGrid" class="habitacion-grid">
+                <!-- Las tarjetas de habitaciones se renderizarán aquí -->
+            </div>
+        </section>
+
+        <section>
+            <h2 class="titulo-seccion">Habitaciones para más de uno</h2>
+            <div id="habitacionGrid" class="habitacion-grid">
+                <!-- Las tarjetas de habitaciones se renderizarán aquí -->
+            </div>
+        </section>
+
+        <section>
+            <h2 class="titulo-seccion">Habitaciones Individuales</h2>
+            <div id="habitacionGrid" class="habitacion-grid">
+                <!-- Las tarjetas de habitaciones se renderizarán aquí -->
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Casa del Inka. Todos los derechos reservados.</p>
+        <p>Av. Los Incas 123, Villa El Salvador, Lima, Perú</p>
+    </footer>
