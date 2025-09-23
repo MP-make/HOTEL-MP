@@ -596,7 +596,7 @@
                             </td>
                         </tr>
                         `).join('');
-    
+
                         return `
                         <div class="flex items-center justify-between mb-4">
                             <h2 class="text-xl font-semibold text-gray-700">Encargados</h2>
@@ -605,7 +605,27 @@
                             <button id="assign-encargado-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Asignar por email</button>
                             </div>
                         </div>
-    
+
+                        <!-- FILTROS: id / nombre / email -->
+                        <div class="mb-4 p-4 bg-white rounded shadow flex flex-wrap gap-3 items-end">
+                          <div>
+                            <label class="block text-sm text-gray-600">ID</label>
+                            <input id="filter-enc-id" type="text" class="mt-1 border border-gray-300 rounded p-2" placeholder="ID">
+                          </div>
+                          <div>
+                            <label class="block text-sm text-gray-600">Nombre</label>
+                            <input id="filter-enc-nombre" type="text" class="mt-1 border border-gray-300 rounded p-2" placeholder="Nombre">
+                          </div>
+                          <div>
+                            <label class="block text-sm text-gray-600">Email</label>
+                            <input id="filter-enc-email" type="text" class="mt-1 border border-gray-300 rounded p-2" placeholder="Email">
+                          </div>
+                          <div class="ml-auto flex gap-2">
+                            <button id="btn-filtrar-encargados" class="bg-blue-600 text-white px-4 py-2 rounded">Buscar</button>
+                            <button id="btn-limpiar-filtros-encargados" class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Limpiar</button>
+                          </div>
+                        </div>
+
                         <div class="admin-card">
                             <div class="overflow-x-auto">
                             <table class="min-w-full bg-white rounded-lg shadow overflow-hidden">
@@ -630,6 +650,58 @@
                     }
                 },
                 postRender: () => {
+                    // función para renderizar encargados aplicando filtros en frontend
+                    async function renderEncargadosWithFilters() {
+                        try {
+                            const idFilter = (document.getElementById('filter-enc-id') || {}).value || '';
+                            const nombreFilter = (document.getElementById('filter-enc-nombre') || {}).value || '';
+                            const emailFilter = (document.getElementById('filter-enc-email') || {}).value || '';
+
+                            const encargadosRes = await apiGet('/admin/encargados');
+                            let encargados = Array.isArray(encargadosRes) ? encargadosRes : (encargadosRes.encargados || encargadosRes.rows || []);
+
+                            encargados = encargados.filter(e => {
+                                if (idFilter && !String(e.id).includes(idFilter)) return false;
+                                if (nombreFilter && !( (e.nombre||'').toLowerCase().includes(nombreFilter.toLowerCase()) )) return false;
+                                if (emailFilter && !( (e.email||'').toLowerCase().includes(emailFilter.toLowerCase()) )) return false;
+                                return true;
+                            });
+
+                            const tbody = document.getElementById('encargados-tbody');
+                            if (!tbody) return;
+
+                            const rows = encargados.map(e => `
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="py-3 px-4">${e.id}</td>
+                                    <td class="py-3 px-4">${e.nombre}</td>
+                                    <td class="py-3 px-4">${e.email}</td>
+                                    <td class="py-3 px-4">${e.rol}</td>
+                                    <td class="py-3 px-4 flex space-x-2">
+                                    <button data-id="${e.id}" class="edit-enc-btn px-3 py-1 rounded bg-blue-600 text-white text-xs">Editar</button>
+                                    <button data-id="${e.id}" class="delete-enc-btn px-3 py-1 rounded bg-red-600 text-white text-xs">Eliminar</button>
+                                    </td>
+                                </tr>
+                            `).join('');
+
+                            tbody.innerHTML = rows.length ? rows : `<tr><td colspan="5" class="text-center py-4">No hay encargados registrados.</td></tr>`;
+                        } catch (err) {
+                            showModal('Error', `<p>${err.message}</p>`);
+                        }
+                    }
+
+                    // inicializar
+                    renderEncargadosWithFilters();
+
+                    const btnBuscar = document.getElementById('btn-filtrar-encargados');
+                    if (btnBuscar) btnBuscar.addEventListener('click', renderEncargadosWithFilters);
+                    const btnLimpiar = document.getElementById('btn-limpiar-filtros-encargados');
+                    if (btnLimpiar) btnLimpiar.addEventListener('click', () => {
+                        document.getElementById('filter-enc-id').value = '';
+                        document.getElementById('filter-enc-nombre').value = '';
+                        document.getElementById('filter-enc-email').value = '';
+                        renderEncargadosWithFilters();
+                    });
+
                     // assign-encargado-btn opens modal to assign existing user by email
                     const assignBtn = document.getElementById('assign-encargado-btn');
                     if (assignBtn) {
@@ -938,6 +1010,12 @@
                     </div>
                     <div>
                     <label class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" name="email" required class="mt-1 block w-full border border-gray-300 rounded p-2">
+                    </div>
+                    <div>
+                    <label class="block text-sm font-medium text-gray-700">Contraseña</label>
+                    <input type="password" name="password" required class="mt-1 block w-full border border-gray-300 rounded p-2">
+                    </div>
                     <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Crear Encargado</button>
                 </form>
                 `;
