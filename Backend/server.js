@@ -1198,3 +1198,106 @@ app.delete('/api/admin/carrusel/:name', authenticateToken, requireAdmin, async (
     res.status(500).json({ error: 'Error al eliminar imagen' });
   }
 });
+
+/**
+ * =========================
+ * RUTAS DEL ADMIN - CATEGORÍAS (CRUD)
+ * =========================
+ */
+
+/**
+ * @route POST /api/admin/categorias
+ * @desc Crear una nueva categoría de habitación
+ */
+app.post("/api/admin/categorias", authenticateToken, requireAdmin, async (req, res) => {
+    const { nombre, descripcion } = req.body;
+    try {
+        if (!nombre) {
+            return res.status(400).json({ error: "El nombre de la categoría es obligatorio" });
+        }
+
+        // Verificar que no existe una categoría con el mismo nombre
+        const exists = await queryWithRetry("SELECT id_categoria FROM public.categorias_habitaciones WHERE LOWER(nombre) = LOWER($1)", [nombre]);
+        if (exists.rows.length > 0) {
+            return res.status(409).json({ error: "Ya existe una categoría con ese nombre" });
+        }
+
+        const result = await queryWithRetry(
+            "INSERT INTO public.categorias_habitaciones (nombre, descripcion) VALUES ($1, $2) RETURNING *",
+            [nombre, descripcion || null]
+        );
+
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error("Error al crear categoría:", err);
+        res.status(500).json({ error: "Error al crear categoría", detalle: err.message });
+    }
+});
+
+/**
+ * @route PUT /api/admin/categorias/:id
+ * @desc Actualizar una categoría de habitación
+ */
+app.put("/api/admin/categorias/:id", authenticateToken, requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    const { nombre, descripcion } = req.body;
+    try {
+        if (!nombre) {
+            return res.status(400).json({ error: "El nombre de la categoría es obligatorio" });
+        }
+
+        // Verificar que la categoría existe
+        const exists = await queryWithRetry("SELECT id_categoria FROM public.categorias_habitaciones WHERE id_categoria = $1", [id]);
+        if (exists.rows.length === 0) {
+            return res.status(404).json({ error: "Categoría no encontrada" });
+        }
+
+        // Verificar que no existe otra categoría con el mismo nombre
+        const duplicate = await queryWithRetry(
+            "SELECT id_categoria FROM public.categorias_habitaciones WHERE LOWER(nombre) = LOWER($1) AND id_categoria != $2", 
+            [nombre, id]
+        );
+        if (duplicate.rows.length > 0) {
+            return res.status(409).json({ error: "Ya existe otra categoría con ese nombre" });
+        }
+
+        const result = await queryWithRetry(
+            "UPDATE public.categorias_habitaciones SET nombre = $1, descripcion = $2 WHERE id_categoria = $3 RETURNING *",
+            [nombre, descripcion || null, id]
+        );
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Error al actualizar categoría:", err);
+        res.status(500).json({ error: "Error al actualizar categoría", detalle: err.message });
+    }
+});
+
+/**
+ * @route DELETE /api/admin/categorias/:id
+ * @desc Eliminar una categoría de habitación
+ */
+app.delete("/api/admin/categorias/:id", authenticateToken, requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    try {
+        // Verificar que la categoría existe
+        const exists = await queryWithRetry("SELECT id_categoria FROM public.categorias_habitaciones WHERE id_categoria = $1", [id]);
+        if (exists.rows.length === 0) {
+            return res.status(404).json({ error: "Categoría no encontrada" });
+        }
+
+        // Verificar que no hay habitaciones usando esta categoría
+        const habitacionesUsando = await queryWithRetry("SELECT COUNT(*)::int AS count FROM public.habitaciones WHERE id_categoria = $1", [id]);
+        if (habitacionesUsando.rows[0].count > 0) {
+            return res.status(409).json({ 
+                error: `No se puede eliminar la categoría porque ${habitacionesUsando.rows[0].count} habitación(es) la están usando` 
+            });
+        }
+
+        await queryWithRetry("DELETE FROM public.categorias_habitaciones WHERE id_categoria = $1", [id]);
+        res.status(204).send();
+    } catch (err) {
+        console.error("Error al eliminar categoría:", err);
+        res.status(500).json({ error: "Error al eliminar categoría", detalle: err.message });
+    }
+});

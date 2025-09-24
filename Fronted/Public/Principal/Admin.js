@@ -150,66 +150,99 @@
                 title: 'Configuración de Hotel',
                 render: async () => {
                     try {
-                        const cfg = JSON.parse(localStorage.getItem('hotel_config') || '{}');
-                        const pisos = cfg.pisos || 1;
-                        const habitaciones_por_piso = cfg.habitaciones_por_piso || 10;
-                        const categorias = Array.isArray(cfg.categorias) ? cfg.categorias : [];
+                        // Obtener categorías desde el backend en lugar de localStorage
+                        const categorias = await apiGet('/admin/categorias').catch(() => []);
 
-                        // ahora cada categoría puede tener: nombre, capacidad, precio_min_dia, precio_min_hora, cantidad_banos, cantidad_camas
-                        const categoriasHtml = (categorias.length ? categorias : [{ nombre:'Matrimonial', capacidad:2, precio_min_dia:'', precio_min_hora:'', cantidad_banos:1, cantidad_camas:1 }]).map((c, idx) => `
-                            <div class="categoria-row grid grid-cols-6 gap-2 items-center" data-index="${idx}">
-                                <input class="cat-nombre mt-1 border border-gray-300 rounded p-2" placeholder="Categoría" value="${c.nombre || ''}">
-                                <input class="cat-precio-dia mt-1 border border-gray-300 rounded p-2" type="number" step="0.01" placeholder="Precio mínimo por día" value="${c.precio_min_dia || ''}">
-                                <input class="cat-precio-hora mt-1 border border-gray-300 rounded p-2" type="number" step="0.01" placeholder="Precio mínimo por hora" value="${c.precio_min_hora || ''}">
-                                <input class="cat-cantidad-banos mt-1 border border-gray-300 rounded p-2" type="number" min="0" placeholder="Cantidad de baños" value="${c.cantidad_banos != null ? c.cantidad_banos : 1}">
-                                <input class="cat-cantidad-camas mt-1 border border-gray-300 rounded p-2" type="number" min="0" placeholder="Cantidad de camas" value="${c.cantidad_camas != null ? c.cantidad_camas : 1}">
-                                <input class="cat-capacidad mt-1 border border-gray-300 rounded p-2" type="number" min="1" placeholder="Capacidad (personas)" value="${c.capacidad || 1}">
-                                <button type="button" class="remove-cat btn-minimal">Quitar</button>
+                        const categoriasHtml = categorias.length ? categorias.map((c, idx) => `
+                            <div class="categoria-row bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-3" data-id="${c.id_categoria}">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Nombre de la Categoría</label>
+                                        <input class="cat-nombre w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500" 
+                                               placeholder="Ej: Matrimonial, Simple, etc." 
+                                               value="${c.nombre || ''}" 
+                                               readonly>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                                        <input class="cat-descripcion w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500" 
+                                               placeholder="Descripción opcional" 
+                                               value="${c.descripcion || ''}" 
+                                               readonly>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button type="button" class="edit-categoria-btn bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 text-sm">
+                                            Editar
+                                        </button>
+                                        <button type="button" class="save-categoria-btn bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 text-sm hidden">
+                                            Guardar
+                                        </button>
+                                        <button type="button" class="cancel-categoria-btn bg-gray-500 text-white px-3 py-2 rounded-md hover:bg-gray-600 text-sm hidden">
+                                            Cancelar
+                                        </button>
+                                        <button type="button" class="delete-categoria-btn bg-red-600 text-white px-3 py-2 rounded-md hover:bg-red-700 text-sm">
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                        `).join('');
+                        `).join('') : `
+                            <div class="text-center py-8 text-gray-500">
+                                <p class="text-lg mb-2">No hay categorías configuradas</p>
+                                <p class="text-sm">Crea tu primera categoría de habitación usando el botón de abajo</p>
+                            </div>
+                        `;
 
                         return `
                         <div class="admin-card">
-                            <h2 class="text-xl font-semibold mb-4">Configuración de Hotel</h2>
+                            <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-2 0H9m-2 0H5m-2 0h2M7 7h10M7 11h6m-6 4h3"></path>
+                                </svg>
+                                Gestión de Categorías de Habitaciones
+                            </h2>
 
-                            <form id="hotel-config-form" class="space-y-4">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm text-gray-600">Cantidad de Pisos</label>
-                                        <input id="cfg-pisos" type="number" min="1" class="mt-1 border border-gray-300 rounded p-2" value="${pisos}">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm text-gray-600">Habitaciones por Piso</label>
-                                        <input id="cfg-hab-por-piso" type="number" min="1" class="mt-1 border border-gray-300 rounded p-2" value="${habitaciones_por_piso}">
-                                    </div>
+                            <div class="mb-6">
+                                <p class="text-gray-600 mb-4">
+                                    Administra las categorías de habitaciones de tu hotel. Las habitaciones existentes mantendrán su categoría actual.
+                                </p>
+                                
+                                <div class="flex flex-wrap gap-3 mb-6">
+                                    <button id="add-categoria-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                        </svg>
+                                        Añadir Categoría
+                                    </button>
+                                    
+                                    <button id="refresh-categorias-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                        </svg>
+                                        Actualizar Lista
+                                    </button>
                                 </div>
+                            </div>
 
-                                <div>
-                                    <label class="block text-sm text-gray-600">AÑADIR CATEGORIAS DE HABITACIONES</label>
-                                   <!-- Guía visual encima de los cuadros -->
-                                   <div class="mt-2 grid grid-cols-6 gap-2 text-xs text-gray-700 font-medium">
-                                       <div class="px-2">Categoría</div>
-                                       <div class="px-2">Precio mínimo / día</div>
-                                       <div class="px-2">Precio mínimo / hora</div>
-                                       <div class="px-2">Cantidad de baños</div>
-                                       <div class="px-2">Cantidad de camas</div>
-                                       <div class="px-2">Capacidad (personas)</div>
-                                   </div>
-                                    <div id="categorias-container" class="mt-2 flex flex-col gap-2">
-                                        ${categoriasHtml || ''}
-                                    </div>
-                                    <div class="mt-2">
-                                        <button id="add-categoria-btn" type="button" class="bg-blue-600 text-white px-3 py-1 rounded">Añadir Categoría / Plantilla</button>
-                                    </div>
-                                </div>
+                            <div id="categorias-container" class="space-y-4">
+                                ${categoriasHtml}
+                            </div>
 
-                                <div class="flex justify-end gap-2">
-                                    <button id="reset-hotel-config" type="button" class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Restablecer</button>
-                                    <button id="save-hotel-config" type="button" class="bg-green-600 text-white px-4 py-2 rounded">Guardar Configuración</button>
-                                </div>
-                            </form>
-
-                            <p class="text-sm text-gray-500 mt-3">Esta configuración se guarda en el navegador (localStorage). En una futura versión puede sincronizarse con el backend.</p>
+                            <!-- Información adicional -->
+                            <div class="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <h3 class="font-semibold text-blue-800 mb-2">
+                                    <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    Información Importante
+                                </h3>
+                                <ul class="text-blue-700 text-sm space-y-1">
+                                    <li>• Las categorías se almacenan en la base de datos del hotel</li>
+                                    <li>• No puedes eliminar categorías que estén siendo utilizadas por habitaciones</li>
+                                    <li>• Los cambios se aplican inmediatamente al crear/editar habitaciones</li>
+                                    <li>• Los nombres de categorías deben ser únicos</li>
+                                </ul>
+                            </div>
                         </div>
                         `;
                     } catch (err) {
@@ -219,70 +252,145 @@
                 postRender: () => {
                     const container = document.getElementById('categorias-container');
                     const addBtn = document.getElementById('add-categoria-btn');
-                    const saveBtn = document.getElementById('save-hotel-config');
-                    const resetBtn = document.getElementById('reset-hotel-config');
+                    const refreshBtn = document.getElementById('refresh-categorias-btn');
 
-                    function addCategoriaRow(data) {
-                        const idx = Date.now();
-                        const div = document.createElement('div');
-                        div.className = 'categoria-row grid grid-cols-6 gap-2 items-center';
-                        div.dataset.index = idx;
-                        div.innerHTML = `
-                            <input class="cat-nombre mt-1 border border-gray-300 rounded p-2" placeholder="Categoría" value="${(data && data.nombre) || ''}">
-                            <input class="cat-precio-dia mt-1 border border-gray-300 rounded p-2" type="number" step="0.01" placeholder="Precio mínimo por día" value="${(data && data.precio_min_dia) || ''}">
-                            <input class="cat-precio-hora mt-1 border border-gray-300 rounded p-2" type="number" step="0.01" placeholder="Precio mínimo por hora" value="${(data && data.precio_min_hora) || ''}">
-                            <input class="cat-cantidad-banos mt-1 border border-gray-300 rounded p-2" type="number" min="0" placeholder="Cantidad de baños" value="${(data && data.cantidad_banos) || 1}">
-                            <input class="cat-cantidad-camas mt-1 border border-gray-300 rounded p-2" type="number" min="0" placeholder="Cantidad de camas" value="${(data && data.cantidad_camas) || 1}">
-                            <input class="cat-capacidad mt-1 border border-gray-300 rounded p-2" type="number" min="1" placeholder="Capacidad (personas)" value="${(data && data.capacidad) || 1}">
-                            <button type="button" class="remove-cat btn-minimal">Quitar</button>
-                        `;
-                        container.appendChild(div);
-                    }
-
-                    function readConfigFromForm() {
-                        const pisos = parseInt((document.getElementById('cfg-pisos') || {}).value || '1', 10) || 1;
-                        const habPorPiso = parseInt((document.getElementById('cfg-hab-por-piso') || {}).value || '10', 10) || 10;
-                        const cats = [];
-                        const rows = container.querySelectorAll('.categoria-row');
-                        rows.forEach(r => {
-                            const nombre = (r.querySelector('.cat-nombre') || {}).value || '';
-                            const capacidad = parseInt((r.querySelector('.cat-capacidad') || {}).value || '1', 10) || 1;
-                            const cantidad_banos = parseInt((r.querySelector('.cat-cantidad-banos') || {}).value || '1', 10) || 1;
-                            const cantidad_camas = parseInt((r.querySelector('.cat-cantidad-camas') || {}).value || '1', 10) || 1;
-                            const precio_min_dia = parseFloat((r.querySelector('.cat-precio-dia') || {}).value || '') || '';
-                            const precio_min_hora = parseFloat((r.querySelector('.cat-precio-hora') || {}).value || '') || '';
-                            // only push if there's a category name to avoid empty rows
-                            if (nombre) cats.push({ nombre, capacidad, cantidad_banos, cantidad_camas, precio_min_dia, precio_min_hora });
-                        });
-                        return { pisos, habitaciones_por_piso: habPorPiso, categorias: cats };
-                    }
-
-                    if (addBtn) addBtn.addEventListener('click', () => addCategoriaRow({}));
-
-                    if (container) {
-                        container.addEventListener('click', (e) => {
-                            const rem = e.target.closest('.remove-cat');
-                            if (!rem) return;
-                            const row = rem.closest('.categoria-row');
-                            if (row) row.remove();
-                        });
-                    }
-
-                    if (saveBtn) saveBtn.addEventListener('click', () => {
+                    // Función para recargar las categorías
+                    async function reloadCategorias() {
                         try {
-                            const cfg = readConfigFromForm();
-                            localStorage.setItem('hotel_config', JSON.stringify(cfg));
-                            showModal('Éxito', '<p>Configuración guardada en localStorage.</p>');
+                            await loadSection('configuracion-hotel');
                         } catch (err) {
-                            showModal('Error', `<p>${err.message}</p>`);
+                            showModal('Error', `<p>Error al recargar categorías: ${err.message}</p>`);
                         }
-                    });
+                    }
 
-                    if (resetBtn) resetBtn.addEventListener('click', () => {
-                        if (!confirm('¿Restablecer la configuración por defecto?')) return;
-                        localStorage.removeItem('hotel_config');
-                        loadSection('configuracion-hotel');
-                    });
+                    // Botón añadir categoría
+                    if (addBtn) {
+                        addBtn.addEventListener('click', () => {
+                            const formHtml = `
+                                <form id="add-categoria-form" class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Nombre de la Categoría</label>
+                                        <input name="nombre" required class="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500" 
+                                               placeholder="Ej: Matrimonial, Simple, Doble, Familiar">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Descripción (opcional)</label>
+                                        <textarea name="descripcion" class="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500" 
+                                                  rows="3" placeholder="Descripción de la categoría..."></textarea>
+                                    </div>
+                                    <div class="flex justify-end space-x-3 pt-4">
+                                        <button type="button" onclick="hideModal()" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                                            Cancelar
+                                        </button>
+                                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                            Crear Categoría
+                                        </button>
+                                    </div>
+                                </form>
+                            `;
+                            
+                            showModal('Nueva Categoría', formHtml, () => {
+                                document.getElementById('add-categoria-form').addEventListener('submit', async (e) => {
+                                    e.preventDefault();
+                                    const formData = new FormData(e.target);
+                                    const data = {
+                                        nombre: formData.get('nombre'),
+                                        descripcion: formData.get('descripcion') || ''
+                                    };
+                                    
+                                    try {
+                                        await apiPost('/admin/categorias', data);
+                                        hideModal();
+                                        showModal('Éxito', '<p>Categoría creada correctamente.</p>');
+                                        await reloadCategorias();
+                                    } catch (err) {
+                                        showModal('Error', `<p>${err.message}</p>`);
+                                    }
+                                });
+                            });
+                        });
+                    }
+
+                    // Botón actualizar
+                    if (refreshBtn) {
+                        refreshBtn.addEventListener('click', reloadCategorias);
+                    }
+
+                    // Delegación de eventos para las categorías
+                    if (container) {
+                        container.addEventListener('click', async (e) => {
+                            const target = e.target;
+                            const row = target.closest('.categoria-row');
+                            if (!row) return;
+                            
+                            const categoryId = row.getAttribute('data-id');
+                            const nombreInput = row.querySelector('.cat-nombre');
+                            const descripcionInput = row.querySelector('.cat-descripcion');
+
+                            // Botón Editar
+                            if (target.classList.contains('edit-categoria-btn')) {
+                                // Habilitar edición
+                                nombreInput.removeAttribute('readonly');
+                                descripcionInput.removeAttribute('readonly');
+                                nombreInput.focus();
+                                
+                                // Mostrar/ocultar botones
+                                row.querySelector('.edit-categoria-btn').classList.add('hidden');
+                                row.querySelector('.delete-categoria-btn').classList.add('hidden');
+                                row.querySelector('.save-categoria-btn').classList.remove('hidden');
+                                row.querySelector('.cancel-categoria-btn').classList.remove('hidden');
+                                
+                                // Cambiar estilo visual
+                                nombreInput.classList.add('bg-yellow-50', 'border-yellow-300');
+                                descripcionInput.classList.add('bg-yellow-50', 'border-yellow-300');
+                            }
+
+                            // Botón Guardar
+                            else if (target.classList.contains('save-categoria-btn')) {
+                                const nombre = nombreInput.value.trim();
+                                if (!nombre) {
+                                    showModal('Error', '<p>El nombre de la categoría es obligatorio.</p>');
+                                    return;
+                                }
+                                
+                                try {
+                                    const data = {
+                                        nombre: nombre,
+                                        descripcion: descripcionInput.value.trim()
+                                    };
+                                    
+                                    await apiPut(`/admin/categorias/${categoryId}`, data);
+                                    showModal('Éxito', '<p>Categoría actualizada correctamente.</p>');
+                                    await reloadCategorias();
+                                } catch (err) {
+                                    showModal('Error', `<p>${err.message}</p>`);
+                                }
+                            }
+
+                            // Botón Cancelar
+                            else if (target.classList.contains('cancel-categoria-btn')) {
+                                await reloadCategorias(); // Recargar para restaurar valores originales
+                            }
+
+                            // Botón Eliminar
+                            else if (target.classList.contains('delete-categoria-btn')) {
+                                const nombreCategoria = nombreInput.value;
+                                showConfirmModal(
+                                    `¿Estás seguro de eliminar la categoría "${nombreCategoria}"?<br><br>
+                                     <strong>Nota:</strong> No se puede eliminar si hay habitaciones usando esta categoría.`, 
+                                    async () => {
+                                        try {
+                                            await apiDelete(`/admin/categorias/${categoryId}`);
+                                            showModal('Éxito', '<p>Categoría eliminada correctamente.</p>');
+                                            await reloadCategorias();
+                                        } catch (err) {
+                                            showModal('Error', `<p>${err.message}</p>`);
+                                        }
+                                    }
+                                );
+                            }
+                        });
+                    }
                 }
             },
 
