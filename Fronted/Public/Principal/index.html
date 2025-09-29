@@ -85,90 +85,17 @@
                 comodidades modernas.
             </p> <br>
 
-            <!-- Nuevo carrusel gestionable (mejorado visualmente) -->
-            <div id="heroCarousel" class="hero-carousel" aria-roledescription="carousel" aria-label="Imagen principal">
-                <div class="hero-carousel-inner" id="heroCarouselInner">
-                    <!-- imágenes inyectadas por JS -->
+            <!-- Carrusel principal mejorado -->
+            <div id="heroCarousel" class="carousel">
+                <div class="carousel-track" id="carouselTrack">
+                    <!-- Las imágenes se cargarán dinámicamente -->
                 </div>
-                <button class="hero-arrow prev" aria-label="Anterior">‹</button>
-                <button class="hero-arrow next" aria-label="Siguiente">›</button>
-                <div class="hero-dots" id="heroCarouselDots" aria-hidden="false"></div>
+                <button class="carousel-arrow prev">‹</button>
+                <button class="carousel-arrow next">›</button>
+                <div class="carousel-dots" id="carouselIndicators">
+                    <!-- Los indicadores se generarán dinámicamente -->
+                </div>
             </div>
-            
-            <style>
-              /* Hero carousel visual improvements */
-              .hero-carousel { position: relative; width: 100%; max-width: 1200px; margin: 1.25rem auto; overflow: hidden; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
-              .hero-carousel-inner { display:flex; transition: transform .6s cubic-bezier(.22,.98,.36,.99); will-change: transform; }
-              .hero-slide { min-width:100%; height: 420px; box-sizing:border-box; position:relative; background:#111; }
-              @media (max-width:1100px) { .hero-slide { height: 360px; } }
-              @media (max-width:800px) { .hero-slide { height: 220px; } }
-              .hero-slide img { width:100%; height:100%; object-fit:cover; display:block; }
-              .hero-overlay { position:absolute; left:0; right:0; top:0; bottom:0; background: linear-gradient(180deg, rgba(0,0,0,0.28), rgba(0,0,0,0.02) 45%); pointer-events:none; }
-              .hero-caption { position:absolute; left:24px; bottom:22px; z-index:35; color:#fff; text-shadow: 0 2px 8px rgba(0,0,0,0.45); }
-              .hero-caption h2{ margin:0;font-size:1.6rem; font-weight:700; }
-              .hero-caption p{ margin:0.25rem 0 0; font-size:0.95rem; opacity:0.95 }
-              .hero-arrow { position:absolute; top:50%; transform:translateY(-50%); z-index:30; background: rgba(0,0,0,0.45); color:#fff; border:0; width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; }
-              .hero-arrow.prev{ left:12px; } .hero-arrow.next{ right:12px; }
-              .hero-dots{ position:absolute; left:50%; transform:translateX(-50%); bottom:12px; display:flex; gap:8px; z-index:30; }
-              .hero-dot{ width:10px; height:10px; border-radius:50%; background: rgba(255,255,255,0.6); cursor:pointer; }
-              .hero-dot.active{ background:#fff; box-shadow: 0 0 0 3px rgba(0,0,0,0.08); }
-            </style>
-            
-            <script>
-              (function(){
-                const container = document.getElementById('heroCarouselInner');
-                const dotsContainer = document.getElementById('heroCarouselDots');
-                const prev = document.querySelector('#heroCarousel .hero-arrow.prev');
-                const next = document.querySelector('#heroCarousel .hero-arrow.next');
-                let slides = [], idx = 0, timer = null, AUTOPLAY = 4500;
-                let touchStartX = 0, touchDeltaX = 0;
-            
-                function render(imgs){
-                  container.innerHTML=''; dotsContainer.innerHTML=''; slides=[];
-                  imgs.forEach((src,i)=>{
-                    const slide = document.createElement('div'); slide.className='hero-slide';
-                    const img = document.createElement('img'); img.src = src; img.alt = `Imagen ${i+1}`; img.loading = 'lazy';
-                    slide.appendChild(img);
-                    const ov = document.createElement('div'); ov.className='hero-overlay'; slide.appendChild(ov);
-                    // optional caption area
-                    const caption = document.createElement('div'); caption.className='hero-caption'; caption.innerHTML = `<h2>Casa del Inka</h2><p>Tradición & confort en Villa El Salvador</p>`; slide.appendChild(caption);
-                    container.appendChild(slide);
-            
-                    const dot = document.createElement('button'); dot.className='hero-dot'; dot.addEventListener('click',()=>go(i));
-                    dotsContainer.appendChild(dot);
-                    slides.push({slide,dot});
-                  });
-                  if(slides.length<=1){ prev.style.display='none'; next.style.display='none'; dotsContainer.style.display='none'; }
-                  go(0,false);
-                  start();
-                }
-            
-                function update(){ container.style.transform = `translateX(-${idx*100}%)`; slides.forEach((s,i)=> s.dot.classList.toggle('active', i===idx)); }
-                function go(i,reset=true){ if(!slides.length) return; idx = ((i%slides.length)+slides.length)%slides.length; update(); if(reset) restart(); }
-                function nextSlide(){ go(idx+1); }
-                function prevSlide(){ go(idx-1); }
-                function start(){ stop(); if(slides.length>1) timer = setInterval(nextSlide, AUTOPLAY); }
-                function stop(){ if(timer){ clearInterval(timer); timer=null; } }
-                function restart(){ stop(); start(); }
-            
-                next.addEventListener('click', nextSlide); prev.addEventListener('click', prevSlide);
-                document.getElementById('heroCarousel').addEventListener('mouseenter', stop);
-                document.getElementById('heroCarousel').addEventListener('mouseleave', start);
-            
-                // touch handlers for swipe
-                container.addEventListener('touchstart', (e)=>{ touchStartX = e.touches[0].clientX; touchDeltaX = 0; stop(); });
-                container.addEventListener('touchmove', (e)=>{ touchDeltaX = e.touches[0].clientX - touchStartX; container.style.transform = `translateX(${ -idx*100 + (touchDeltaX / container.clientWidth * 100) }%)`; });
-                container.addEventListener('touchend', ()=>{ if(Math.abs(touchDeltaX) > 50){ if(touchDeltaX < 0) nextSlide(); else prevSlide(); } else update(); restart(); });
-            
-                // fetch images
-                fetch('/api/carrusel').then(r=>r.ok? r.json() : Promise.reject()).then(b=>{
-                  const imgs = Array.isArray(b)? b : (b.images||[]);
-                  const urls = imgs.map(u=> u.url||u).filter(Boolean);
-                  if(urls.length) render(urls);
-                  else document.getElementById('heroCarousel').style.display='none';
-                }).catch(()=>{ document.getElementById('heroCarousel').style.display='none'; });
-               })();
-            </script>
 
         </section>
 
@@ -294,3 +221,4 @@
 </body>
 
 </html>
+``` 

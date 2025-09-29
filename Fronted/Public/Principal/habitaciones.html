@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Habitaciones - Casa del Inka</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+        }
+        
+        .form-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: white;
+            width: 100%;
+            margin-bottom: 16px;
+        }
+        
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: rgba(102, 126, 234, 0.8);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        
+        .close-modal {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            font-size: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .room-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .room-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .room-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-available {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-occupied {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .image-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .preview-img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .search-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .filter-group label {
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .filter-select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: white;
+            min-width: 150px;
+        }
+        
+        .filter-select option {
+            background: #333;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen p-6">
+        <!-- Header -->
+        <div class="glass-card p-6 mb-8">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <button onclick="window.history.back()" class="btn-secondary btn-primary">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <h1 class="text-3xl font-bold text-white">
+                        <i class="fas fa-bed mr-3"></i>
+                        Gestión de Habitaciones
+                    </h1>
+                </div>
+                <button onclick="openCreateModal()" class="btn-primary">
+                    <i class="fas fa-plus"></i>
+                    Nueva Habitación
+                </button>
+            </div>
+        </div>
+
+        <!-- Filtros de búsqueda -->
+        <div class="glass-card p-6 mb-8">
+            <div class="search-filters">
+                <div class="filter-group">
+                    <label>Buscar:</label>
+                    <input type="text" id="searchInput" placeholder="Número, tipo, categoría..." class="form-input" style="margin-bottom: 0; width: 250px;">
+                </div>
+                <div class="filter-group">
+                    <label>Categoría:</label>
+                    <select id="categoryFilter" class="filter-select">
+                        <option value="">Todas las categorías</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Piso:</label>
+                    <select id="floorFilter" class="filter-select">
+                        <option value="">Todos los pisos</option>
+                        <option value="1">Piso 1</option>
+                        <option value="2">Piso 2</option>
+                        <option value="3">Piso 3</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Estado:</label>
+                    <select id="statusFilter" class="filter-select">
+                        <option value="">Todos</option>
+                        <option value="true">Disponible</option>
+                        <option value="false">Ocupada</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <button onclick="applyFilters()" class="btn-primary">
+                        <i class="fas fa-search"></i>
+                        Filtrar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de habitaciones -->
+        <div class="glass-card p-6">
+            <div id="loadingSpinner" class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-4xl text-white"></i>
+                <p class="text-white mt-4">Cargando habitaciones...</p>
+            </div>
+            <div id="roomsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" style="display: none;">
+                <!-- Las habitaciones se cargarán aquí -->
+            </div>
+            <div id="noRoomsMessage" class="text-center py-8 text-white" style="display: none;">
+                <i class="fas fa-bed text-6xl mb-4 opacity-50"></i>
+                <h3 class="text-2xl font-bold mb-2">No se encontraron habitaciones</h3>
+                <p class="opacity-75">Crea tu primera habitación para comenzar</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para crear/editar habitación -->
+    <div id="roomModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle" class="text-2xl font-bold mb-6 text-gray-800">Nueva Habitación</h2>
+            
+            <form id="roomForm" enctype="multipart/form-data">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Número de Habitación *</label>
+                        <input type="text" id="roomNumber" name="numero_habitacion" required 
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Tipo *</label>
+                        <select id="roomType" name="tipo" required 
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">Seleccionar tipo</option>
+                            <option value="Individual">Individual</option>
+                            <option value="Matrimonial">Matrimonial</option>
+                            <option value="Familiar">Familiar</option>
+                            <option value="Suite">Suite</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Categoría *</label>
+                        <select id="roomCategory" name="id_categoria" required 
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">Seleccionar categoría</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Piso</label>
+                        <input type="number" id="roomFloor" name="piso" min="1" max="10" 
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Capacidad</label>
+                        <input type="number" id="roomCapacity" name="capacidad" min="1" max="8" 
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Precio por Día (S/)</label>
+                        <input type="number" id="roomPriceDay" name="precio_por_dia" min="0" step="0.01" 
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Precio por Hora (S/)</label>
+                        <input type="number" id="roomPriceHour" name="precio_por_hora" min="0" step="0.01" 
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Estado</label>
+                        <select id="roomAvailable" name="disponible" 
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="true">Disponible</option>
+                            <option value="false">Ocupada</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <label class="block text-gray-700 font-semibold mb-2">Fotos de la Habitación</label>
+                    <input type="file" id="roomPhotos" name="fotos" multiple accept="image/*" 
+                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <p class="text-sm text-gray-500 mt-2">Puedes seleccionar múltiples imágenes (máximo 10)</p>
+                    <div id="imagePreview" class="image-preview"></div>
+                </div>
+
+                <div class="flex justify-end gap-4 mt-8">
+                    <button type="button" onclick="closeModal()" class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-save mr-2"></i>
+                        Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let rooms = [];
+        let categories = [];
+        let currentEditingRoom = null;
+
+        // Inicializar la aplicación
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCategories();
+            loadRooms();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Filtros en tiempo real
+            document.getElementById('searchInput').addEventListener('input', debounce(applyFilters, 300));
+            
+            // Vista previa de imágenes
+            document.getElementById('roomPhotos').addEventListener('change', previewImages);
+            
+            // Cerrar modal con Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') closeModal();
+            });
+            
+            // Envío del formulario
+            document.getElementById('roomForm').addEventListener('submit', handleFormSubmit);
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Cargar categorías
+        async function loadCategories() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/admin/categorias', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    categories = await response.json();
+                    populateCategorySelects();
+                }
+            } catch (error) {
+                console.error('Error cargando categorías:', error);
+            }
+        }
+
+        function populateCategorySelects() {
+            const selects = [
+                document.getElementById('roomCategory'),
+                document.getElementById('categoryFilter')
+            ];
+
+            selects.forEach(select => {
+                if (select.id === 'categoryFilter') {
+                    // Para el filtro, mantener la opción "Todas las categorías"
+                    select.innerHTML = '<option value="">Todas las categorías</option>';
+                } else {
+                    // Para el formulario, limpiar completamente
+                    select.innerHTML = '<option value="">Seleccionar categoría</option>';
+                }
+
+                categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.id_categoria;
+                    option.textContent = category.nombre;
+                    select.appendChild(option);
+                });
+            });
+        }
+
+        // Cargar habitaciones
+        async function loadRooms() {
+            showLoading();
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/admin/habitaciones', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    rooms = await response.json();
+                    displayRooms(rooms);
+                } else {
+                    throw new Error('Error al cargar habitaciones');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Error al cargar las habitaciones', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('loadingSpinner').style.display = 'block';
+            document.getElementById('roomsList').style.display = 'none';
+            document.getElementById('noRoomsMessage').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
+
+        function displayRooms(roomsToShow) {
+            const roomsList = document.getElementById('roomsList');
+            const noRoomsMessage = document.getElementById('noRoomsMessage');
+
+            if (roomsToShow.length === 0) {
+                roomsList.style.display = 'none';
+                noRoomsMessage.style.display = 'block';
+                return;
+            }
+
+            roomsList.style.display = 'grid';
+            noRoomsMessage.style.display = 'none';
+            
+            roomsList.innerHTML = roomsToShow.map(room => `
+                <div class="room-card">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="text-xl font-bold text-gray-800">Habitación ${room.numero_habitacion}</h3>
+                        <span class="status-badge ${room.disponible ? 'status-available' : 'status-occupied'}">
+                            ${room.disponible ? 'Disponible' : 'Ocupada'}
+                        </span>
+                    </div>
+                    
+                    <div class="space-y-2 text-gray-600 mb-4">
+                        <p><strong>Tipo:</strong> ${room.tipo || 'No especificado'}</p>
+                        <p><strong>Categoría:</strong> ${room.categoria || 'Sin categoría'}</p>
+                        ${room.piso ? `<p><strong>Piso:</strong> ${room.piso}</p>` : ''}
+                        ${room.capacidad ? `<p><strong>Capacidad:</strong> ${room.capacidad} personas</p>` : ''}
+                        <div class="flex justify-between">
+                            ${room.precio_por_dia ? `<p><strong>Día:</strong> S/ ${parseFloat(room.precio_por_dia).toFixed(2)}</p>` : ''}
+                            ${room.precio_por_hora ? `<p><strong>Hora:</strong> S/ ${parseFloat(room.precio_por_hora).toFixed(2)}</p>` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end gap-2">
+                        <button onclick="editRoom(${room.id_habitacion})" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                            <i class="fas fa-edit mr-1"></i>
+                            Editar
+                        </button>
+                        <button onclick="deleteRoom(${room.id_habitacion})" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
+                            <i class="fas fa-trash mr-1"></i>
+                            Eliminar
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Aplicar filtros
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const floorFilter = document.getElementById('floorFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            let filteredRooms = rooms.filter(room => {
+                const matchesSearch = !searchTerm || 
+                    room.numero_habitacion.toString().toLowerCase().includes(searchTerm) ||
+                    (room.tipo && room.tipo.toLowerCase().includes(searchTerm)) ||
+                    (room.categoria && room.categoria.toLowerCase().includes(searchTerm));
+
+                const matchesCategory = !categoryFilter || room.id_categoria.toString() === categoryFilter;
+                const matchesFloor = !floorFilter || (room.piso && room.piso.toString() === floorFilter);
+                const matchesStatus = statusFilter === '' || room.disponible.toString() === statusFilter;
+
+                return matchesSearch && matchesCategory && matchesFloor && matchesStatus;
+            });
+
+            displayRooms(filteredRooms);
+        }
+
+        // Modal functions
+        function openCreateModal() {
+            currentEditingRoom = null;
+            document.getElementById('modalTitle').textContent = 'Nueva Habitación';
+            document.getElementById('roomForm').reset();
+            document.getElementById('imagePreview').innerHTML = '';
+            document.getElementById('roomModal').style.display = 'block';
+        }
+
+        function editRoom(roomId) {
+            const room = rooms.find(r => r.id_habitacion === roomId);
+            if (!room) return;
+
+            currentEditingRoom = room;
+            document.getElementById('modalTitle').textContent = 'Editar Habitación';
+            
+            // Llenar el formulario
+            document.getElementById('roomNumber').value = room.numero_habitacion || '';
+            document.getElementById('roomType').value = room.tipo || '';
+            document.getElementById('roomCategory').value = room.id_categoria || '';
+            document.getElementById('roomFloor').value = room.piso || '';
+            document.getElementById('roomCapacity').value = room.capacidad || '';
+            document.getElementById('roomPriceDay').value = room.precio_por_dia || '';
+            document.getElementById('roomPriceHour').value = room.precio_por_hora || '';
+            document.getElementById('roomAvailable').value = room.disponible ? 'true' : 'false';
+            
+            document.getElementById('imagePreview').innerHTML = '';
+            document.getElementById('roomModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('roomModal').style.display = 'none';
+            document.getElementById('roomForm').reset();
+            currentEditingRoom = null;
+        }
+
+        // Preview de imágenes
+        function previewImages(event) {
+            const files = event.target.files;
+            const preview = document.getElementById('imagePreview');
+            preview.innerHTML = '';
+
+            Array.from(files).forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'preview-img';
+                        preview.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // Manejar envío del formulario
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const token = localStorage.getItem('token');
+            
+            try {
+                const url = currentEditingRoom 
+                    ? `/api/admin/habitaciones/${currentEditingRoom.id_habitacion}`
+                    : '/api/admin/habitaciones';
+                    
+                const method = currentEditingRoom ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    showMessage(
+                        currentEditingRoom ? 'Habitación actualizada exitosamente' : 'Habitación creada exitosamente',
+                        'success'
+                    );
+                    closeModal();
+                    await loadRooms();
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Error al guardar la habitación');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage(error.message, 'error');
+            }
+        }
+
+        // Eliminar habitación
+        async function deleteRoom(roomId) {
+            if (!confirm('¿Estás seguro de que deseas eliminar esta habitación?')) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/admin/habitaciones/${roomId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    showMessage('Habitación eliminada exitosamente', 'success');
+                    await loadRooms();
+                } else {
+                    throw new Error('Error al eliminar la habitación');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage(error.message, 'error');
+            }
+        }
+
+        // Mostrar mensajes
+        function showMessage(message, type = 'info') {
+            const alertClass = type === 'success' ? 'bg-green-500' : 
+                              type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `fixed top-4 right-4 ${alertClass} text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300`;
+            messageDiv.textContent = message;
+            
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.style.transform = 'translateX(100%)';
+                setTimeout(() => messageDiv.remove(), 300);
+            }, 3000);
+        }
+
+        // Cerrar modal al hacer clic fuera
+        window.onclick = function(event) {
+            const modal = document.getElementById('roomModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>
