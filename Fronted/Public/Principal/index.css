@@ -1,10 +1,18 @@
 /* ==============================
 Estilos Globales
 ============================== */
+html {
+    scroll-padding-top: 220px;
+    /* cambia 80px por la altura real de tu nav */
+    scroll-behavior: smooth;
+}
+
 body {
-    font-family: 'Lato', sans-serif;
-    background-image: url(https://res.cloudinary.com/dydwmg2qr/image/upload/v1757986609/fondo_vm0chl.jpg);
-    background-attachment: fixed;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    font-family: 'Inter', 'Poppins', sans-serif;
+    background: linear-gradient(180deg, #F1EADA 0%, #FFF 100%);
     color: #584738;
     scroll-behavior: smooth;
     margin: 0;
@@ -21,6 +29,7 @@ h4 {
 }
 
 main {
+    flex: 1;
     padding: 40px 20px;
     max-width: 1200px;
     margin: 0 auto;
@@ -64,6 +73,58 @@ Botones principales
     background-color: #CEC1A8;
     cursor: not-allowed;
     box-shadow: none;
+}
+
+/* ==============================
+Botones principales n°2
+============================== */
+.btn-principal-2 {
+    background: red;
+    color: white;
+    font-weight: 600;
+    padding: 12px 200px;
+    border-radius: 10px;
+    transition: all 0.3s ease-in-out;
+    display: inline-block;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.btn-principal-2:hover {
+    background: linear-gradient(135deg, #e99e36, #807c74);
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
+}
+
+/* NO deberia tener esta opcion en un caso normal
+.btn-principal:disabled {
+    background-color: #CEC1A8;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* ==============================
+Botones principales flotantes
+============================== */
+
+.btn-flotante {
+  position: fixed;
+  bottom: 20px;   /* separación desde abajo */
+  right: 20px;    /* separación desde la derecha */
+  background: linear-gradient(90deg, #8B4513, #B59E7D);
+  color: white;
+  font-size: 22px;
+  padding: 15px 18px;
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  z-index: 9999; /* siempre encima */
+}
+
+.btn-flotante:hover {
+  transform: scale(1.1);
+  background: linear-gradient(90deg, #B59E7D, #8B4513);
 }
 
 /* ==============================
