@@ -263,16 +263,62 @@ document.addEventListener('DOMContentLoaded', () => {
             const habitacion = habitacionesData.find(h => h.id_habitacion === habitacionId);
             if (habitacion) {
                 document.getElementById('reservaHabitacionNombre').textContent = nombreHabitacion;
-                document.getElementById('reservaHabitacionImagen').src = habitacion.fotos && habitacion.fotos.length > 0 ? habitacion.fotos[0] : '/img/habitaciones/default-room.jpg';
                 document.getElementById('reservaHabitacionCategoria').textContent = `Categoría: ${habitacion.categoria}`;
                 document.getElementById('reservaHabitacionPiso').textContent = `Piso: ${habitacion.piso}`;
                 document.getElementById('reservaHabitacionCapacidad').textContent = `Capacidad: ${habitacion.capacidad} personas`;
                 document.getElementById('reservaHabitacionPrecioDia').textContent = `Precio por día: S/ ${habitacion.precio_por_dia}`;
-                document.getElementById('reservaHabitacionPrecioHora').textContent = `Precio por hora: S/ ${habitacion.precio_por_hora}`;
+                
+                // Handle image carousel
+                const imagenContainer = document.querySelector('.reserva-imagen');
+                if (habitacion.fotos && habitacion.fotos.length > 1) {
+                    imagenContainer.innerHTML = `
+                        <div class="reserva-carousel">
+                            ${habitacion.fotos.map((foto, index) => `<img src="${foto}" alt="Habitación" class="reserva-img" style="display: ${index === 0 ? 'block' : 'none'};">`).join('')}
+                            <button class="reserva-arrow prev">&lt;</button>
+                            <button class="reserva-arrow next">&gt;</button>
+                        </div>
+                    `;
+                    // Carousel logic
+                    let currentImg = 0;
+                    const imgs = imagenContainer.querySelectorAll('.reserva-img');
+                    const prevBtn = imagenContainer.querySelector('.reserva-arrow.prev');
+                    const nextBtn = imagenContainer.querySelector('.reserva-arrow.next');
+                    function showImg(index) {
+                        imgs.forEach((img, i) => img.style.display = i === index ? 'block' : 'none');
+                    }
+                    prevBtn.addEventListener('click', () => {
+                        currentImg = (currentImg - 1 + imgs.length) % imgs.length;
+                        showImg(currentImg);
+                    });
+                    nextBtn.addEventListener('click', () => {
+                        currentImg = (currentImg + 1) % imgs.length;
+                        showImg(currentImg);
+                    });
+                } else {
+                    imagenContainer.innerHTML = `<img id="reservaHabitacionImagen" src="${habitacion.fotos && habitacion.fotos.length > 0 ? habitacion.fotos[0] : '/img/habitaciones/default-room.jpg'}" alt="Habitación" class="reserva-img">`;
+                }
             }
             document.getElementById('reservaMessage').textContent = '';
+            checkForm(); // Check if button should be enabled
             openModal('reservaModal');
         }
+
+        // Función para verificar si el formulario de reserva está completo
+        function checkForm() {
+            const checkinInput = document.getElementById('fechaCheckin');
+            const checkoutInput = document.getElementById('fechaCheckout');
+            const btnConfirmar = document.getElementById('btnConfirmarReserva');
+            
+            if (checkinInput.value && checkoutInput.value) {
+                btnConfirmar.disabled = false;
+            } else {
+                btnConfirmar.disabled = true;
+            }
+        }
+
+        // Event listeners para los inputs del formulario de reserva
+        document.getElementById('fechaCheckin').addEventListener('input', checkForm);
+        document.getElementById('fechaCheckout').addEventListener('input', checkForm);
 
         // Variable global para el usuario actual
         let usuarioActual = null;

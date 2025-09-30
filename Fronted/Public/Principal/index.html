@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@400;600&display=swap"
         rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:wght@400;700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <!-- Favicon: use existing logo as a simple favicon to avoid 404 -->
     <link rel="icon" href="/img/logo_pequeño.png" type="image/png">
@@ -228,16 +229,12 @@
             <span class="close-modal" data-modal-close="reservaModal">&times;</span>
             <h2>Reservar Habitación</h2>
             <div class="reserva-container">
-                <div class="reserva-imagen">
-                    <img id="reservaHabitacionImagen" src="/img/habitaciones/default-room.jpg" alt="Habitación" class="reserva-img">
-                </div>
                 <div class="reserva-detalles">
                     <p id="reservaHabitacionNombre" class="reserva-nombre"></p>
                     <p id="reservaHabitacionCategoria" class="reserva-info"></p>
                     <p id="reservaHabitacionPiso" class="reserva-info"></p>
                     <p id="reservaHabitacionCapacidad" class="reserva-info"></p>
-                    <p id="reservaHabitacionPrecioDia" class="reserva-info"></p>
-                    <p id="reservaHabitacionPrecioHora" class="reserva-info"></p>
+                    <p id="reservaHabitacionPrecioDia" class="reserva-info reserva-precio"></p>
                     <form id="reservaForm">
                         <label for="fechaCheckin">Fecha de Check-in:</label>
                         <input type="datetime-local" id="fechaCheckin" required class="form-input">
@@ -246,8 +243,11 @@
                         <input type="datetime-local" id="fechaCheckout" required class="form-input">
                         
                         <p id="reservaMessage" class="text-red-500 my-2 text-center"></p>
-                        <button type="submit" class="btn-confirmar-reserva">Confirmar Reserva <i class="fas fa-check"></i></button>
+                        <button type="submit" id="btnConfirmarReserva" class="btn-confirmar-reserva" disabled>Confirmar Reserva <i class="fas fa-check"></i></button>
                     </form>
+                </div>
+                <div class="reserva-imagen">
+                    <img id="reservaHabitacionImagen" src="/img/habitaciones/default-room.jpg" alt="Habitación" class="reserva-img">
                 </div>
             </div>
         </div>

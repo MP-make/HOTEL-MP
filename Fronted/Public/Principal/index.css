@@ -2,7 +2,7 @@
 Estilos Globales
 ============================== */
 body {
-    font-family: 'Inter', 'Poppins', sans-serif;
+    font-family: 'Lato', sans-serif;
     background-image: url(https://res.cloudinary.com/dydwmg2qr/image/upload/v1757986609/fondo_vm0chl.jpg);
     background-attachment: fixed;
     color: #584738;
@@ -15,7 +15,7 @@ h1,
 h2,
 h3,
 h4 {
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Montserrat', sans-serif;
     font-weight: 600;
     color: #584738;
 }
@@ -86,7 +86,7 @@ Header y Navegación
 }
 
 .header h1 {
-    font-family: 'Orbitron', sans-serif;
+    font-family: 'Playfair Display', serif;
     font-size: 1.9rem;
     letter-spacing: 2px;
     margin: 0;
@@ -732,6 +732,44 @@ Modal de Reserva
     margin: 5px 0;
     color: #666;
     font-size: 0.95rem;
+}
+
+.reserva-precio {
+    color: #B59E7D;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.reserva-carousel {
+    position: relative;
+    width: 100%;
+    height: auto;
+}
+
+.reserva-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 18px;
+    border-radius: 50%;
+}
+
+.reserva-arrow:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.reserva-arrow.prev {
+    left: 10px;
+}
+
+.reserva-arrow.next {
+    right: 10px;
 }
 
 .btn-confirmar-reserva {
