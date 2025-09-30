@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel del Cliente</title>
+<link rel="stylesheet" href="Cliente.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+<aside class="sidebar">
+    <div class="sidebar-header">
+    <h2>Mis Reservas</h2>
+    <p>Hotel La Fortuna</p>
+    </div>
+    <nav>
+    <ul class="sidebar-nav">
+        <li><a href="#reservas" class="sidebar-item active"><i class="fas fa-calendar-check"></i> Reservas</a></li>
+        <li><a href="#reclamos" class="sidebar-item"><i class="fas fa-exclamation-triangle"></i> Reclamos</a></li>
+    </ul>
+    <a href="#" id="logout-link" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
+    </nav>
+</aside>
+
+<div class="main-content">
+    <div class="header-encargado" id="user-info-panel">
+    <h1>Bienvenido, <span id="user-display-name">Cliente</span></h1>
+    <p id="user-id-display" style="font-size: 0.9rem; margin-top: 8px;">ID de usuario: <span id="user-id">Cargando...</span></p>
+    </div>
+    <main class="main-panel">
+    <section id="reservas">
+        <div class="card">
+        <h2>Mis Reservas</h2>
+        <div id="reservas-list">
+            <p style="text-align: center;">Cargando reservas...</p>
+        </div>
+        </div>
+    </section>
+
+    <section id="reclamos">
+        <div class="card">
+        <h2>Mis Reclamos</h2>
+        <form id="reclamo-form">
+            <label for="reclamo-descripcion">Descripción del reclamo:</label>
+            <textarea id="reclamo-descripcion" placeholder="Describe tu reclamo..." required></textarea>
+            <label for="reclamo-habitacion">Habitación relacionada (opcional):</label>
+            <select id="reclamo-habitacion">
+                <option value="">Seleccionar habitación</option>
+            </select>
+            <button type="submit" class="btn">Enviar Reclamo</button>
+        </form>
+        <div id="reclamos-list">
+            <p style="text-align: center;">Cargando reclamos...</p>
+        </div>
+        </div>
+    </section>
+    </main>
+</div>
+
+<script src="Cliente.js"></script>
+</body>
+</html>

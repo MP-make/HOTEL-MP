@@ -55,6 +55,15 @@ async function run() {
         fecha_checkout TIMESTAMP,
         estado_reserva VARCHAR(50) DEFAULT 'pendiente'
       );
+
+      CREATE TABLE IF NOT EXISTS reclamos (
+        id_reclamo SERIAL PRIMARY KEY,
+        id_usuario INTEGER REFERENCES usuarios(id_usuario),
+        id_habitacion INTEGER REFERENCES habitaciones(id_habitacion),
+        descripcion TEXT NOT NULL,
+        estado VARCHAR(50) DEFAULT 'pendiente',
+        fecha_creacion TIMESTAMP DEFAULT now()
+      );
     `);
 
     console.log('Tablas creadas o ya existentes.');
@@ -74,14 +83,15 @@ async function run() {
       console.warn('No se pudo asegurar sequence para roles.id_rol, continuar de todas formas:', e.message || e);
     }
 
-    // Ensure other primary id columns have sequences/defaults (usuarios.id, categorias_habitaciones.id_categoria, habitaciones.id_habitacion, habitaciones_fotos.id, reservas.id_reserva)
+    // Ensure other primary id columns have sequences/defaults (usuarios.id, categorias_habitaciones.id_categoria, habitaciones.id_habitacion, habitaciones_fotos.id, reservas.id_reserva, reclamos.id_reclamo)
     try {
       const idTargets = [
         { table: 'usuarios', column: 'id_usuario', seq: 'usuarios_id_usuario_seq' },
         { table: 'categorias_habitaciones', column: 'id_categoria', seq: 'categorias_habitaciones_id_categoria_seq' },
         { table: 'habitaciones', column: 'id_habitacion', seq: 'habitaciones_id_habitacion_seq' },
         { table: 'habitaciones_fotos', column: 'id', seq: 'habitaciones_fotos_id_seq' },
-        { table: 'reservas', column: 'id_reserva', seq: 'reservas_id_reserva_seq' }
+        { table: 'reservas', column: 'id_reserva', seq: 'reservas_id_reserva_seq' },
+        { table: 'reclamos', column: 'id_reclamo', seq: 'reclamos_id_reclamo_seq' }
       ];
       for (const t of idTargets) {
         try {
