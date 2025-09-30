@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Función mejorada para cargar habitaciones
         async function cargarHabitaciones() {
             try {
-                const response = await fetch('/api/habitaciones');
+                const response = await fetch('/api/cliente/habitaciones');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 console.log('Habitaciones cargadas:', data);
                 
-                const contenedor = document.getElementById('habitaciones-lista');
+                const contenedor = document.getElementById('habitacionGrid');
                 if (!contenedor) {
                     console.error('No se encontró el contenedor de habitaciones');
                     return;
@@ -199,20 +199,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="habitaciones-grid">
                         ${data.habitaciones.map(habitacion => `
                             <div class="habitacion-card">
-                                <img src="${habitacion.imagen || '/img/habitaciones/default-room.jpg'}" 
-                                     alt="${habitacion.nombre}" 
+                                <img src="${habitacion.fotos && habitacion.fotos.length > 0 ? habitacion.fotos[0] : '/img/habitaciones/default-room.jpg'}" 
+                                     alt="${habitacion.numero_habitacion}" 
                                      class="habitacion-imagen"
                                      onerror="this.src='/img/habitaciones/default-room.jpg'">
                                 <div class="habitacion-info">
-                                    <h3 class="habitacion-titulo">${habitacion.nombre}</h3>
-                                    <p class="habitacion-descripcion">${habitacion.descripcion || 'Habitación cómoda y acogedora'}</p>
-                                    <div class="habitacion-precio">S/ ${habitacion.precio_noche} / noche</div>
+                                    <h3 class="habitacion-titulo">Habitación ${habitacion.numero_habitacion}</h3>
+                                    <p class="habitacion-descripcion">${habitacion.tipo} - ${habitacion.categoria} - Piso ${habitacion.piso} - Capacidad ${habitacion.capacidad}</p>
+                                    <div class="habitacion-precio">S/ ${habitacion.precio_por_dia} / día</div>
                                     <div class="habitacion-disponibilidad ${habitacion.disponible ? 'disponible' : 'no-disponible'}">
                                         ${habitacion.disponible ? 'Disponible' : 'No disponible'}
                                     </div>
                                     <button class="btn-reservar" 
                                             ${!habitacion.disponible ? 'disabled' : ''} 
-                                            onclick="reservarHabitacion(${habitacion.id}, '${habitacion.nombre}')">
+                                            onclick="reservarHabitacion(${habitacion.id_habitacion}, 'Habitación ${habitacion.numero_habitacion}')">
                                         ${habitacion.disponible ? 'Reservar Ahora' : 'No disponible'}
                                     </button>
                                 </div>
@@ -249,6 +249,151 @@ document.addEventListener('DOMContentLoaded', () => {
             // Redireccionar a una página de reserva o abrir un modal de reserva
             // window.location.href = `/reservar.html?habitacion=${habitacionId}`;
         }
+
+        // Variable global para el usuario actual
+        let usuarioActual = null;
+
+        // Función para verificar si hay una sesión activa
+        function verificarSesion() {
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            
+            if (token && user) {
+                try {
+                    usuarioActual = JSON.parse(user);
+                    mostrarUsuarioLogueado();
+                } catch (error) {
+                    console.error('Error al parsear usuario del localStorage:', error);
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    mostrarBotonesLogin();
+                }
+            } else {
+                mostrarBotonesLogin();
+            }
+        }
+
+        // Función para mostrar los botones de login cuando no hay sesión
+        function mostrarBotonesLogin() {
+            document.getElementById('authButtons').classList.remove('hidden');
+            document.getElementById('userProfile').classList.add('hidden');
+        }
+
+        // Función para mostrar el perfil del usuario cuando está logueado
+        function mostrarUsuarioLogueado() {
+            document.getElementById('authButtons').classList.add('hidden');
+            document.getElementById('userProfile').classList.remove('hidden');
+            document.getElementById('userName').textContent = usuarioActual.nombre;
+        }
+
+        // Función para cerrar sesión
+        function cerrarSesion() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            usuarioActual = null;
+            mostrarBotonesLogin();
+            // Redireccionar a la página principal si no estamos en ella
+            if (window.location.pathname !== '/index.html' && window.location.pathname !== '/') {
+                window.location.href = '/index.html';
+            }
+        }
+
+        // Event listener para el botón de cerrar sesión
+        document.getElementById('logoutBtn').addEventListener('click', cerrarSesion);
+
+        // Función para manejar el login
+        async function manejarLogin(email, password) {
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Login exitoso
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    usuarioActual = data.user;
+                    
+                    // Cerrar modal
+                    closeModal('loginModal');
+                    
+                    // Mostrar usuario logueado
+                    mostrarUsuarioLogueado();
+                    
+                    // Redireccionar según el rol
+                    if (data.redirectUrl) {
+                        window.location.href = data.redirectUrl;
+                    }
+                } else {
+                    // Error en login
+                    document.getElementById('loginMessage').textContent = data.error || 'Error al iniciar sesión';
+                }
+            } catch (error) {
+                console.error('Error en login:', error);
+                document.getElementById('loginMessage').textContent = 'Error de conexión. Inténtalo de nuevo.';
+            }
+        }
+
+        // Función para manejar el registro
+        async function manejarRegistro(nombre, email, password) {
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ nombre, email, password }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Registro exitoso
+                    document.getElementById('registerMessage').textContent = 'Usuario registrado con éxito. Ahora puedes iniciar sesión.';
+                    document.getElementById('registerMessage').classList.remove('text-red-500');
+                    document.getElementById('registerMessage').classList.add('text-green-500');
+                    
+                    // Limpiar formulario
+                    document.getElementById('registerForm').reset();
+                    
+                    // Cambiar a modal de login después de un tiempo
+                    setTimeout(() => {
+                        switchModal('registerModal', 'loginModal');
+                        document.getElementById('registerMessage').textContent = '';
+                        document.getElementById('registerMessage').classList.remove('text-green-500');
+                        document.getElementById('registerMessage').classList.add('text-red-500');
+                    }, 2000);
+                } else {
+                    // Error en registro
+                    document.getElementById('registerMessage').textContent = data.error || 'Error al registrar usuario';
+                }
+            } catch (error) {
+                console.error('Error en registro:', error);
+                document.getElementById('registerMessage').textContent = 'Error de conexión. Inténtalo de nuevo.';
+            }
+        }
+
+        // Event listeners para los formularios
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            manejarLogin(email, password);
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            manejarRegistro(nombre, email, password);
+        });
 
         // Función para inicializar todo el sistema
         async function inicializarSistema() {

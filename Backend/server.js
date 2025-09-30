@@ -1122,31 +1122,19 @@ const carouselStorage = multer.diskStorage({
 const uploadCarousel = multer({ storage: carouselStorage });
 
 // GET /api/carrusel - lista pública
-app.get('/api/carrusel', (req, res) => {
+app.get('/api/carrusel', async (req, res) => {
     try {
-        const query = `
-            SELECT url_imagen as url, descripcion 
-            FROM carousel_images 
-            ORDER BY orden ASC
-        `;
-        db.all(query, [], (err, rows) => {
-            if (err) {
-                console.error('Error al obtener imágenes del carrusel:', err);
-                return res.status(500).json({ error: 'Error interno del servidor' });
-            }
-            
-            // Si no hay imágenes en la BD, usar imágenes por defecto
-            if (!rows || rows.length === 0) {
-                const defaultImages = [
-                    { url: '/img/carousel/1758185301931-Casa del inka - vista principal.png', descripcion: 'Vista principal' },
-                    { url: '/img/carousel/1758185310826-Casa del inka - vista entrada.png', descripcion: 'Vista entrada' },
-                    { url: '/img/carousel/1758596592120-37b93177.webp', descripcion: 'Instalaciones' }
-                ];
-                return res.json({ images: defaultImages });
-            }
-            
-            res.json({ images: rows });
-        });
+        const files = fs.readdirSync(carouselDir).filter(f => !f.startsWith('.'));
+        const images = files.map(f => ({ url: '/img/carousel/' + f, descripcion: f }));
+        if (images.length === 0) {
+            const defaultImages = [
+                { url: '/img/carousel/1758185301931-Casa del inka - vista principal.png', descripcion: 'Vista principal' },
+                { url: '/img/carousel/1758185310826-Casa del inka - vista entrada.png', descripcion: 'Vista entrada' },
+                { url: '/img/carousel/1758596592120-37b93177.webp', descripcion: 'Instalaciones' }
+            ];
+            return res.json({ images: defaultImages });
+        }
+        res.json({ images });
     } catch (error) {
         console.error('Error en endpoint de carrusel:', error);
         res.status(500).json({ error: 'Error interno del servidor' });
