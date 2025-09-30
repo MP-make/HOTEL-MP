@@ -1412,10 +1412,6 @@
                     <label class="block text-sm font-medium text-gray-700">Categoría</label>
                     <select name="id_categoria" class="mt-1 block w-full border border-gray-300 rounded p-2">${options}</select>
                     </div>
-                    <div>
-                    <label class="block text-sm font-medium text-gray-700">Tipo</label>
-                    <input name="tipo" value="${habitacion.tipo || ''}" class="mt-1 block w-full border border-gray-300 rounded p-2">
-                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Precio por Día (USD)</label>
@@ -1432,17 +1428,9 @@
                         <input type="number" name="piso" value="${habitacion.piso || ''}" class="mt-1 block w-full border border-gray-300 rounded p-2">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Capacidad (personas)</label>
+                        <label class="block text-sm font-medium text-gray-700">Capacidad</label>
                         <input type="number" name="capacidad" value="${habitacion.capacidad || ''}" class="mt-1 block w-full border border-gray-300 rounded p-2">
                     </div>
-                    </div>
-                    <div>
-                    <label class="block text-sm font-medium text-gray-700">Foto de referencia</label>
-                    <input type="file" name="fotos" accept="image/*" multiple class="mt-1 block w-full border border-gray-300 rounded p-2">
-                    ${habitacion.fotos && habitacion.fotos.length > 0 
-                        ? habitacion.fotos.map(f => `<img src="${f}" class="h-16 inline-block m-1 rounded">`).join("")
-                        : '<p class="text-xs mt-1">Sin fotos</p>'
-                    }
                     </div>
                     <div>
                     <label class="inline-flex items-center">
@@ -1450,7 +1438,7 @@
                         <span class="ml-2">Disponible</span>
                     </label>
                     </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Actualizar</button>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Guardar Cambios</button>
                 </form>
                 `;
                 showModal('Editar Habitación', formHtml, () => {
@@ -1684,14 +1672,14 @@
                 // Si no hay archivos, enviamos JSON usando los helpers existentes
                 const fd = new FormData(form);
                 const payload = {
+                    id_habitacion: fd.get('id_habitacion'),
                     numero_habitacion: fd.get('numero_habitacion'),
-                    id_categoria: parseInt(fd.get('id_categoria'), 10) || null,
-                    tipo: fd.get('tipo') || null,
-                    precio_por_hora: fd.get('precio_por_hora') ? parseFloat(fd.get('precio_por_hora')) : null,
-                    precio_por_dia: fd.get('precio_por_dia') ? parseFloat(fd.get('precio_por_dia')) : null,
-                    piso: fd.get('piso') ? parseInt(fd.get('piso'), 10) : null,
-                    capacidad: fd.get('capacidad') ? parseInt(fd.get('capacidad'), 10) : null,
-                    disponible: fd.get('disponible') === 'on' || fd.get('disponible') === 'true'
+                    id_categoria: fd.get('id_categoria'),
+                    precio_por_dia: fd.get('precio_por_dia') || null,
+                    precio_por_hora: fd.get('precio_por_hora') || null,
+                    piso: fd.get('piso') || null,
+                    capacidad: fd.get('capacidad') || null,
+                    disponible: fd.get('disponible') === 'on',
                 };
 
                 const id = fd.get('id_habitacion') || fd.get('id');
