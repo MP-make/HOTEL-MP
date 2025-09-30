@@ -285,26 +285,21 @@
                         // Ingresos Mensuales
                         const ingresosCanvas = document.getElementById('chart-ingresos-mensuales');
                         if (ingresosCanvas && metrics.chart_ingresos_mensuales && metrics.chart_ingresos_mensuales.rows) {
+                            const ctx = ingresosCanvas.getContext('2d');
                             const data = metrics.chart_ingresos_mensuales.rows;
-                            new Chart(ingresosCanvas, {
+                            new Chart(ctx, {
                                 type: 'bar',
                                 data: {
-                                    labels: data.map(r => r.mes),
+                                    labels: data.map(row => row.month),
                                     datasets: [{
-                                        label: 'Ingresos Mensuales',
-                                        data: data.map(r => r.total),
-                                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                                        borderColor: 'rgba(54, 162, 235, 1)',
-                                        borderWidth: 1
+                                        label: 'Ingresos',
+                                        data: data.map(row => row.revenue),
+                                        backgroundColor: 'rgba(139, 69, 19, 0.5)',
+                                    }, {
+                                        label: 'Meta',
+                                        data: data.map(row => row.target),
+                                        backgroundColor: 'rgba(218, 165, 32, 0.5)',
                                     }]
-                                },
-                                options: {
-                                    responsive: true,
-                                    scales: {
-                                        y: {
-                                            beginAtZero: true
-                                        }
-                                    }
                                 }
                             });
                         }
@@ -312,32 +307,16 @@
                         // Distribución de Pagos
                         const pagosCanvas = document.getElementById('chart-distribucion-pagos');
                         if (pagosCanvas && metrics.chart_distribucion_ingresos && metrics.chart_distribucion_ingresos.rows) {
+                            const ctx = pagosCanvas.getContext('2d');
                             const data = metrics.chart_distribucion_ingresos.rows;
-                            new Chart(pagosCanvas, {
+                            new Chart(ctx, {
                                 type: 'pie',
                                 data: {
-                                    labels: data.map(r => r.metodo_pago),
+                                    labels: data.map(row => row.method),
                                     datasets: [{
-                                        data: data.map(r => r.total),
-                                        backgroundColor: [
-                                            'rgba(255, 99, 132, 0.5)',
-                                            'rgba(54, 162, 235, 0.5)',
-                                            'rgba(255, 205, 86, 0.5)',
-                                            'rgba(75, 192, 192, 0.5)',
-                                            'rgba(153, 102, 255, 0.5)'
-                                        ],
-                                        borderColor: [
-                                            'rgba(255, 99, 132, 1)',
-                                            'rgba(54, 162, 235, 1)',
-                                            'rgba(255, 205, 86, 1)',
-                                            'rgba(75, 192, 192, 1)',
-                                            'rgba(153, 102, 255, 1)'
-                                        ],
-                                        borderWidth: 1
+                                        data: data.map(row => row.amount),
+                                        backgroundColor: ['#8B4513', '#DAA520', '#F5F5DC', '#696969'],
                                     }]
-                                },
-                                options: {
-                                    responsive: true
                                 }
                             });
                         }
@@ -345,28 +324,31 @@
                         // Picos de Check-in/Check-out
                         const picosCanvas = document.getElementById('chart-picos-checkin-checkout');
                         if (picosCanvas && metrics.chart_checkins_diarios && metrics.chart_checkins_diarios.rows) {
+                            const ctx = picosCanvas.getContext('2d');
                             const data = metrics.chart_checkins_diarios.rows;
-                            new Chart(picosCanvas, {
+                            new Chart(ctx, {
                                 type: 'line',
                                 data: {
-                                    labels: data.map(r => r.fecha),
+                                    labels: data.map(row => row.hour),
                                     datasets: [{
-                                        label: 'Check-ins Diarios',
-                                        data: data.map(r => r.checkins),
+                                        label: 'Check-ins',
+                                        data: data.map(row => row.checkins),
+                                        borderColor: '#8B4513',
                                         fill: false,
-                                        borderColor: 'rgba(75, 192, 192, 1)',
-                                        tension: 0.1
+                                    }, {
+                                        label: 'Check-outs',
+                                        data: data.map(row => row.checkouts),
+                                        borderColor: '#DAA520',
+                                        fill: false,
                                     }]
-                                },
-                                options: {
-                                    responsive: true,
-                                    scales: {
-                                        y: {
-                                            beginAtZero: true
-                                        }
-                                    }
                                 }
                             });
+                        }
+
+                        // Servicios Rentables
+                        if (metrics.servicios_rentables) {
+                            const list = document.getElementById('servicios-rentables-list');
+                            list.innerHTML = metrics.servicios_rentables.map(s => `<li>${s.nombre}: $${s.ingresos}</li>`).join('');
                         }
                     }
                 }

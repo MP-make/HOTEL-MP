@@ -3,8 +3,8 @@
 ======================= */
 body {
   font-family: 'Lato', sans-serif;
-  background-color: #F1EADA;
-  color: #584738;
+  background-color: #F5F5F5;
+  color: #333333;
 }
 
 /* =======================
@@ -12,8 +12,8 @@ body {
 ======================= */
 .sidebar-admin {
   width: 260px;
-  background: linear-gradient(180deg, #584738, #B59E7D);
-  color: #F1EADA;
+  background: linear-gradient(180deg, #333333, #666666);
+  color: #FFFFFF;
   padding: 24px 12px;
   display: flex;
   flex-direction: column;
@@ -21,13 +21,13 @@ body {
 }
 
 .sidebar-admin h2 {
-  color: #F1EADA;
+  color: #FFFFFF;
 }
 
 .sidebar-item {
   display: block;
   padding: 12px 20px;
-  color: #F1EADA;
+  color: #FFFFFF;
   text-decoration: none;
   font-weight: 500;
   transition: all 0.3s ease;
@@ -36,14 +36,14 @@ body {
 }
 
 .sidebar-item:hover {
-  background-color: #B59E7D;
-  color: #584738;
+  background-color: #CCCCCC;
+  color: #333333;
   transform: translateX(4px);
 }
 
 .sidebar-item.active {
-  background-color: #F1EADA;
-  color: #584738;
+  background-color: #FFFFFF;
+  color: #333333;
   font-weight: bold;
 }
 
@@ -51,8 +51,8 @@ body {
  HEADER
 ======================= */
 .header-admin {
-  background: linear-gradient(90deg, #584738, #B59E7D);
-  color: #F1EADA;
+  background: linear-gradient(90deg, #333333, #666666);
+  color: #FFFFFF;
   padding: 24px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.15);
   border-radius: 0 0 12px 12px;
@@ -61,7 +61,7 @@ body {
 .header-admin h1 {
   font-size: 1.8rem;
   font-weight: bold;
-  color: #F1EADA;
+  color: #FFFFFF;
   text-shadow: 0 2px 4px rgba(0,0,0,0.25);
 }
 
@@ -69,15 +69,16 @@ body {
  CONTENIDO
 ======================= */
 .admin-card {
-  background: #F1EADA;
+  background: #FFFFFF;
   padding: 24px;
   border-radius: 14px;
   box-shadow: 0 6px 14px rgba(0,0,0,0.08);
   margin-bottom: 24px;
+  border: 1px solid #E0E0E0;
 }
 
 .admin-card h2 {
-  color: #584738;
+  color: #333333;
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 16px;
@@ -92,17 +93,18 @@ table {
 }
 
 thead {
-  background: #B59E7D;
-  color: #584738;
+  background: #CCCCCC;
+  color: #333333;
 }
 
 th, td {
   padding: 12px 16px;
   text-align: left;
+  border-bottom: 1px solid #E0E0E0;
 }
 
 tbody tr:nth-child(even) {
-  background-color: #CEC1A8;
+  background-color: #F9F9F9;
 }
 
 /* =======================
@@ -129,12 +131,13 @@ tbody tr:nth-child(even) {
   border-radius: 8px;
   overflow: visible;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  background: #fff;
+  background: #FFFFFF;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   padding: 8px;
+  border: 1px solid #E0E0E0;
 }
 .carrusel-thumb img {
   width: 100%;
@@ -152,8 +155,8 @@ tbody tr:nth-child(even) {
   width: 100%;
 }
 .btn-minimal {
-  background: linear-gradient(135deg, #B59E7D, #584738);
-  color: #F1EADA;
+  background: linear-gradient(135deg, #666666, #333333);
+  color: #FFFFFF;
   border: none;
   padding: 6px 10px;
   font-size: 13px;
@@ -162,7 +165,7 @@ tbody tr:nth-child(even) {
   transition: all 0.3s ease;
 }
 .btn-minimal:hover {
-  background: linear-gradient(135deg, #CEC1A8, #AAA396);
+  background: linear-gradient(135deg, #CCCCCC, #999999);
   transform: translateY(-1px);
 }
 .carrusel-controls {
@@ -183,8 +186,8 @@ tbody tr:nth-child(even) {
   font-size: 13px;
 }
 .carrusel-upload-form .submit-small {
-  background: linear-gradient(135deg, #B59E7D, #584738);
-  color: #F1EADA;
+  background: linear-gradient(135deg, #666666, #333333);
+  color: #FFFFFF;
   border: none;
   padding: 8px 12px;
   border-radius: 8px;
@@ -192,7 +195,7 @@ tbody tr:nth-child(even) {
   transition: all 0.3s ease;
 }
 .submit-small:hover {
-  background: linear-gradient(135deg, #CEC1A8, #AAA396);
+  background: linear-gradient(135deg, #CCCCCC, #999999);
   transform: translateY(-1px);
 }
 .carrusel-empty {
@@ -204,8 +207,8 @@ tbody tr:nth-child(even) {
    BOTONES PRINCIPALES
 ======================= */
 .btn-principal {
-    background: linear-gradient(135deg, #CEC1A8, #B59E7D);
-    color: #584738;
+    background: linear-gradient(135deg, #666666, #333333);
+    color: #FFFFFF;
     font-weight: 600;
     padding: 12px 28px;
     border-radius: 10px;
@@ -218,13 +221,13 @@ tbody tr:nth-child(even) {
 }
 
 .btn-principal:hover {
-    background: linear-gradient(135deg, #B59E7D, #AAA396);
+    background: linear-gradient(135deg, #CCCCCC, #999999);
     transform: translateY(-3px) scale(1.03);
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
 }
 
 .btn-principal:disabled {
-    background-color: #CEC1A8;
+    background-color: #CCCCCC;
     cursor: not-allowed;
     box-shadow: none;
 }
@@ -233,10 +236,10 @@ tbody tr:nth-child(even) {
 .btn-submit {
     width: 100%;
     padding: 1rem;
-    background: linear-gradient(135deg, #B59E7D, #584738);
+    background: linear-gradient(135deg, #666666, #333333);
     border: none;
     border-radius: 12px;
-    color: #F1EADA;
+    color: #FFFFFF;
     font-weight: 600;
     font-size: 1rem;
     cursor: pointer;
@@ -245,7 +248,90 @@ tbody tr:nth-child(even) {
 }
 
 .btn-submit:hover {
-    background: linear-gradient(135deg, #CEC1A8, #AAA396);
+    background: linear-gradient(135deg, #CCCCCC, #999999);
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* =======================
+   ESTILOS PARA GRÁFICOS (DATA INTELLIGENCE)
+======================= */
+.chart-container {
+  background: #FFFFFF;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+  margin-bottom: 24px;
+  border: 1px solid #E0E0E0;
+}
+
+.chart-container h3 {
+  color: #333333;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Métricas destacadas */
+.metric-card {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  text-align: center;
+  border: 1px solid #E0E0E0;
+  margin-bottom: 16px;
+}
+
+.metric-card h4 {
+  color: #333333;
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+}
+
+.metric-card .metric-value {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #666666;
+}
+
+.metric-card .metric-label {
+  color: #999999;
+  font-size: 0.9rem;
+}
+
+/* Lista de servicios rentables */
+.servicios-rentables {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  border: 1px solid #E0E0E0;
+}
+
+.servicios-rentables h3 {
+  color: #333333;
+  font-size: 1.25rem;
+  margin-bottom: 16px;
+}
+
+.servicios-rentables ul {
+  list-style: none;
+  padding: 0;
+}
+
+.servicios-rentables li {
+  padding: 8px 0;
+  border-bottom: 1px solid #F0F0F0;
+  color: #666666;
+}
+
+.servicios-rentables li:last-child {
+  border-bottom: none;
 }

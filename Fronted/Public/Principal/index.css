@@ -10,37 +10,40 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    font-family: 'Inter', 'Poppins', sans-serif;
-    background: linear-gradient(180deg, #F1EADA 0%, #FFF 100%);
-    color: #584738;
+    font-family: 'Cormorant Garamond', serif;
+    background: linear-gradient(180deg, #F8F8F8 0%, #FFFFFF 100%);
+    color: #2F2F2F;
     margin: 0;
     padding: 0;
 }
 
 h1, h2, h3, h4 {
-    font-family: 'Montserrat', sans-serif;
-    font-weight: 600;
-    color: #584738;
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    color: #000000;
 }
 
 main {
     flex: 1;
-    padding: 40px 20px;
+    padding: 60px 20px;
     max-width: 1200px;
     margin: 0 auto;
-}
+}   
 
 section {
-    background-color: rgba(255, 255, 255, 0.623);
+    background-color: #FFFFFF;
     backdrop-filter: blur(10px);
-    margin-bottom: 60px;
-    padding: 30px;
-    border-radius: 14px;
+    margin-bottom: 80px;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
 .welcome-text {
-    font-family: 'Lato', 'Open Sans', sans-serif;
+    font-family: 'Cormorant Garamond', serif;
     font-weight: 400;
+    font-size: 1.2rem;
+    line-height: 1.8;
 }
 
 /* ==============================
@@ -48,8 +51,8 @@ Botones
 ============================== */
 /* Botones principales */
 .btn-principal {
-    background: linear-gradient(135deg, #CEC1A8, #B59E7D);
-    color: #584738;
+    background: linear-gradient(135deg, #666666, #333333);
+    color: #FFFFFF;
     font-weight: 600;
     padding: 12px 28px;
     border-radius: 10px;
@@ -60,13 +63,13 @@ Botones
 }
 
 .btn-principal:hover {
-    background: linear-gradient(135deg, #B59E7D, #AAA396);
+    background: linear-gradient(135deg, #CCCCCC, #999999);
     transform: translateY(-3px) scale(1.03);
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
 }
 
 .btn-principal:disabled {
-    background-color: #CEC1A8;
+    background-color: #CCCCCC;
     cursor: not-allowed;
     box-shadow: none;
 }
@@ -95,7 +98,7 @@ Botones
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background: linear-gradient(90deg, #8B4513, #B59E7D);
+    background: linear-gradient(90deg, #666666, #333333);
     color: white;
     font-size: 22px;
     padding: 15px 18px;
@@ -108,14 +111,14 @@ Botones
 
 .btn-flotante:hover {
     transform: scale(1.1);
-    background: linear-gradient(90deg, #B59E7D, #8B4513);
+    background: linear-gradient(90deg, #CCCCCC, #999999);
 }
 
 /* ==============================
 Header y Navegación
 ============================== */
 .header {
-    background: linear-gradient(90deg, #584738, #B59E7D);
+    background: linear-gradient(90deg, #333333, #666666);
     color: white;
     padding: 20px 30px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
@@ -142,7 +145,7 @@ Header y Navegación
     margin: 0;
     text-transform: uppercase;
     text-shadow: 0px 3px 6px rgba(0, 0, 0, 0.4);
-    color: #F1EADA;
+    color: #FFFFFF;
 }
 
 .header .auth-nav,
@@ -158,20 +161,20 @@ Header y Navegación
     border-radius: 8px;
     font-weight: 600;
     transition: all 0.3s ease;
-    background: #584738;
-    color: #F1EADA;
+    background: linear-gradient(135deg, #666666, #333333);
+    color: #FFFFFF;
     border: none;
 }
 
 .header .btn-primary:hover,
 .header .btn-secondary:hover {
-    background: #B59E7D;
-    color: #584738;
+    background: linear-gradient(135deg, #CCCCCC, #999999);
+    color: #333333;
     transform: translateY(-2px);
 }
 
 .header .main-nav {
-    background: #584738;
+    background: #333333;
     width: 100%;
     margin-top: 20px;
     border-radius: 0 0 10px 10px;
@@ -189,12 +192,12 @@ Header y Navegación
 .header .nav-links a {
     text-decoration: none;
     font-weight: 600;
-    color: #F1EADA;
+    color: #FFFFFF;
     transition: color 0.3s ease, transform 0.2s ease;
 }
 
 .header .nav-links a:hover {
-    color: #B59E7D;
+    color: #CCCCCC;
     transform: scale(1.05);
 }
 
@@ -287,7 +290,7 @@ Habitaciones
 ============================== */
 /* Estilos antiguos para tarjetas de habitación */
 .tarjeta-habitacion {
-    background: #F1EADA;
+    background: #FFFFFF;
     border-radius: 14px;
     overflow: hidden;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
@@ -300,11 +303,11 @@ Habitaciones
 }
 
 .tarjeta-habitacion h3 {
-    color: #584738;
+    color: #333333;
 }
 
 .tarjeta-habitacion img {
-    border-bottom: 3px solid #B59E7D;
+    border-bottom: 3px solid #CCCCCC;
     transition: transform 0.4s ease;
 }
 
@@ -317,21 +320,15 @@ Habitaciones
 }
 
 .tarjeta-cuerpo .precio {
-    color: #B59E7D;
+    color: #666666;
     font-weight: bold;
     font-size: 1.6rem;
     margin: 12px 0;
 }
 
 .tarjeta-cuerpo .no-disponible {
-    color: #AAA396;
+    color: #999999;
     font-weight: bold;
-}
-
-.habitacion-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 35px;
 }
 
 /* Estilos modernos para habitaciones */
@@ -373,7 +370,7 @@ Habitaciones
 }
 
 .habitacion-titulo {
-    color: #8B4513;
+    color: #333333;
     font-size: 22px;
     font-weight: bold;
     margin: 0 0 15px 0;
@@ -391,7 +388,7 @@ Habitaciones
 .habitacion-precio {
     font-size: 24px;
     font-weight: bold;
-    color: #8B4513;
+    color: #333333;
     text-align: center;
     margin: 15px 0;
 }
@@ -420,7 +417,7 @@ Habitaciones
 .btn-reservar {
     width: 100%;
     padding: 12px;
-    background: linear-gradient(45deg, #8B4513, #A0522D);
+    background: linear-gradient(45deg, #333333, #666666);
     color: white;
     border: none;
     border-radius: 8px;
@@ -431,9 +428,9 @@ Habitaciones
 }
 
 .btn-reservar:hover:not(:disabled) {
-    background: linear-gradient(45deg, #A0522D, #8B4513);
+    background: linear-gradient(45deg, #666666, #333333);
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(139, 69, 19, 0.3);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);.3);
 }
 
 .btn-reservar:disabled {
@@ -452,7 +449,7 @@ Habitaciones
 }
 
 .no-habitaciones h3 {
-    color: #8B4513;
+    color: #333333;
     margin-bottom: 15px;
     font-size: 24px;
 }
@@ -467,7 +464,7 @@ Habitaciones
 Tarjetas Generales
 ============================== */
 .tarjeta {
-    background: #F1EADA;
+    background: #FFFFFF;
     border-radius: 12px;
     padding: 24px;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
@@ -491,7 +488,7 @@ Tarjetas Generales
 Títulos de Sección
 ============================== */
 .titulo-seccion {
-    color: #584738;
+    color: #000000;
     text-align: center;
     font-size: 2.6rem;
     font-weight: bold;
@@ -503,7 +500,7 @@ Títulos de Sección
     content: "";
     width: 70px;
     height: 4px;
-    background: #B59E7D;
+    background: #CCCCCC;
     display: block;
     margin: 12px auto 0;
     border-radius: 3px;
@@ -519,7 +516,7 @@ Servicios
 }
 
 .tarjeta-servicio {
-    background: #F1EADA;
+    background: #FFFFFF;
     border-radius: 14px;
     padding: 40px 20px;
     text-align: center;
@@ -534,20 +531,20 @@ Servicios
 
 .tarjeta-servicio i {
     font-size: 2.7rem;
-    color: #B59E7D;
+    color: #666666;
     margin-bottom: 18px;
 }
 
 .tarjeta-servicio h3 {
     font-weight: bold;
-    color: #584738;
+    color: #333333;
 }
 
 /* ==============================
 Ubicación
 ============================== */
 .tarjeta-ubicacion {
-    background: #F1EADA;
+    background: #FFFFFF;
     border-radius: 14px;
     padding: 25px;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
@@ -585,7 +582,7 @@ Footer
 .footer-col h4 {
     font-size: 1.3rem;
     margin-bottom: 14px;
-    color: #B59E7D;
+    color: #666666;
 }
 
 .footer-col ul {
@@ -599,33 +596,33 @@ Footer
 }
 
 .footer-col ul li a {
-    color: #584738;
+    color: #333333;
     text-decoration: none;
     transition: color 0.3s ease;
 }
 
 .footer-col ul li a:hover {
-    color: #B59E7D;
+    color: #666666;
 }
 
 /* Redes sociales */
 .social-links a {
     display: inline-block;
     margin-right: 12px;
-    color: #584738;
+    color: #333333;
     font-size: 1.3rem;
     transition: all 0.3s ease;
 }
 
 .social-links a:hover {
-    color: #B59E7D;
+    color: #666666;
     transform: scale(1.2) rotate(3deg);
 }
 
 /* Footer final */
 footer {
-    background: linear-gradient(90deg, #584738, #B59E7D);
-    color: #F1EADA;
+    background: linear-gradient(90deg, #333333, #666666);
+    color: #FFFFFF;
     padding: 25px 0;
     text-align: center;
 }
@@ -642,14 +639,14 @@ Modales
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(88, 71, 56, 0.65);
+    background: rgba(0, 0, 0, 0.65);
     justify-content: center;
     align-items: center;
     backdrop-filter: blur(3px);
 }
 
 .modal-content {
-    background: #F1EADA;
+    background: #FFFFFF;
     padding: 35px 28px;
     border-radius: 14px;
     width: 100%;
@@ -661,7 +658,7 @@ Modales
 }
 
 .modal-content h2 {
-    color: #584738;
+    color: #333333;
     font-size: 1.9rem;
     margin-bottom: 1.2rem;
 }
@@ -671,38 +668,38 @@ Modales
     top: 14px;
     right: 20px;
     font-size: 1.6rem;
-    color: #AAA396;
+    color: #CCCCCC;
     cursor: pointer;
     transition: color 0.3s;
 }
 
 .modal-content .close:hover {
-    color: #584738;
+    color: #333333;
 }
 
 .form-input {
     width: 100%;
     padding: 1rem;
     margin-bottom: 1rem;
-    border: 1.5px solid #CEC1A8;
+    border: 1.5px solid #CCCCCC;
     border-radius: 10px;
     font-size: 0.95rem;
     transition: all 0.3s ease;
 }
 
 .form-input:focus {
-    border-color: #B59E7D;
+    border-color: #666666;
     outline: none;
-    box-shadow: 0 0 10px rgba(181, 158, 125, 0.35);
+    box-shadow: 0 0 10px rgba(102, 102, 102, 0.35);
 }
 
 .btn-submit {
     width: 100%;
     padding: 1rem;
-    background: linear-gradient(135deg, #B59E7D, #584738);
+    background: linear-gradient(135deg, #666666, #333333);
     border: none;
     border-radius: 12px;
-    color: #F1EADA;
+    color: #FFFFFF;
     font-weight: 600;
     font-size: 1rem;
     cursor: pointer;
@@ -711,7 +708,7 @@ Modales
 }
 
 .btn-submit:hover {
-    background: linear-gradient(135deg, #CEC1A8, #AAA396);
+    background: linear-gradient(135deg, #CCCCCC, #999999);
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
@@ -719,18 +716,18 @@ Modales
 .form-footer {
     margin-top: 1.2rem;
     font-size: 0.9rem;
-    color: #AAA396;
+    color: #CCCCCC;
 }
 
 .form-footer a {
-    color: #B59E7D;
+    color: #666666;
     text-decoration: none;
     font-weight: 600;
     transition: color 0.3s ease;
 }
 
 .form-footer a:hover {
-    color: #584738;
+    color: #333333;
 }
 
 /* Modal de Reserva */
@@ -763,7 +760,7 @@ Modales
 .reserva-nombre {
     font-size: 1.5rem;
     font-weight: bold;
-    color: #584738;
+    color: #333333;
     margin-bottom: 10px;
 }
 
@@ -774,7 +771,7 @@ Modales
 }
 
 .reserva-precio {
-    color: #B59E7D;
+    color: #666666;
     font-weight: bold;
     font-size: 1.1rem;
 }
@@ -812,7 +809,7 @@ Modales
 }
 
 .btn-confirmar-reserva {
-    background: linear-gradient(135deg, #B59E7D, #584738);
+    background: linear-gradient(135deg, #666666, #333333);
     color: white;
     font-weight: bold;
     padding: 12px 20px;

@@ -73,9 +73,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     console.log('No hay imágenes para el carrusel, usando imágenes por defecto');
                     carouselImages = [
-                        { url: '/img/carousel/' + encodeURIComponent('1758185301931-Casa del inka - vista principal.png'), descripcion: 'Vista principal de Casa del Inka' },
-                        { url: '/img/carousel/' + encodeURIComponent('1758185310826-Casa del inka - vista entrada.png'), descripcion: 'Entrada principal del hotel' },
-                        { url: '/img/carousel/' + encodeURIComponent('1758596592120-37b93177.webp'), descripcion: 'Instalaciones del hotel' }
+                        { url: 'https://source.unsplash.com/featured/?luxury-hotel-lobby', descripcion: 'Vista principal de JW Marriott Hotel Lima' },
+                        { url: 'https://source.unsplash.com/featured/?luxury-hotel-entrance', descripcion: 'Entrada principal del hotel' },
+                        { url: 'https://source.unsplash.com/featured/?luxury-hotel-facilities', descripcion: 'Instalaciones del hotel' }
                     ];
                     mostrarCarrusel();
                     iniciarCarruselAutomatico();
@@ -202,11 +202,19 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <img src="${habitacion.fotos && habitacion.fotos.length > 0 ? habitacion.fotos[0] : '/img/habitaciones/default-room.jpg'}" 
                                      alt="${habitacion.numero_habitacion}" 
                                      class="habitacion-imagen"
-                                     onerror="this.src='/img/habitaciones/default-room.jpg'">
+                                     onerror="this.src='https://source.unsplash.com/featured/?luxury-hotel-room'">
                                 <div class="habitacion-info">
                                     <h3 class="habitacion-titulo">Habitación ${habitacion.numero_habitacion}</h3>
                                     <p class="habitacion-descripcion">${habitacion.categoria} - Piso ${habitacion.piso} - Capacidad ${habitacion.capacidad}</p>
                                     <div class="habitacion-precio">S/ ${habitacion.precio_por_dia} / día</div>
+                                    <div class="packages">
+                                        <h4>Paquetes Disponibles</h4>
+                                        <ul>
+                                            <li>Paquete Romántico: +S/50 (Champagne y flores)</li>
+                                            <li>Upgrade a Suite: +S/100</li>
+                                            <li>Late Check-out: +S/15</li>
+                                        </ul>
+                                    </div>
                                     <div class="habitacion-disponibilidad ${habitacion.disponible ? 'disponible' : 'no-disponible'}">
                                         ${habitacion.disponible ? 'Disponible' : 'No disponible'}
                                     </div>
@@ -484,6 +492,13 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const token = localStorage.getItem('token');
             
+            // Collect upsells
+            const upsells = [];
+            if (document.getElementById('upsell-desayuno').checked) upsells.push('desayuno');
+            if (document.getElementById('upsell-romantico').checked) upsells.push('romantico');
+            if (document.getElementById('upsell-spa').checked) upsells.push('spa');
+            if (document.getElementById('upsell-late-checkout').checked) upsells.push('late-checkout');
+            
             try {
                 const response = await fetch('/api/cliente/reservas', {
                     method: 'POST',
@@ -494,7 +509,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({
                         id_habitacion: currentHabitacionId,
                         fecha_checkin: checkin,
-                        fecha_checkout: checkout
+                        fecha_checkout: checkout,
+                        upsells: upsells
                     })
                 });
                 

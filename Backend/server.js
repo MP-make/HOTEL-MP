@@ -147,7 +147,7 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Configuración de almacenamiento de imágenes
+// Configuración de almacenamiento de imágenes para habitaciones
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
       console.log("Directorio de destino para multer:", uploadDir);
@@ -159,8 +159,26 @@ const storage = multer.diskStorage({
     }
   });
 
-
 const upload = multer({ storage });
+
+// Configuración para carrusel
+const carouselDir = path.join(__dirname, '..', 'Fronted', 'Public', 'img', 'carousel');
+
+if (!fs.existsSync(carouselDir)) {
+  fs.mkdirSync(carouselDir, { recursive: true });
+}
+
+const carouselStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, carouselDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${file.originalname}`;
+    cb(null, uniqueName);
+  }
+});
+
+const uploadCarousel = multer({ storage: carouselStorage });
 
 // Middleware
 app.use(cors());
@@ -757,10 +775,62 @@ app.get("/api/admin/carrusel", authenticateToken, requireAdmin, async (req, res)
       return res.json([]);
     }
     const files = fs.readdirSync(carouselDir).filter(file => file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.webp'));
-    const images = files.map(file => `/img/carousel/${file}`);
+    const images = files.map(file => ({ url: `/img/carousel/${file}`, filename: file }));
     res.json(images);
   } catch (err) {
     console.error("Error obteniendo carrusel:", err);
+    res.status(500).json({ error: "Error al obtener carrusel" });
+  }
+});
+
+/**
+ * @route POST /api/admin/carrusel
+ * @desc Subir imágenes al carrusel
+ */
+app.post("/api/admin/carrusel", authenticateToken, requireAdmin, uploadCarousel.array('fotos'), async (req, res) => {
+  try {
+    res.status(201).json({ message: 'Imágenes subidas correctamente' });
+  } catch (err) {
+    console.error("Error subiendo carrusel:", err);
+    res.status(500).json({ error: "Error al subir imágenes" });
+  }
+});
+
+/**
+ * @route DELETE /api/admin/carrusel/:filename
+ * @desc Eliminar imagen del carrusel
+ */
+app.delete("/api/admin/carrusel/:filename", authenticateToken, requireAdmin, async (req, res) => {
+  const { filename } = req.params;
+  try {
+    const filePath = path.join(carouselDir, filename);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      res.json({ message: 'Imagen eliminada' });
+    } else {
+      res.status(404).json({ error: 'Imagen no encontrada' });
+    }
+  } catch (err) {
+    console.error("Error eliminando imagen del carrusel:", err);
+    res.status(500).json({ error: "Error al eliminar imagen" });
+  }
+});
+
+/**
+ * @route GET /api/carrusel
+ * @desc Obtener imágenes del carrusel público
+ */
+app.get("/api/carrusel", async (req, res) => {
+  try {
+    const carouselDir = path.join(__dirname, '..', 'Fronted', 'Public', 'img', 'carousel');
+    if (!fs.existsSync(carouselDir)) {
+      return res.json({ images: [] });
+    }
+    const files = fs.readdirSync(carouselDir).filter(file => file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.webp'));
+    const images = files.map(file => ({ url: `/img/carousel/${file}`, descripcion: '' }));
+    res.json({ images });
+  } catch (err) {
+    console.error("Error obteniendo carrusel público:", err);
     res.status(500).json({ error: "Error al obtener carrusel" });
   }
 });
@@ -810,6 +880,72 @@ app.get("/api/admin/encargados", authenticateToken, requireAdmin, async (req, re
   } catch (err) {
     console.error("Error obteniendo encargados:", err);
     res.status(500).json({ error: "Error al obtener encargados" });
+  }
+});
+
+/**
+ * @route POST /api/admin/habitaciones
+ * @desc Crear una nueva habitación
+ */
+app.post("/api/admin/habitaciones", authenticateToken, requireAdmin, upload.array('fotos'), async (req, res) => {
+  try {
+    const { numero_habitacion, piso, id_categoria, precio_por_dia, precio_por_hora, capacidad, descripcion } = req.body;
+    const disponible = req.body.disponible !== undefined ? sanitizeBoolean(req.body.disponible) : true;
+
+    // Validaciones básicas
+    if (!numero_habitacion || !id_categoria) {
+      return res.status(400).json({ error: "Número de habitación e ID de categoría son obligatorios" });
+    }
+
+    const numHab = parseInt(numero_habitacion, 10);
+    if (isNaN(numHab) || numHab <= 0) {
+      return res.status(400).json({ error: "Número de habitación debe ser un entero positivo" });
+    }
+
+    // Verificar que el número de habitación no existe
+    const exists = await queryWithRetry("SELECT id_habitacion FROM habitaciones WHERE numero_habitacion = $1", [numHab]);
+    if (exists.rows.length > 0) {
+      return res.status(409).json({ error: "Ya existe una habitación con ese número" });
+    }
+
+    // Verificar que la categoría existe
+    const catExists = await queryWithRetry("SELECT id_categoria FROM categorias_habitaciones WHERE id_categoria = $1", [id_categoria]);
+    if (catExists.rows.length === 0) {
+      return res.status(400).json({ error: "Categoría no encontrada" });
+    }
+
+    // Insertar habitación
+    const insertQuery = `
+      INSERT INTO habitaciones (numero_habitacion, piso, id_categoria, precio_por_dia, precio_por_hora, capacidad, descripcion, disponible)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *
+    `;
+    const params = [
+      numHab,
+      piso ? parseInt(piso, 10) : null,
+      id_categoria,
+      precio_por_dia ? parseFloat(precio_por_dia) : null,
+      precio_por_hora ? parseFloat(precio_por_hora) : null,
+      capacidad ? parseInt(capacidad, 10) : null,
+      descripcion || null,
+      disponible
+    ];
+
+    const result = await queryWithRetry(insertQuery, params);
+    const nuevaHabitacion = result.rows[0];
+
+    // Si hay fotos, insertarlas
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const rutaFoto = file.filename;
+        await queryWithRetry("INSERT INTO habitaciones_fotos (id_habitacion, ruta_foto) VALUES ($1, $2)", [nuevaHabitacion.id_habitacion, rutaFoto]);
+      }
+    }
+
+    res.status(201).json(nuevaHabitacion);
+  } catch (err) {
+    console.error("Error creando habitación:", err);
+    res.status(500).json({ error: "Error al crear habitación", detalle: err.message });
   }
 });
 
