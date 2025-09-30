@@ -16,7 +16,7 @@ async function run() {
       );
 
       CREATE TABLE IF NOT EXISTS usuarios (
-        id SERIAL PRIMARY KEY,
+        id_usuario SERIAL PRIMARY KEY,
         nombre VARCHAR(200) NOT NULL,
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
@@ -48,7 +48,7 @@ async function run() {
 
       CREATE TABLE IF NOT EXISTS reservas (
         id_reserva SERIAL PRIMARY KEY,
-        id_usuario INTEGER REFERENCES usuarios(id),
+        id_usuario INTEGER REFERENCES usuarios(id_usuario),
         id_habitacion INTEGER REFERENCES habitaciones(id_habitacion),
         fecha_creacion TIMESTAMP DEFAULT now(),
         fecha_checkin TIMESTAMP,
@@ -77,7 +77,7 @@ async function run() {
     // Ensure other primary id columns have sequences/defaults (usuarios.id, categorias_habitaciones.id_categoria, habitaciones.id_habitacion, habitaciones_fotos.id, reservas.id_reserva)
     try {
       const idTargets = [
-        { table: 'usuarios', column: 'id', seq: 'usuarios_id_seq' },
+        { table: 'usuarios', column: 'id_usuario', seq: 'usuarios_id_usuario_seq' },
         { table: 'categorias_habitaciones', column: 'id_categoria', seq: 'categorias_habitaciones_id_categoria_seq' },
         { table: 'habitaciones', column: 'id_habitacion', seq: 'habitaciones_id_habitacion_seq' },
         { table: 'habitaciones_fotos', column: 'id', seq: 'habitaciones_fotos_id_seq' },
@@ -113,7 +113,7 @@ async function run() {
     const adminPassword = process.env.ADMIN_PASSWORD || 'Admin123!';
     const adminName = process.env.ADMIN_NAME || 'Administrador';
 
-    const { rows: existingAdmin } = await pool.query('SELECT id FROM usuarios WHERE email = $1', [adminEmail]);
+    const { rows: existingAdmin } = await pool.query('SELECT id_usuario FROM usuarios WHERE email = $1', [adminEmail]);
     if (existingAdmin.length === 0) {
       // obtener id_rol admin
       const r = await pool.query("SELECT id_rol FROM roles WHERE nombre = 'admin' LIMIT 1");

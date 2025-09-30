@@ -334,6 +334,7 @@ app.get("/api/cliente/habitaciones", async (req, res) => {
             h.capacidad,
             h.precio_por_dia,
             h.precio_por_hora,
+            h.disponible,
             c.nombre AS categoria,
             COALESCE(ARRAY_AGG(f.ruta_foto) FILTER (WHERE f.ruta_foto IS NOT NULL), '{}') AS fotos
         FROM public.habitaciones h

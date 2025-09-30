@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                      onerror="this.src='/img/habitaciones/default-room.jpg'">
                                 <div class="habitacion-info">
                                     <h3 class="habitacion-titulo">Habitación ${habitacion.numero_habitacion}</h3>
-                                    <p class="habitacion-descripcion">${habitacion.tipo} - ${habitacion.categoria} - Piso ${habitacion.piso} - Capacidad ${habitacion.capacidad}</p>
+                                    <p class="habitacion-descripcion">${habitacion.categoria} - Piso ${habitacion.piso} - Capacidad ${habitacion.capacidad}</p>
                                     <div class="habitacion-precio">S/ ${habitacion.precio_por_dia} / día</div>
                                     <div class="habitacion-disponibilidad ${habitacion.disponible ? 'disponible' : 'no-disponible'}">
                                         ${habitacion.disponible ? 'Disponible' : 'No disponible'}
@@ -235,18 +235,26 @@ document.addEventListener('DOMContentLoaded', () => {
         function reservarHabitacion(habitacionId, nombreHabitacion) {
             if (!usuarioActual) {
                 alert('Debe iniciar sesión para realizar una reserva');
-                document.getElementById('loginModal').style.display = 'flex';
+                openModal('loginModal');
                 return;
             }
             
-            // Aquí puedes implementar la lógica de reserva
-            alert(`Iniciando reserva para la habitación: ${nombreHabitacion}\nEsta funcionalidad se completará próximamente.`);
-            // Redireccionar a una página de reserva o abrir un modal de reserva
-            // window.location.href = `/reservar.html?habitacion=${habitacionId}`;
+            if (usuarioActual.rol !== 'cliente') {
+                alert('Solo los clientes pueden realizar reservas.');
+                return;
+            }
+
+            currentHabitacionId = habitacionId;
+            document.getElementById('reservaHabitacionNombre').textContent = nombreHabitacion;
+            document.getElementById('reservaMessage').textContent = '';
+            openModal('reservaModal');
         }
 
         // Variable global para el usuario actual
         let usuarioActual = null;
+
+        // Variable para la habitación actual en reserva
+        let currentHabitacionId = null;
 
         // Función para verificar si hay una sesión activa
         function verificarSesion() {
@@ -389,6 +397,51 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = document.getElementById('registerPassword').value;
             manejarRegistro(nombre, email, password);
         });
+
+        document.getElementById('reservaForm').addEventListener('submit', manejarReserva);
+
+        // Función para manejar la reserva
+        async function manejarReserva(e) {
+            e.preventDefault();
+            
+            const checkin = document.getElementById('fechaCheckin').value;
+            const checkout = document.getElementById('fechaCheckout').value;
+            
+            if (!checkin || !checkout) {
+                document.getElementById('reservaMessage').textContent = 'Por favor, selecciona las fechas';
+                return;
+            }
+            
+            const token = localStorage.getItem('token');
+            
+            try {
+                const response = await fetch('/api/cliente/reservas', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        id_habitacion: currentHabitacionId,
+                        fecha_checkin: checkin,
+                        fecha_checkout: checkout
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Reserva creada exitosamente');
+                    closeModal('reservaModal');
+                    cargarHabitaciones(); // reload to update availability
+                } else {
+                    document.getElementById('reservaMessage').textContent = data.error || 'Error al crear reserva';
+                }
+            } catch (error) {
+                console.error('Error en reserva:', error);
+                document.getElementById('reservaMessage').textContent = 'Error de conexión';
+            }
+        }
 
         // Función para inicializar todo el sistema
         async function inicializarSistema() {
