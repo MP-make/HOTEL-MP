@@ -2,8 +2,7 @@
 Estilos Globales
 ============================== */
 html {
-    scroll-padding-top: 220px;
-    /* cambia 80px por la altura real de tu nav */
+    scroll-padding-top: 220px; /* Ajusta según la altura del nav */
     scroll-behavior: smooth;
 }
 
@@ -14,15 +13,11 @@ body {
     font-family: 'Inter', 'Poppins', sans-serif;
     background: linear-gradient(180deg, #F1EADA 0%, #FFF 100%);
     color: #584738;
-    scroll-behavior: smooth;
     margin: 0;
     padding: 0;
 }
 
-h1,
-h2,
-h3,
-h4 {
+h1, h2, h3, h4 {
     font-family: 'Montserrat', sans-serif;
     font-weight: 600;
     color: #584738;
@@ -49,8 +44,9 @@ section {
 }
 
 /* ==============================
-Botones principales
+Botones
 ============================== */
+/* Botones principales */
 .btn-principal {
     background: linear-gradient(135deg, #CEC1A8, #B59E7D);
     color: #584738;
@@ -75,9 +71,7 @@ Botones principales
     box-shadow: none;
 }
 
-/* ==============================
-Botones principales n°2
-============================== */
+/* Botones principales alternativos */
 .btn-principal-2 {
     background: red;
     color: white;
@@ -96,35 +90,25 @@ Botones principales n°2
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
 }
 
-/* NO deberia tener esta opcion en un caso normal
-.btn-principal:disabled {
-    background-color: #CEC1A8;
-    cursor: not-allowed;
-    box-shadow: none;
-}
-
-/* ==============================
-Botones principales flotantes
-============================== */
-
+/* Botones flotantes */
 .btn-flotante {
-  position: fixed;
-  bottom: 20px;   /* separación desde abajo */
-  right: 20px;    /* separación desde la derecha */
-  background: linear-gradient(90deg, #8B4513, #B59E7D);
-  color: white;
-  font-size: 22px;
-  padding: 15px 18px;
-  border-radius: 50%;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-  text-decoration: none;
-  transition: all 0.3s ease;
-  z-index: 9999; /* siempre encima */
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: linear-gradient(90deg, #8B4513, #B59E7D);
+    color: white;
+    font-size: 22px;
+    padding: 15px 18px;
+    border-radius: 50%;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    z-index: 9999;
 }
 
 .btn-flotante:hover {
-  transform: scale(1.1);
-  background: linear-gradient(90deg, #B59E7D, #8B4513);
+    transform: scale(1.1);
+    background: linear-gradient(90deg, #B59E7D, #8B4513);
 }
 
 /* ==============================
@@ -215,8 +199,93 @@ Header y Navegación
 }
 
 /* ==============================
+Carrusel Principal
+============================== */
+.carousel {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    overflow: hidden;
+    border-radius: 15px;
+    margin: 2rem 0;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.carousel-track {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s ease;
+}
+
+.carousel-slide {
+    min-width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.carousel-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.carousel-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2rem;
+    z-index: 10;
+    transition: background 0.3s ease;
+}
+
+.carousel-arrow:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.carousel-arrow.prev {
+    left: 20px;
+}
+
+.carousel-arrow.next {
+    right: 20px;
+}
+
+.carousel-dots {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+}
+
+.carousel-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.carousel-dot.active {
+    background: white;
+}
+
+/* ==============================
 Habitaciones
 ============================== */
+/* Estilos antiguos para tarjetas de habitación */
 .tarjeta-habitacion {
     background: #F1EADA;
     border-radius: 14px;
@@ -265,7 +334,7 @@ Habitaciones
     gap: 35px;
 }
 
-/* Mejoras para la sección de habitaciones */
+/* Estilos modernos para habitaciones */
 .habitaciones-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -394,90 +463,8 @@ Habitaciones
     margin-bottom: 25px;
 }
 
-/* Estilos para el carrusel principal */
-.carousel {
-    position: relative;
-    width: 100%;
-    height: 400px;
-    overflow: hidden;
-    border-radius: 15px;
-    margin: 2rem 0;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
-
-.carousel-track {
-    display: flex;
-    width: 100%;
-    height: 100%;
-    transition: transform 0.6s ease;
-}
-
-.carousel-slide {
-    min-width: 100%;
-    height: 100%;
-    box-sizing: border-box;
-}
-
-.carousel-slide img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-.carousel-arrow {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(0, 0, 0, 0.5);
-    color: white;
-    border: none;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 1.2rem;
-    z-index: 10;
-    transition: background 0.3s ease;
-}
-
-.carousel-arrow:hover {
-    background: rgba(0, 0, 0, 0.8);
-}
-
-.carousel-arrow.prev {
-    left: 20px;
-}
-
-.carousel-arrow.next {
-    right: 20px;
-}
-
-.carousel-dots {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 10px;
-    z-index: 10;
-}
-
-.carousel-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.5);
-    cursor: pointer;
-    transition: background 0.3s ease;
-}
-
-.carousel-dot.active {
-    background: white;
-}
-
 /* ==============================
-Tarjetas generales
+Tarjetas Generales
 ============================== */
 .tarjeta {
     background: #F1EADA;
@@ -501,7 +488,7 @@ Tarjetas generales
 }
 
 /* ==============================
-Títulos de sección
+Títulos de Sección
 ============================== */
 .titulo-seccion {
     color: #584738;
@@ -580,8 +567,9 @@ Ubicación
 }
 
 /* ==============================
-Footer Sección Contacto
+Footer
 ============================== */
+/* Sección de contacto en footer */
 .footer-row {
     display: flex;
     flex-wrap: wrap;
@@ -634,9 +622,7 @@ Footer Sección Contacto
     transform: scale(1.2) rotate(3deg);
 }
 
-/* ==============================
-Footer final
-============================== */
+/* Footer final */
 footer {
     background: linear-gradient(90deg, #584738, #B59E7D);
     color: #F1EADA;
@@ -647,6 +633,7 @@ footer {
 /* ==============================
 Modales
 ============================== */
+/* Modal general */
 .modal {
     display: none;
     position: fixed;
@@ -746,21 +733,7 @@ Modales
     color: #584738;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px) scale(0.95);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-/* ==============================
-Modal de Reserva
-============================== */
+/* Modal de Reserva */
 .reserva-modal-content {
     max-width: 900px;
     width: 95%;
@@ -860,23 +833,17 @@ Modal de Reserva
     margin-left: 5px;
 }
 
-/* Responsivo para modal de reserva */
-@media (max-width: 768px) {
-    .reserva-modal-content {
-        max-width: 90%;
+/* ==============================
+Animaciones
+============================== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
     }
-
-    .reserva-container {
-        flex-direction: column;
-    }
-
-    .reserva-imagen {
-        flex: none;
-    }
-
-    .reserva-img {
-        height: 200px;
-        object-fit: cover;
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
 }
 
@@ -947,6 +914,24 @@ Responsivo
         width: 40px;
         height: 40px;
         font-size: 20px;
+    }
+
+    /* Responsivo para modal de reserva */
+    .reserva-modal-content {
+        max-width: 90%;
+    }
+
+    .reserva-container {
+        flex-direction: column;
+    }
+
+    .reserva-imagen {
+        flex: none;
+    }
+
+    .reserva-img {
+        height: 200px;
+        object-fit: cover;
     }
 }
 
