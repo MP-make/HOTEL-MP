@@ -20,7 +20,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Manejar logout
     document.getElementById('logout-link').addEventListener('click', function(e) {
         e.preventDefault();
-        localStorage.removeItem('token');
         window.location.href = 'index.html';
     });
 
@@ -43,7 +42,12 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('reclamo-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const descripcion = document.getElementById('reclamo-descripcion').value.trim();
-        const id_habitacion = document.getElementById('reclamo-habitacion').value;
+        const id_habitacion_raw = document.getElementById('reclamo-habitacion').value;
+        if (id_habitacion_raw === "") {
+            alert("Por favor, selecciona una habitación de tus reservas.");
+            return;
+        }
+        const id_habitacion = id_habitacion_raw && id_habitacion_raw !== '' && !isNaN(parseInt(id_habitacion_raw)) ? parseInt(id_habitacion_raw) : null;
         if (!descripcion) {
             alert('Por favor, describe el reclamo.');
             return;
@@ -56,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ descripcion, id_habitacion: id_habitacion || null })
+                body: JSON.stringify({ descripcion, id_habitacion })
             });
             if (response.status === 401) {
                 localStorage.removeItem('token');

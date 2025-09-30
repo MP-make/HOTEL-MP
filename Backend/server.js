@@ -62,6 +62,13 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+// Middleware para roles: requiere encargado o admin
+function requireEncargado(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Token requerido' });
+  if (req.user.rol !== 'encargado' && req.user.rol !== 'admin') return res.status(403).json({ error: 'Acceso restringido a encargados o administradores' });
+  next();
+}
+
 // Util: validar email simple y campos
 function isValidEmail(email) {
   return typeof email === 'string' && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
@@ -652,4 +659,404 @@ app.put("/api/admin/hotel-config", authenticateToken, requireAdmin, async (req, 
         console.error("Error al actualizar configuración del hotel:", err);
         res.status(500).json({ error: "Error al actualizar configuración del hotel", detalle: err.message });
     }
+});
+
+/**
+ * =========================
+ * RUTAS DEL ADMIN - DASHBOARD Y OTROS
+ * =========================
+ */
+
+/**
+ * @route GET /api/admin/dashboard
+ * @desc Obtener métricas del dashboard
+ */
+app.get("/api/admin/dashboard", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const totalHabitaciones = await queryWithRetry("SELECT COUNT(*)::int AS count FROM habitaciones");
+    const habitacionesDisponibles = await queryWithRetry("SELECT COUNT(*)::int AS count FROM habitaciones WHERE disponible = true");
+    const totalEncargados = await queryWithRetry("SELECT COUNT(*)::int AS count FROM usuarios u JOIN roles r ON u.rol = r.id_rol WHERE r.nombre = 'encargado'");
+    const totalReservas = await queryWithRetry("SELECT COUNT(*)::int AS count FROM reservas");
+    const reservasPendientes = await queryWithRetry("SELECT COUNT(*)::int AS count FROM reservas WHERE estado_reserva = 'pendiente'");
+    const reservasCompletadas = await queryWithRetry("SELECT COUNT(*)::int AS count FROM reservas WHERE estado_reserva = 'completada'");
+    const ingresos = await queryWithRetry(`
+      SELECT COALESCE(SUM(h.precio_por_dia * (r.fecha_checkout - r.fecha_checkin)), 0)::float AS total
+      FROM reservas r JOIN habitaciones h ON r.id_habitacion = h.id_habitacion
+      WHERE r.estado_reserva = 'completada'
+    `);
+    res.json({
+      total_habitaciones: totalHabitaciones.rows[0].count,
+      habitaciones_disponibles: habitacionesDisponibles.rows[0].count,
+      total_encargados: totalEncargados.rows[0].count,
+      total_reservas: totalReservas.rows[0].count,
+      reservas_pendientes: reservasPendientes.rows[0].count,
+      reservas_completadas: reservasCompletadas.rows[0].count,
+      ingresos_est: ingresos.rows[0].total
+    });
+  } catch (err) {
+    console.error("Error obteniendo métricas del dashboard:", err);
+    res.status(500).json({ error: "Error al obtener métricas" });
+  }
+});
+
+/**
+ * @route GET /api/admin/habitaciones
+ * @desc Obtener todas las habitaciones
+ */
+app.get("/api/admin/habitaciones", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const result = await queryWithRetry("SELECT h.*, c.nombre as categoria FROM habitaciones h JOIN categorias_habitaciones c ON h.id_categoria = c.id_categoria ORDER BY h.numero_habitacion");
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error obteniendo habitaciones:", err);
+    res.status(500).json({ error: "Error al obtener habitaciones" });
+  }
+});
+
+/**
+ * @route GET /api/admin/carrusel
+ * @desc Obtener imágenes del carrusel
+ */
+app.get("/api/admin/carrusel", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const carouselDir = path.join(__dirname, '..', 'Fronted', 'Public', 'img', 'carousel');
+    if (!fs.existsSync(carouselDir)) {
+      return res.json([]);
+    }
+    const files = fs.readdirSync(carouselDir).filter(file => file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.webp'));
+    const images = files.map(file => `/img/carousel/${file}`);
+    res.json(images);
+  } catch (err) {
+    console.error("Error obteniendo carrusel:", err);
+    res.status(500).json({ error: "Error al obtener carrusel" });
+  }
+});
+
+/**
+ * @route GET /api/admin/reservas
+ * @desc Obtener todas las reservas
+ */
+app.get("/api/admin/reservas", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const result = await queryWithRetry("SELECT r.*, h.numero_habitacion, u.nombre as cliente_nombre, u.email as cliente_email FROM reservas r JOIN habitaciones h ON r.id_habitacion = h.id_habitacion JOIN usuarios u ON r.id_usuario = u.id ORDER BY r.fecha_creacion DESC");
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error obteniendo reservas:", err);
+    res.status(500).json({ error: "Error al obtener reservas" });
+  }
+});
+
+/**
+ * @route PUT /api/admin/reservas/:id/completar
+ * @desc Completar reserva
+ */
+app.put("/api/admin/reservas/:id/completar", authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await queryWithRetry("UPDATE reservas SET estado_reserva = 'completada' WHERE id_reserva = $1 RETURNING id_habitacion", [parseInt(id)]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Reserva no encontrada" });
+    }
+    const id_habitacion = result.rows[0].id_habitacion;
+    await queryWithRetry("UPDATE habitaciones SET disponible = true WHERE id_habitacion = $1", [id_habitacion]);
+    res.json({ message: "Reserva completada" });
+  } catch (err) {
+    console.error("Error completando reserva:", err);
+    res.status(500).json({ error: "Error al completar reserva" });
+  }
+});
+
+/**
+ * @route GET /api/admin/encargados
+ * @desc Obtener encargados
+ */
+app.get("/api/admin/encargados", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const result = await queryWithRetry("SELECT id, nombre, email FROM usuarios WHERE rol = (SELECT id_rol FROM roles WHERE nombre = 'encargado')");
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error obteniendo encargados:", err);
+    res.status(500).json({ error: "Error al obtener encargados" });
+  }
+});
+
+/**
+ * =========================
+ * RUTAS DEL ENCARGADO
+ * =========================
+ */
+
+/**
+ * @route GET /api/encargado/habitaciones
+ * @desc Obtener habitaciones con filtros
+ */
+app.get("/api/encargado/habitaciones", authenticateToken, requireEncargado, async (req, res) => {
+  try {
+    const { numero, categoria, piso, disponible } = req.query;
+    let query = "SELECT h.*, c.nombre as categoria FROM habitaciones h JOIN categorias_habitaciones c ON h.id_categoria = c.id_categoria WHERE 1=1";
+    const params = [];
+    if (numero) {
+      params.push(parseInt(numero));
+      query += ` AND h.numero_habitacion = $${params.length}`;
+    }
+    if (categoria) {
+      params.push('%' + categoria + '%');
+      query += ` AND c.nombre ILIKE $${params.length}`;
+    }
+    if (piso) {
+      params.push(parseInt(piso));
+      query += ` AND h.piso = $${params.length}`;
+    }
+    if (disponible !== undefined) {
+      params.push(disponible === 'true');
+      query += ` AND h.disponible = $${params.length}`;
+    }
+    query += " ORDER BY h.numero_habitacion";
+    const result = await queryWithRetry(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error obteniendo habitaciones para encargado:", err);
+    res.status(500).json({ error: "Error al cargar habitaciones" });
+  }
+});
+
+/**
+ * @route GET /api/encargado/reservas
+ * @desc Obtener reservas con filtros y paginación
+ */
+app.get("/api/encargado/reservas", authenticateToken, requireEncargado, async (req, res) => {
+  try {
+    const { page = 1, pageSize = 10, cliente, id_habitacion, fecha_inicio, fecha_fin } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(pageSize);
+    let query = `
+      SELECT r.*, h.numero_habitacion, u.nombre as cliente_nombre, u.email as cliente_email
+      FROM reservas r
+      JOIN habitaciones h ON r.id_habitacion = h.id_habitacion
+      JOIN usuarios u ON r.id_usuario = u.id
+      WHERE 1=1
+    `;
+    const params = [];
+    if (cliente) {
+      params.push('%' + cliente + '%');
+      query += ` AND (u.nombre ILIKE $${params.length} OR u.email ILIKE $${params.length})`;
+    }
+    if (id_habitacion) {
+      params.push(parseInt(id_habitacion));
+      query += ` AND r.id_habitacion = $${params.length}`;
+    }
+    if (fecha_inicio) {
+      params.push(fecha_inicio);
+      query += ` AND r.fecha_checkin >= $${params.length}`;
+    }
+    if (fecha_fin) {
+      params.push(fecha_fin);
+      query += ` AND r.fecha_checkout <= $${params.length}`;
+    }
+    query += ` ORDER BY r.fecha_creacion DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    params.push(parseInt(pageSize), offset);
+    const result = await queryWithRetry(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error obteniendo reservas para encargado:", err);
+    res.status(500).json({ error: "Error al cargar reservas" });
+  }
+});
+
+/**
+ * @route GET /api/encargado/reclamos
+ * @desc Obtener reclamos con filtros
+ */
+app.get("/api/encargado/reclamos", authenticateToken, requireEncargado, async (req, res) => {
+  try {
+    const { texto, habitacion, estado } = req.query;
+    let query = `
+      SELECT r.*, h.numero_habitacion, u.nombre as cliente
+      FROM reclamos r
+      LEFT JOIN habitaciones h ON r.id_habitacion = h.id_habitacion
+      LEFT JOIN usuarios u ON r.id_usuario = u.id
+      WHERE 1=1
+    `;
+    const params = [];
+    if (texto) {
+      params.push('%' + texto + '%');
+      query += ` AND r.descripcion ILIKE $${params.length}`;
+    }
+    if (habitacion) {
+      params.push(parseInt(habitacion));
+      query += ` AND h.numero_habitacion = $${params.length}`;
+    }
+    if (estado) {
+      params.push(estado);
+      query += ` AND r.estado = $${params.length}`;
+    }
+    query += " ORDER BY r.fecha_creacion DESC";
+    const result = await queryWithRetry(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error obteniendo reclamos para encargado:", err);
+    res.status(500).json({ error: "Error al cargar reclamos" });
+  }
+});
+
+/**
+ * @route POST /api/encargado/reclamos
+ * @desc Crear reclamo
+ */
+app.post("/api/encargado/reclamos", authenticateToken, requireEncargado, async (req, res) => {
+  const { descripcion, numero_habitacion } = req.body;
+  if (!descripcion) {
+    return res.status(400).json({ error: "Descripción requerida" });
+  }
+  try {
+    let id_habitacion = null;
+    if (numero_habitacion) {
+      const hab = await queryWithRetry("SELECT id_habitacion FROM habitaciones WHERE numero_habitacion = $1", [parseInt(numero_habitacion)]);
+      if (hab.rows.length === 0) {
+        return res.status(404).json({ error: "Habitación no encontrada" });
+      }
+      id_habitacion = hab.rows[0].id_habitacion;
+    }
+    const result = await queryWithRetry(
+      "INSERT INTO reclamos (id_usuario, id_habitacion, descripcion) VALUES ($1, $2, $3) RETURNING *",
+      [req.user.id, id_habitacion, descripcion]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error("Error creando reclamo:", err);
+    res.status(500).json({ error: "Error al crear reclamo" });
+  }
+});
+
+/**
+ * @route PUT /api/encargado/reservas/:id/completar
+ * @desc Completar reserva
+ */
+app.put("/api/encargado/reservas/:id/completar", authenticateToken, requireEncargado, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await queryWithRetry("UPDATE reservas SET estado_reserva = 'completada' WHERE id_reserva = $1 RETURNING id_habitacion", [parseInt(id)]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Reserva no encontrada" });
+    }
+    const id_habitacion = result.rows[0].id_habitacion;
+    await queryWithRetry("UPDATE habitaciones SET disponible = true WHERE id_habitacion = $1", [id_habitacion]);
+    res.json({ message: "Reserva completada" });
+  } catch (err) {
+    console.error("Error completando reserva:", err);
+    res.status(500).json({ error: "Error al completar reserva" });
+  }
+});
+
+/**
+ * @route PUT /api/encargado/reclamos/:id/resolver
+ * @desc Resolver reclamo
+ */
+app.put("/api/encargado/reclamos/:id/resolver", authenticateToken, requireEncargado, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await queryWithRetry("UPDATE reclamos SET estado = 'resuelto' WHERE id_reclamo = $1 RETURNING *", [parseInt(id)]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Reclamo no encontrado" });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error resolviendo reclamo:", err);
+    res.status(500).json({ error: "Error al resolver reclamo" });
+  }
+});
+
+/**
+ * @route GET /api/encargado/habitaciones/:id/fotos
+ * @desc Obtener fotos de habitación
+ */
+app.get("/api/encargado/habitaciones/:id/fotos", authenticateToken, requireEncargado, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await queryWithRetry("SELECT ruta_foto FROM habitaciones_fotos WHERE id_habitacion = $1", [parseInt(id)]);
+    res.json(result.rows.map(r => r.ruta_foto));
+  } catch (err) {
+    console.error("Error obteniendo fotos:", err);
+    res.status(500).json({ error: "Error al obtener fotos" });
+  }
+});
+
+/**
+ * @route POST /api/encargado/habitaciones/:id/fotos
+ * @desc Subir foto a habitación
+ */
+app.post("/api/encargado/habitaciones/:id/fotos", authenticateToken, requireEncargado, upload.single('foto'), async (req, res) => {
+  const { id } = req.params;
+  if (!req.file) {
+    return res.status(400).json({ error: "Foto requerida" });
+  }
+  try {
+    const ruta_foto = req.file.filename;
+    await queryWithRetry("INSERT INTO habitaciones_fotos (id_habitacion, ruta_foto) VALUES ($1, $2)", [parseInt(id), ruta_foto]);
+    res.status(201).json({ ruta_foto });
+  } catch (err) {
+    console.error("Error subiendo foto:", err);
+    res.status(500).json({ error: "Error al subir foto" });
+  }
+});
+
+/**
+ * @route DELETE /api/encargado/habitaciones/:id/fotos
+ * @desc Eliminar foto de habitación
+ */
+app.delete("/api/encargado/habitaciones/:id/fotos", authenticateToken, requireEncargado, async (req, res) => {
+  const { id } = req.params;
+  const { url } = req.query;
+  if (!url) {
+    return res.status(400).json({ error: "URL requerida" });
+  }
+  try {
+    await queryWithRetry("DELETE FROM habitaciones_fotos WHERE id_habitacion = $1 AND ruta_foto = $2", [parseInt(id), url]);
+    const filePath = path.join(uploadDir, url);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    res.json({ message: "Foto eliminada" });
+  } catch (err) {
+    console.error("Error eliminando foto:", err);
+    res.status(500).json({ error: "Error al eliminar foto" });
+  }
+});
+
+/**
+ * @route POST /api/encargado/habitaciones/:id/fotos/delete
+ * @desc Eliminar foto (alternativo)
+ */
+app.post("/api/encargado/habitaciones/:id/fotos/delete", authenticateToken, requireEncargado, async (req, res) => {
+  const { id } = req.params;
+  const { url } = req.body;
+  if (!url) {
+    return res.status(400).json({ error: "URL requerida" });
+  }
+  try {
+    await queryWithRetry("DELETE FROM habitaciones_fotos WHERE id_habitacion = $1 AND ruta_foto = $2", [parseInt(id), url]);
+    const filePath = path.join(uploadDir, url);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    res.json({ message: "Foto eliminada" });
+  } catch (err) {
+    console.error("Error eliminando foto:", err);
+    res.status(500).json({ error: "Error al eliminar foto" });
+  }
+});
+
+/**
+ * @route GET /api/encargado/reservas/stream
+ * @desc SSE stream for reservas
+ */
+app.get("/api/encargado/reservas/stream", authenticateToken, requireEncargado, (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Cache-Control',
+  });
+  sseClients.add(res);
+  req.on('close', () => sseClients.delete(res));
 });

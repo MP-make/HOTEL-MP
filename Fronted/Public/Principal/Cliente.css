@@ -90,20 +90,20 @@ SIDEBAR
 
 /* Botón de cerrar sesión */
 .logout-btn {
-    display: block;
-    text-align: center;
-    background-color: #e74c3c;
+    background-color: #8B4513;
     color: white;
     padding: 12px 24px;
     border-radius: 10px;
     border: none;
     cursor: pointer;
     transition: background 0.3s ease;
-    margin-top: 20px;
+    position: absolute;
+    right: 24px;
+    top: 24px;
 }
 
 .logout-btn:hover {
-    background-color: #c0392b;
+    background-color: #A0522D;
 }
 
 /* =======================

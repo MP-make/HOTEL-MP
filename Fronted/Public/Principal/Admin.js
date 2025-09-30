@@ -107,170 +107,170 @@
                     try {
                         const metrics = await apiGet('/admin/dashboard');
                         return `
-                        <div class="admin-card">
-                            <h2 class="text-xl font-semibold mb-4">Resumen de Métricas</h2>
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                            <div class="bg-blue-200 p-4 rounded-lg shadow-sm">
-                                <h3 class="font-medium text-gray-700">Total Habitaciones</h3>
-                                <p class="text-3xl font-bold text-blue-800 mt-2">${metrics.total_habitaciones}</p>
-                            </div>
-                            <div class="bg-green-200 p-4 rounded-lg shadow-sm">
-                                <h3 class="font-medium text-gray-700">Habitaciones Disponibles</h3>
-                                <p class="text-3xl font-bold text-green-800 mt-2">${metrics.habitaciones_disponibles}</p>
-                            </div>
-                            <div class="bg-yellow-200 p-4 rounded-lg shadow-sm">
-                                <h3 class="font-medium text-gray-700">Encargados</h3>
-                                <p class="text-3xl font-bold text-yellow-800 mt-2">${metrics.total_encargados}</p>
-                            </div>
-                            <div class="bg-indigo-200 p-4 rounded-lg shadow-sm">
-                                <h3 class="font-medium text-gray-700">Ingresos Est.</h3>
-                                <p class="text-3xl font-bold text-indigo-800 mt-2">$${(metrics.ingresos_est || 0).toFixed(2)}</p>
-                            </div>
-                            </div>
-                            <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="p-4 bg-white rounded shadow">
-                                <h4 class="font-semibold">Reservas</h4>
-                                <p>Total: ${metrics.total_reservas} — Pendientes: ${metrics.reservas_pendientes} — Completadas: ${metrics.reservas_completadas}</p>
-                            </div>
-                            <div class="p-4 bg-white rounded shadow">
-                                <h4 class="font-semibold">Acciones</h4>
-                                <p>Puedes: crear/editar/eliminar habitaciones, asignar encargados, gestionar reservas.</p>
-                            </div>
-                            </div>
-                        </div>
-                        `;
-                    } catch (err) {
-                        return `<div class="admin-card"><p class="text-red-500">Error cargando métricas: ${err.message}</p></div>`;
-                    }
-                },
-            },
-
-            // CONFIGURACIÓN DE HOTEL: permite establecer pisos, habitaciones por piso y categorías
-            'configuracion-hotel': {
-                title: 'Configuración de Hotel',
-                render: async () => {
-                    try {
-                        // Obtener configuración del hotel
-                        const config = await apiGet('/admin/hotel-config').catch(() => ({ num_pisos: 1, habitaciones_por_piso: 10 }));
-
-                        // Obtener categorías desde el backend en lugar de localStorage
-                        const categorias = await apiGet('/admin/categorias').catch(() => []);
-
-                        const categoriasHtml = categorias.length ? categorias.map((c, idx) => `
-                            <div class="categoria-row bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-3" data-id="${c.id_categoria}">
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Nombre de la Categoría</label>
-                                        <input class="cat-nombre w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500" 
-                                               placeholder="Ej: Matrimonial, Simple, etc." 
-                                               value="${c.nombre || ''}" 
-                                               readonly>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                                        <input class="cat-descripcion w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500" 
-                                               placeholder="Descripción opcional" 
-                                               value="${c.descripcion || ''}" 
-                                               readonly>
-                                    </div>
-                                    <div class="flex space-x-2">
-                                        <button type="button" class="edit-categoria-btn bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 text-sm">
-                                            Editar
-                                        </button>
-                                        <button type="button" class="save-categoria-btn bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 text-sm hidden">
-                                            Guardar
-                                        </button>
-                                        <button type="button" class="cancel-categoria-btn bg-gray-500 text-white px-3 py-2 rounded-md hover:bg-gray-600 text-sm hidden">
-                                            Cancelar
-                                        </button>
-                                        <button type="button" class="delete-categoria-btn bg-red-600 text-white px-3 py-2 rounded-md hover:bg-red-700 text-sm">
-                                            Eliminar
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('') : `
-                            <div class="text-center py-8 text-gray-500">
-                                <p class="text-lg mb-2">No hay categorías configuradas</p>
-                                <p class="text-sm">Crea tu primera categoría de habitación usando el botón de abajo</p>
-                            </div>
-                        `;
-
-                        return `
                         <div class="space-y-8">
-                            <!-- Configuración General del Hotel -->
+                            <!-- 1. Resumen Financiero y de Ocupación (Métricas Clave Hoy) -->
                             <div class="admin-card">
-                                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                                    <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-2 0H9m-2 0H5m-2 0h2M7 7h10M7 11h6m-6 4h3"></path>
-                                    </svg>
-                                    Configuración General del Hotel
-                                </h2>
-
-                                <form id="hotel-config-form" class="space-y-4">
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Número de Pisos</label>
-                                            <input type="number" id="num-pisos" name="num_pisos" min="1" max="50" value="${config.num_pisos || 1}" 
-                                                   class="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500" required>
-                                            <p class="text-sm text-gray-500 mt-1">Máximo número de pisos del hotel</p>
-                                        </div>
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Habitaciones por Piso</label>
-                                            <input type="number" id="hab-por-piso" name="habitaciones_por_piso" min="1" max="100" value="${config.habitaciones_por_piso || 10}" 
-                                                   class="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500" required>
-                                            <p class="text-sm text-gray-500 mt-1">Máximo número de habitaciones por piso</p>
-                                        </div>
+                                <div class="flex justify-between items-center mb-4">
+                                    <h2 class="text-xl font-semibold">Resumen Financiero y de Ocupación (Métricas Clave Hoy)</h2>
+                                    <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Exportar a Hojas de cálculo</button>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                    <div class="bg-blue-200 p-4 rounded-lg shadow-sm">
+                                        <h3 class="font-medium text-gray-700">Ingresos Netos del Día</h3>
+                                        <p class="text-3xl font-bold text-blue-800 mt-2">$${(metrics.ingresos_netos_dia || 0).toFixed(2)}</p>
+                                        <p class="text-sm text-gray-600">Ganancia total por check-ins, check-outs y servicios adicionales facturados hoy.</p>
                                     </div>
-                                    <div class="flex justify-end">
-                                        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-                                            Guardar Configuración
-                                        </button>
+                                    <div class="bg-green-200 p-4 rounded-lg shadow-sm">
+                                        <h3 class="font-medium text-gray-700">N° de Check-ins Hoy</h3>
+                                        <p class="text-3xl font-bold text-green-800 mt-2">${metrics.checkins_hoy || 0}</p>
+                                        <p class="text-sm text-gray-600">Cantidad de reservas que ingresan hoy. Mide la actividad de llegada.</p>
                                     </div>
-                                </form>
-
-                                <!-- Información adicional -->
-                                <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                    <h3 class="font-semibold text-blue-800 mb-2">
-                                        <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                        Información Importante
-                                    </h3>
-                                    <ul class="text-blue-700 text-sm space-y-1">
-                                        <li>• Estas configuraciones se usan como límites al crear habitaciones</li>
-                                        <li>• El número de habitación debe ser piso*100 + número (ej: piso 1, hab 101-110)</li>
-                                        <li>• No se pueden crear habitaciones que excedan estos límites</li>
-                                    </ul>
+                                    <div class="bg-yellow-200 p-4 rounded-lg shadow-sm">
+                                        <h3 class="font-medium text-gray-700">Tasa de Ocupación Actual</h3>
+                                        <p class="text-3xl font-bold text-yellow-800 mt-2">${((metrics.tasa_ocupacion_actual || 0) * 100).toFixed(1)}%</p>
+                                        <p class="text-sm text-gray-600">Porcentaje de habitaciones ocupadas en este momento. Métrica vital de rendimiento del activo.</p>
+                                    </div>
+                                    <div class="bg-indigo-200 p-4 rounded-lg shadow-sm">
+                                        <h3 class="font-medium text-gray-700">ADR (Tarifa Diaria Promedio)</h3>
+                                        <p class="text-3xl font-bold text-indigo-800 mt-2">$${(metrics.adr_hoy || 0).toFixed(2)}</p>
+                                        <p class="text-sm text-gray-600">Ingreso promedio por habitación ocupada hoy. Mide la efectividad de la política de precios.</p>
+                                    </div>
+                                    <div class="bg-purple-200 p-4 rounded-lg shadow-sm">
+                                        <h3 class="font-medium text-gray-700">Valor Pendiente Reservas (Futuras)</h3>
+                                        <p class="text-3xl font-bold text-purple-800 mt-2">$${(metrics.valor_pendiente_futuras || 0).toFixed(2)}</p>
+                                        <p class="text-sm text-gray-600">Suma de dinero esperado por las reservas futuras ya confirmadas (potenciales ingresos).</p>
+                                    </div>
+                                    <div class="bg-red-200 p-4 rounded-lg shadow-sm">
+                                        <h3 class="font-medium text-gray-700">Habitaciones Disponibles</h3>
+                                        <p class="text-3xl font-bold text-red-800 mt-2">${metrics.habitaciones_disponibles || 0}</p>
+                                        <p class="text-sm text-gray-600">Número de habitaciones listas para reservar/ocupar. (Quizás también "Libres/Ocupadas/Limpieza").</p>
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Gestión de Categorías de Habitaciones -->
+                            <!-- 2. Rendimiento por Período y Tendencias -->
                             <div class="admin-card">
-                                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                                    <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-2 0H9m-2 0H5m-2 0h2M7 7h10M7 11h6m-6 4h3"></path>
-                                    </svg>
-                                    Gestión de Categorías de Habitaciones
-                                </h2>
+                                <div class="flex justify-between items-center mb-4">
+                                    <h2 class="text-xl font-semibold">Rendimiento por Período y Tendencias</h2>
+                                    <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Exportar a Hojas de cálculo</button>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div class="p-4 bg-white rounded shadow">
+                                        <h4 class="font-semibold">Ingresos Mensuales (Vs. Meta)</h4>
+                                        <p class="text-sm text-gray-600">Gráfico de barras/líneas comparando los ingresos diarios/semanales con las metas establecidas para el mes.</p>
+                                        <!-- Placeholder for chart -->
+                                        <div class="mt-4 h-32 bg-gray-100 rounded flex items-center justify-center">
+                                            <span class="text-gray-500">[Gráfico de Ingresos Mensuales]</span>
+                                        </div>
+                                    </div>
+                                    <div class="p-4 bg-white rounded shadow">
+                                        <h4 class="font-semibold">Distribución de Ingresos (Por Método de Pago)</h4>
+                                        <p class="text-sm text-gray-600">Muestra qué porcentaje de los ingresos provienen de Tarjetas, Efectivo, Transferencias, etc.</p>
+                                        <!-- Placeholder for chart -->
+                                        <div class="mt-4 h-32 bg-gray-100 rounded flex items-center justify-center">
+                                            <span class="text-gray-500">[Gráfico de Distribución de Ingresos]</span>
+                                        </div>
+                                    </div>
+                                    <div class="p-4 bg-white rounded shadow">
+                                        <h4 class="font-semibold">Servicios Adicionales Más Rentables</h4>
+                                        <p class="text-sm text-gray-600">Ranking de servicios que generan más ingresos (ej. Desayuno Premium, Tour Local, Lavandería, Room Service).</p>
+                                        <!-- Placeholder for list -->
+                                        <ul class="mt-4 text-sm">
+                                            <li>Desayuno Premium: $${metrics.servicio_1 || 0}</li>
+                                            <li>Tour Local: $${metrics.servicio_2 || 0}</li>
+                                            <li>Lavandería: $${metrics.servicio_3 || 0}</li>
+                                            <li>Room Service: $${metrics.servicio_4 || 0}</li>
+                                        </ul>
+                                    </div>
+                                    <div class="p-4 bg-white rounded shadow">
+                                        <h4 class="font-semibold">Picos de Check-in/Check-out</h4>
+                                        <p class="text-sm text-gray-600">Gráfico que muestra las horas de mayor actividad en recepción (entradas/salidas). Ayuda a optimizar el personal.</p>
+                                        <!-- Placeholder for chart -->
+                                        <div class="mt-4 h-32 bg-gray-100 rounded flex items-center justify-center">
+                                            <span class="text-gray-500">[Gráfico de Picos de Actividad]</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-                                <div class="mb-6">
-                                    <p class="text-gray-600 mb-4">
-                                        Administra las categorías de habitaciones de tu hotel. Las habitaciones existentes mantendrán su categoría actual.
-                                    </p>
-                                    
-                                    <div class="flex flex-wrap gap-3 mb-6">
-                                        <button id="add-categoria-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center">
-                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                            </svg>
-                                            Añadir Categoría
-                                        </button>
-                                        
-                                        <button id="refresh-categorias-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center">
-                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                            </svg>
+                            <!-- 3. Gestión de Clientes y Recursos -->
+                            <div class="admin-card">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h2 class="text-xl font-semibold">Gestión de Clientes y Recursos</h2>
+                                    <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Exportar a Hojas de cálculo</button>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div class="p-4 bg-white rounded shadow">
+                                        <h4 class="font-semibold">Huéspedes del Período</h4>
+                                        <ul class="text-sm space-y-1">
+                                            <li>Total de Huéspedes Registrados: ${metrics.total_huespedes || 0}</li>
+                                            <li>Nuevos Huéspedes (Mes): ${metrics.nuevos_huespedes_mes || 0}</li>
+                                            <li>Huéspedes Recurrentes (Mes): ${metrics.huespedes_recurrentes_mes || 0}</li>
+                                        </ul>
+                                    </div>
+                                    <div class="p-4 bg-white rounded shadow">
+                                        <h4 class="font-semibold">Comportamiento del Huésped</h4>
+                                        <ul class="text-sm space-y-1">
+                                            <li>Estadía Promedio (Días): ${metrics.estadia_promedio || 0} días</li>
+                                            <li>Gasto Promedio por Estadía: $${(metrics.gasto_promedio_estadia || 0).toFixed(2)}</li>
+                                            <li>Tasa de Retención de Huéspedes: ${(metrics.tasa_retencion || 0).toFixed(1)}%</li>
+                                        </ul>
+                                    </div>
+                                    <div class="p-4 bg-white rounded shadow md:col-span-2">
+                                        <h4 class="font-semibold">Rendimiento por Categoría de Habitación</h4>
+                                        <p class="text-sm text-gray-600">Compara la ocupación y el ADR entre las categorías de habitaciones (Ej: Simple vs. Doble vs. Matrimonial vs. Suite).</p>
+                                        <!-- Placeholder for table or chart -->
+                                        <div class="mt-4 overflow-x-auto">
+                                            <table class="min-w-full bg-gray-50 rounded">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="py-2 px-4 text-left">Categoría</th>
+                                                        <th class="py-2 px-4 text-left">Ocupación (%)</th>
+                                                        <th class="py-2 px-4 text-left">ADR ($)</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td class="py-2 px-4">Matrimonial</td>
+                                                        <td class="py-2 px-4">${metrics.ocupacion_matrimonial || 0}%</td>
+                                                        <td class="py-2 px-4">$${(metrics.adr_matrimonial || 0).toFixed(2)}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="py-2 px-4">Estándar</td>
+                                                        <td class="py-2 px-4">${metrics.ocupacion_estandar || 0}%</td>
+                                                        <td class="py-2 px-4">$${(metrics.adr_estandar || 0).toFixed(2)}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="py-2 px-4">Deluxe</td>
+                                                        <td class="py-2 px-4">${metrics.ocupacion_deluxe || 0}%</td>
+                                                        <td class="py-2 px-4">$${(metrics.adr_deluxe || 0).toFixed(2)}</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 4. Alertas y Tareas Críticas (Para una Acción Rápida) -->
+                            <div class="admin-card">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h2 class="text-xl font-semibold">Alertas y Tareas Críticas (Para una Acción Rápida)</h2>
+                                    <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Exportar a Hojas de cálculo</button>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div class="p-4 bg-white rounded shadow">
+                                        <h4 class="font-semibold">Quejas de Huéspedes Pendientes</h4>
+                                        <p class="text-2xl font-bold text-red-600">${metrics.quejas_pendientes || 0}</p>
+                                        <p class="text-sm text-gray-600">N° de quejas activas/sin resolver. Alerta sobre la reputación y la satisfacción del cliente.</p>
+                                    </div>
+                                    <div class="p-4 bg-white rounded shadow">
+                                        <h4 class="font-semibold">Alertas de Gestión y Ocupación</h4>
+                                        <ul class="text-sm space-y-1">
+                                            <li>Ocupación Baja (Próximos 7 días): ${metrics.ocupacion_baja_7dias || 0}% - Considerar promociones.</li>
+                                            <li>Habitaciones para Revisar (Limpieza/Mantenimiento): ${metrics.habitaciones_revisar || 0}</li>
+                                            <li>Vencimiento de Contratos (Encargados): Revisar [Nombre Encargado].</li>
+                                        </ul>
                                             Actualizar Lista
                                         </button>
                                     </div>
