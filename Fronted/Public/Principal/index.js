@@ -206,8 +206,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                         ${habitacion.disponible ? 'Disponible' : 'No disponible'}
                                     </div>
                                     <button class="btn-reservar" 
-                                            ${!habitacion.disponible ? 'disabled' : ''} 
-                                            onclick="reservarHabitacion(${habitacion.id_habitacion}, 'Habitación ${habitacion.numero_habitacion}')">
+                                            data-id="${habitacion.id_habitacion}"
+                                            data-nombre="Habitación ${habitacion.numero_habitacion}"
+                                            ${!habitacion.disponible ? 'disabled' : ''}>
                                         ${habitacion.disponible ? 'Reservar Ahora' : 'No disponible'}
                                     </button>
                                 </div>
@@ -215,6 +216,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         `).join('')}
                     </div>
                 `;
+
+                // Agregar event listeners a los botones de reservar
+                document.querySelectorAll('.btn-reservar').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const habitacionId = parseInt(btn.getAttribute('data-id'));
+                        const nombre = btn.getAttribute('data-nombre');
+                        reservarHabitacion(habitacionId, nombre);
+                    });
+                });
 
             } catch (error) {
                 console.error('Error al cargar habitaciones:', error);
