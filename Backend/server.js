@@ -7,7 +7,11 @@ const multer = require("multer");
 const path = require('path');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
-require("dotenv").config();
+require("dotenv").config({ path: path.join(__dirname, '.env') });
+
+console.log('Server DB_DATABASE:', process.env.DB_DATABASE);
+console.log('Server DB_HOST:', process.env.DB_HOST);
+console.log('Server DB_USER:', process.env.DB_USER);
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -86,6 +90,7 @@ host: process.env.DB_HOST,
 database: process.env.DB_DATABASE,
 password: process.env.DB_PASSWORD,
 port: process.env.DB_PORT,
+schema: 'public'
 });
 
 // Helper: small sleep utility
@@ -325,7 +330,6 @@ app.get("/api/cliente/habitaciones", async (req, res) => {
         SELECT
             h.id_habitacion,
             h.numero_habitacion,
-            h.tipo,
             h.piso,
             h.capacidad,
             h.precio_por_dia,
@@ -444,7 +448,7 @@ try {
     let idx = 1;
 
     if (q) {
-      where.push(`(h.numero_habitacion::text ILIKE $${idx} OR c.nombre ILIKE $${idx} OR h.tipo ILIKE $${idx} OR h.id_habitacion::text ILIKE $${idx})`);
+      where.push(`(h.numero_habitacion::text ILIKE $${idx} OR c.nombre ILIKE $${idx} OR h.id_habitacion::text ILIKE $${idx})`);
       params.push('%' + q + '%');
       idx++;
     }
@@ -480,7 +484,7 @@ try {
     const dataParams = [...params, parseInt(pageSize,10), offset];
     const dataQ = `
       SELECT
-        h.id_habitacion, h.numero_habitacion, h.tipo, h.precio_por_dia, h.precio_por_hora, h.piso, h.capacidad, h.disponible, c.nombre AS categoria, h.id_categoria
+        h.id_habitacion, h.numero_habitacion, h.precio_por_dia, h.precio_por_hora, h.piso, h.capacidad, h.disponible, c.nombre AS categoria, h.id_categoria
       FROM public.habitaciones h
       LEFT JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria
       ${whereSQL}
@@ -508,7 +512,6 @@ app.post('/api/admin/habitaciones', authenticateToken, requireAdmin, upload.arra
 
     const {
       numero_habitacion,
-      tipo,
       piso,
       capacidad,
       disponible = 'true',
@@ -517,8 +520,8 @@ app.post('/api/admin/habitaciones', authenticateToken, requireAdmin, upload.arra
       precio_por_dia
     } = req.body;
 
-    if (!numero_habitacion || !tipo || !id_categoria) {
-      return res.status(400).json({ error: "Faltan datos obligatorios: numero_habitacion, tipo o id_categoria" });
+    if (!numero_habitacion || !id_categoria) {
+      return res.status(400).json({ error: "Faltan datos obligatorios: numero_habitacion o id_categoria" });
     }
 
     // Obtener configuración del hotel
@@ -554,9 +557,9 @@ app.post('/api/admin/habitaciones', authenticateToken, requireAdmin, upload.arra
     // insertar habitación
     const result = await queryWithRetry(
       `INSERT INTO public.habitaciones
-      (numero_habitacion, tipo, disponible, id_categoria, precio_por_hora, precio_por_dia, piso, capacidad)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id_habitacion`,
-      [numero_habitacion, tipo, sanitizeBoolean(disponible), id_categoria, precio_por_hora || null, precio_por_dia || null, pisoNum, capacidad || null]
+      (numero_habitacion, disponible, id_categoria, precio_por_hora, precio_por_dia, piso, capacidad)
+      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id_habitacion`,
+      [numero_habitacion, sanitizeBoolean(disponible), id_categoria, precio_por_hora || null, precio_por_dia || null, pisoNum, capacidad || null]
     );
 
     const habitacionId = result.rows[0].id_habitacion;
@@ -588,7 +591,6 @@ const { id } = req.params;
 const {
     numero_habitacion,
     id_categoria,
-    tipo,
     precio_por_hora,
     precio_por_dia,
     piso,
@@ -605,14 +607,13 @@ try {
     `UPDATE public.habitaciones SET
       numero_habitacion=$1,
       id_categoria=$2,
-      tipo=$3,
-      precio_por_hora=$4,
-      precio_por_dia=$5,
-      piso=$6,
-      capacidad=$7,
-      disponible=$8
-    WHERE id_habitacion=$9`,
-    [numero_habitacion, id_categoria, tipo, precio_por_hora || null, precio_por_dia || null, piso || null, capacidad || null, sanitizeBoolean(disponible), id]
+      precio_por_hora=$3,
+      precio_por_dia=$4,
+      piso=$5,
+      capacidad=$6,
+      disponible=$7
+    WHERE id_habitacion=$8`,
+    [numero_habitacion, id_categoria, precio_por_hora || null, precio_por_dia || null, piso || null, capacidad || null, sanitizeBoolean(disponible), id]
   );
 
   if (req.files && req.files.length > 0) {
@@ -1052,7 +1053,7 @@ app.get("/api/encargado/habitaciones", authenticateToken, async (req, res) => {
     const where = [];
     let idx = 1;
     if (q) {
-      where.push(`(h.numero_habitacion::text ILIKE $${idx} OR c.nombre ILIKE $${idx} OR h.tipo ILIKE $${idx})`);
+      where.push(`(h.numero_habitacion::text ILIKE $${idx} OR c.nombre ILIKE $${idx} OR h.id_habitacion::text ILIKE $${idx})`);
       params.push('%' + q + '%');
       idx++;
     }
@@ -1067,7 +1068,7 @@ app.get("/api/encargado/habitaciones", authenticateToken, async (req, res) => {
 
     const dataQ = `
       SELECT
-        h.id_habitacion, h.numero_habitacion, h.tipo, h.precio_por_dia, h.precio_por_hora, h.piso, h.capacidad, h.disponible, c.nombre AS categoria, h.id_categoria
+        h.id_habitacion, h.numero_habitacion, h.precio_por_dia, h.precio_por_hora, h.piso, h.capacidad, h.disponible, c.nombre AS categoria, h.id_categoria
       FROM public.habitaciones h
       LEFT JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria
       ${whereSQL}
