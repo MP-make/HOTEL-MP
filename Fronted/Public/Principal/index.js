@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="habitaciones-grid">
                         ${data.habitaciones.slice(0, 4).map(habitacion => {
                             const fotoSrc = habitacion.fotos && habitacion.fotos.length > 0 
-                                ? (habitacion.fotos[0].startsWith('/') ? habitacion.fotos[0] : '/img/habitaciones/' + encodeURI(habitacion.fotos[0])) 
+                                ? (habitacion.fotos[0].startsWith('/') ? habitacion.fotos[0] : '/img/habitaciones/' + habitacion.fotos[0]) 
                                 : 'https://source.unsplash.com/featured/?luxury-hotel-room';
                             return `
                             <div class="habitacion-card">
@@ -286,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     imagenContainer.innerHTML = `
                         <div class="reserva-carousel">
                             ${habitacion.fotos.map((foto, index) => {
-                                const fotoSrc = foto.startsWith('/') ? foto : '/img/habitaciones/' + encodeURI(foto);
+                                const fotoSrc = foto.startsWith('/') ? foto : '/img/habitaciones/' + foto;
                                 return `<img src="${fotoSrc}" alt="Habitación" class="reserva-img" style="display: ${index === 0 ? 'block' : 'none'};">`;
                             }).join('')}
                             <button class="reserva-arrow prev">&lt;</button>
@@ -311,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 } else {
                     const fotoSrc = habitacion.fotos && habitacion.fotos.length > 0 
-                        ? (habitacion.fotos[0].startsWith('/') ? habitacion.fotos[0] : '/img/habitaciones/' + encodeURI(habitacion.fotos[0])) 
+                        ? (habitacion.fotos[0].startsWith('/') ? habitacion.fotos[0] : '/img/habitaciones/' + habitacion.fotos[0]) 
                         : '/img/habitaciones/default-room.jpg';
                     imagenContainer.innerHTML = `<img id="reservaHabitacionImagen" src="${fotoSrc}" alt="Habitación" class="reserva-img">`;
                 }
@@ -607,7 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="reservas-grid">
                         ${reservas.slice(0, 4).map(reserva => {
                             const fotoSrc = reserva.fotos && reserva.fotos.length > 0 
-                                ? (reserva.fotos[0].startsWith('/') ? reserva.fotos[0] : '/img/habitaciones/' + encodeURI(reserva.fotos[0])) 
+                                ? (reserva.fotos[0].startsWith('/') ? reserva.fotos[0] : '/img/habitaciones/' + reserva.fotos[0]) 
                                 : 'https://source.unsplash.com/featured/?luxury-hotel-room';
                             const checkin = new Date(reserva.fecha_checkin).toLocaleDateString('es-ES');
                             const checkout = new Date(reserva.fecha_checkout).toLocaleDateString('es-ES');

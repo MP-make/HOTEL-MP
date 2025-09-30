@@ -17,25 +17,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Cargar reclamos
     loadReclamos();
 
-    // Manejar logout
-    document.getElementById('logout-link').addEventListener('click', function(e) {
-        e.preventDefault();
-        window.location.href = 'index.html';
+    // Event listeners para filtros de reservas
+    document.getElementById('btnFiltrarReservas').addEventListener('click', filtrarReservas);
+    document.getElementById('btnLimpiarReservas').addEventListener('click', function() {
+        document.getElementById('filtro-categoria').value = '';
+        document.getElementById('filtro-orden').value = 'ultimas';
+        displayReservas(window.reservas);
     });
 
-    // Navegación en la sidebar
-    const sidebarItems = document.querySelectorAll('.sidebar-item');
-    sidebarItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            // Remover active de todos
-            sidebarItems.forEach(i => i.classList.remove('active'));
-            // Agregar active al clicado
-            this.classList.add('active');
-            // Scroll a la sección
-            const target = this.getAttribute('href');
-            document.querySelector(target).scrollIntoView({ behavior: 'smooth' });
-        });
+    // Manejar logout
+    document.getElementById('logoutBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        localStorage.removeItem('token');
+        window.location.href = 'index.html';
     });
 
     // Manejar envío de reclamo
@@ -104,8 +98,10 @@ async function loadUserInfo() {
         if (response.ok) {
             try {
                 const user = await response.json();
-                document.getElementById('user-display-name').textContent = user.nombre || 'Cliente';
-                document.getElementById('user-id').textContent = user.id;
+                document.getElementById('userName').textContent = user.nombre || 'Cliente';
+                // Mostrar el perfil del usuario y ocultar botones de login
+                document.getElementById('authButtons').classList.add('hidden');
+                document.getElementById('userProfile').classList.remove('hidden');
             } catch (error) {
                 console.error('Error parsing user info:', error);
             }
@@ -133,47 +129,63 @@ async function loadReservas() {
         if (response.ok) {
             try {
                 const reservas = await response.json();
-                displayReservas(reservas);
-                populateSelect(reservas);
+                window.reservas = reservas;
+                populateFiltroCategoria();
+                displayReservas(window.reservas);
+                populateSelect(window.reservas);
             } catch (error) {
                 console.error('Error parsing reservas:', error);
-                document.getElementById('reservas-list').innerHTML = '<p>Error al cargar reservas.</p>';
+                document.getElementById('reservasGrid').innerHTML = '<p>Error al cargar reservas.</p>';
             }
         } else {
-            document.getElementById('reservas-list').innerHTML = '<p>No se pudieron cargar las reservas.</p>';
+            document.getElementById('reservasGrid').innerHTML = '<p>No se pudieron cargar las reservas.</p>';
         }
     } catch (error) {
         console.error('Error cargando reservas:', error);
-        document.getElementById('reservas-list').innerHTML = '<p>Error al cargar reservas.</p>';
+        document.getElementById('reservasGrid').innerHTML = '<p>Error al cargar reservas.</p>';
     }
 }
 
 function displayReservas(reservas) {
-    const container = document.getElementById('reservas-list');
-    if (reservas.length === 0) {
-        container.innerHTML = '<p>No tienes reservas activas.</p>';
+    const container = document.getElementById('reservasGrid');
+    if (!reservas || reservas.length === 0) {
+        container.innerHTML = `
+            <div class="no-reservas">
+                <h3>No tienes reservas activas</h3>
+                <p>Realiza una reserva para ver tus habitaciones aquí.</p>
+            </div>
+        `;
         return;
     }
 
-    let html = '<table>';
-    html += '<thead><tr><th>ID Reserva</th><th>Habitación</th><th>Categoría</th><th>Check-in</th><th>Check-out</th><th>Estado</th><th>Fecha Creación</th></tr></thead>';
-    html += '<tbody>';
-    reservas.forEach(reserva => {
-        const checkin = new Date(reserva.fecha_checkin).toLocaleDateString('es-ES');
-        const checkout = new Date(reserva.fecha_checkout).toLocaleDateString('es-ES');
-        const creacion = new Date(reserva.fecha_creacion).toLocaleDateString('es-ES');
-        html += `<tr>
-            <td>${reserva.id_reserva}</td>
-            <td>${reserva.numero_habitacion}</td>
-            <td>${reserva.categoria}</td>
-            <td>${checkin}</td>
-            <td>${checkout}</td>
-            <td>${reserva.estado_reserva}</td>
-            <td>${creacion}</td>
-        </tr>`;
-    });
-    html += '</tbody></table>';
-    container.innerHTML = html;
+    container.innerHTML = `
+        <div class="reservas-grid">
+            ${reservas.map(reserva => {
+                const fotoSrc = reserva.fotos && reserva.fotos.length > 0 
+                    ? (reserva.fotos[0].startsWith('/') ? reserva.fotos[0] : '/img/habitaciones/' + encodeURI(reserva.fotos[0])) 
+                    : 'https://source.unsplash.com/featured/?luxury-hotel-room';
+                const checkin = new Date(reserva.fecha_checkin).toLocaleDateString('es-ES');
+                const checkout = new Date(reserva.fecha_checkout).toLocaleDateString('es-ES');
+                return `
+                <div class="reserva-card">
+                    <img src="${fotoSrc}" 
+                         alt="Habitación ${reserva.numero_habitacion}" 
+                         class="reserva-imagen">
+                    <div class="reserva-info">
+                        <h3 class="reserva-titulo">Reserva #${reserva.id_reserva}</h3>
+                        <p class="reserva-descripcion">Habitación ${reserva.numero_habitacion} - ${reserva.categoria}</p>
+                        <p class="reserva-fechas">Check-in: ${checkin} | Check-out: ${checkout}</p>
+                        <p class="reserva-estado">Estado: ${reserva.estado_reserva}</p>
+                        <button class="btn-detalles" 
+                                data-id="${reserva.id_reserva}">
+                            Ver Detalles
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('')}
+        </div>
+    `;
 }
 
 function populateSelect(reservas) {
@@ -240,4 +252,33 @@ function displayReclamos(reclamos) {
     });
     html += '</tbody></table>';
     container.innerHTML = html;
+}
+
+function populateFiltroCategoria() {
+    const select = document.getElementById('filtro-categoria');
+    select.innerHTML = '<option value="">Todas</option>';
+    const categories = [...new Set(window.reservas.map(r => r.categoria))];
+    categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        select.appendChild(option);
+    });
+}
+
+function filtrarReservas() {
+    let filtered = window.reservas.slice();
+    const cat = document.getElementById('filtro-categoria').value;
+    if (cat) {
+        filtered = filtered.filter(r => r.categoria === cat);
+    }
+    const orden = document.getElementById('filtro-orden').value;
+    if (orden === 'ultimas') {
+        filtered.sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
+    } else if (orden === 'recientes') {
+        filtered.sort((a, b) => new Date(b.fecha_checkin) - new Date(b.fecha_checkin));
+    } else if (orden === 'antiguas') {
+        filtered.sort((a, b) => new Date(a.fecha_checkin) - new Date(a.fecha_checkin));
+    }
+    displayReservas(filtered);
 }

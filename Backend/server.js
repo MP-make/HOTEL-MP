@@ -154,7 +154,7 @@ const storage = multer.diskStorage({
       cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
-      const uniqueName = `${Date.now()}-${file.originalname}`;
+      const uniqueName = `${Date.now()}-${encodeURIComponent(file.originalname)}`;
       cb(null, uniqueName);
     }
   });
@@ -173,7 +173,7 @@ const carouselStorage = multer.diskStorage({
     cb(null, carouselDir);
   },
   filename: (req, file, cb) => {
-    const uniqueName = `${Date.now()}-${file.originalname}`;
+    const uniqueName = `${Date.now()}-${encodeURIComponent(file.originalname)}`;
     cb(null, uniqueName);
   }
 });
@@ -315,6 +315,10 @@ try {
 }
 });
 
+app.get('/api/auth/me', authenticateToken, (req, res) => {
+  res.json(req.user);
+});
+
 /**
  * =========================
  * RUTAS AUXILIARES (categorías)
@@ -328,6 +332,20 @@ try {
     console.error("Error al obtener categorías:", err);
     res.status(500).json({ error: "Error al obtener categorías" });
 }
+});
+
+/**
+ * @route GET /api/categorias
+ * @desc Obtener todas las categorías de habitaciones (público)
+ */
+app.get("/api/categorias", async (req, res) => {
+  try {
+    const result = await queryWithRetry("SELECT * FROM public.categorias_habitaciones ORDER BY nombre");
+    res.json({ categorias: result.rows });
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
 });
 
 /**
@@ -462,11 +480,14 @@ app.get("/api/cliente/reservas", authenticateToken, async (req, res) => {
   try {
     const result = await queryWithRetry(
       `SELECT r.id_reserva, r.fecha_checkin, r.fecha_checkout, r.estado_reserva, r.fecha_creacion,
-              h.numero_habitacion, c.nombre AS categoria
+              h.numero_habitacion, h.id_habitacion, c.nombre AS categoria,
+              COALESCE(ARRAY_AGG(f.ruta_foto) FILTER (WHERE f.ruta_foto IS NOT NULL), '{}') AS fotos
        FROM public.reservas r
        JOIN public.habitaciones h ON r.id_habitacion = h.id_habitacion
        JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria
+       LEFT JOIN public.habitaciones_fotos f ON h.id_habitacion = f.id_habitacion
        WHERE r.id_usuario = $1
+       GROUP BY r.id_reserva, h.numero_habitacion, h.id_habitacion, c.nombre
        ORDER BY r.fecha_creacion DESC`,
       [req.user.id]
     );

@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let reservasData = [];
     let categoriasData = [];
     let usuarioActual = null;
+    let currentHabitacionId = null;
 
     // Funciones para modales
     const openModal = (id) => {
@@ -178,16 +179,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Cargar habitaciones y reservas
     async function cargarDatos() {
         try {
-            const [habResponse, resResponse] = await Promise.all([
-                fetch('/api/cliente/habitaciones'),
-                fetch('/api/reservas') // Asumiendo que hay un endpoint para reservas, o usar token si necesario
-            ]);
+            const token = localStorage.getItem('token');
+            const habResponse = await fetch('/api/cliente/habitaciones');
             const habData = await habResponse.json();
-            const resData = await resResponse.json();
             habitacionesData = habData.habitaciones || [];
-            reservasData = resData.reservas || [];
+            if (token) {
+                const resResponse = await fetch('/api/reservas', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const resData = await resResponse.json();
+                reservasData = resData.reservas || [];
+            } else {
+                reservasData = [];
+            }
         } catch (error) {
             console.error('Error cargando datos:', error);
+            habitacionesData = [];
+            reservasData = [];
         }
     }
 
@@ -274,21 +282,136 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Función para reservar
+    // Función para reservar habitación
     function reservarHabitacion(habitacionId, nombreHabitacion) {
         if (!usuarioActual) {
             alert('Debe iniciar sesión para realizar una reserva');
             openModal('loginModal');
             return;
         }
+        
         if (usuarioActual.rol !== 'cliente') {
             alert('Solo los clientes pueden realizar reservas.');
             return;
         }
-        // Similar to index.js, open reserva modal
-        // For simplicity, redirect to index or implement modal
-        window.location.href = 'index.html'; // Or implement modal
+
+        currentHabitacionId = habitacionId;
+        const habitacion = habitacionesData.find(h => h.id_habitacion === habitacionId);
+        if (habitacion) {
+            document.getElementById('reservaHabitacionNombre').textContent = nombreHabitacion;
+            document.getElementById('reservaHabitacionCategoria').textContent = `Categoría: ${habitacion.categoria}`;
+            document.getElementById('reservaHabitacionPiso').textContent = `Piso: ${habitacion.piso}`;
+            document.getElementById('reservaHabitacionCapacidad').textContent = `Capacidad: ${habitacion.capacidad} personas`;
+            document.getElementById('reservaHabitacionPrecioDia').textContent = `Precio por día: S/ ${habitacion.precio_por_dia}`;
+            
+            // Handle image carousel
+            const imagenContainer = document.querySelector('.reserva-imagen');
+            if (habitacion.fotos && habitacion.fotos.length > 1) {
+                imagenContainer.innerHTML = `
+                    <div class="reserva-carousel">
+                        ${habitacion.fotos.map((foto, index) => {
+                            return `<img src="/img/habitaciones/${foto}" alt="Habitación" class="reserva-img" style="display: ${index === 0 ? 'block' : 'none'};" onerror="this.src='https://source.unsplash.com/featured/?luxury-hotel-room'">`;
+                        }).join('')}
+                        <button class="reserva-arrow prev">&lt;</button>
+                        <button class="reserva-arrow next">&gt;</button>
+                    </div>
+                `;
+                // Carousel logic
+                let currentImg = 0;
+                const imgs = imagenContainer.querySelectorAll('.reserva-img');
+                const prevBtn = imagenContainer.querySelector('.reserva-arrow.prev');
+                const nextBtn = imagenContainer.querySelector('.reserva-arrow.next');
+                function showImg(index) {
+                    imgs.forEach((img, i) => img.style.display = i === index ? 'block' : 'none');
+                }
+                prevBtn.addEventListener('click', () => {
+                    currentImg = (currentImg - 1 + imgs.length) % imgs.length;
+                    showImg(currentImg);
+                });
+                nextBtn.addEventListener('click', () => {
+                    currentImg = (currentImg + 1) % imgs.length;
+                    showImg(currentImg);
+                });
+            } else {
+                const fotoSrc = habitacion.fotos && habitacion.fotos.length > 0 ? `/img/habitaciones/${habitacion.fotos[0]}` : '/img/habitaciones/default-room.jpg';
+                imagenContainer.innerHTML = `<img id="reservaHabitacionImagen" src="${fotoSrc}" alt="Habitación" class="reserva-img" onerror="this.src='https://source.unsplash.com/featured/?luxury-hotel-room'">`;
+            }
+        }
+        document.getElementById('reservaMessage').textContent = '';
+        checkForm(); // Check if button should be enabled
+        openModal('reservaModal');
     }
+
+    // Función para verificar si el formulario de reserva está completo
+    function checkForm() {
+        const checkinInput = document.getElementById('fechaCheckin');
+        const checkoutInput = document.getElementById('fechaCheckout');
+        const btnConfirmar = document.getElementById('btnConfirmarReserva');
+        
+        if (checkinInput.value && checkoutInput.value) {
+            btnConfirmar.disabled = false;
+        } else {
+            btnConfirmar.disabled = true;
+        }
+    }
+
+    // Función para manejar la reserva
+    async function manejarReserva(e) {
+        e.preventDefault();
+        
+        const checkin = document.getElementById('fechaCheckin').value;
+        const checkout = document.getElementById('fechaCheckout').value;
+        
+        if (!checkin || !checkout) {
+            document.getElementById('reservaMessage').textContent = 'Por favor, selecciona las fechas';
+            return;
+        }
+        
+        const token = localStorage.getItem('token');
+        
+        // Collect upsells
+        const upsells = [];
+        if (document.getElementById('upsell-desayuno').checked) upsells.push('desayuno');
+        if (document.getElementById('upsell-romantico').checked) upsells.push('romantico');
+        if (document.getElementById('upsell-spa').checked) upsells.push('spa');
+        if (document.getElementById('upsell-late-checkout').checked) upsells.push('late-checkout');
+        
+        try {
+            const response = await fetch('/api/cliente/reservas', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({
+                    id_habitacion: currentHabitacionId,
+                    fecha_checkin: checkin,
+                    fecha_checkout: checkout,
+                    upsells: upsells
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                alert('Reserva creada exitosamente');
+                closeModal('reservaModal');
+                cargarDatos(); // reload to update availability
+                mostrarHabitaciones(habitacionesData); // refresh display
+            } else {
+                document.getElementById('reservaMessage').textContent = data.error || 'Error al crear reserva';
+            }
+        } catch (error) {
+            console.error('Error en reserva:', error);
+            document.getElementById('reservaMessage').textContent = 'Error de conexión';
+        }
+    }
+
+    document.getElementById('reservaForm').addEventListener('submit', manejarReserva);
+
+    // Event listeners para los inputs del formulario de reserva
+    document.getElementById('fechaCheckin').addEventListener('input', checkForm);
+    document.getElementById('fechaCheckout').addEventListener('input', checkForm);
 
     // Event listeners para filtros
     document.getElementById('btnBuscar').addEventListener('click', filtrarHabitaciones);
