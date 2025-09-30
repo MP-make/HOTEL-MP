@@ -484,11 +484,12 @@ app.post("/api/cliente/reclamos", authenticateToken, async (req, res) => {
   if (!descripcion) {
     return res.status(400).json({ error: "Descripción requerida" });
   }
+  const parsedIdHabitacion = id_habitacion && id_habitacion !== 'undefined' && !isNaN(parseInt(id_habitacion)) ? parseInt(id_habitacion) : null;
   try {
     const result = await queryWithRetry(
       `INSERT INTO public.reclamos (id_usuario, id_habitacion, descripcion)
        VALUES ($1, $2, $3) RETURNING id_reclamo, fecha_creacion`,
-      [req.user.id, id_habitacion || null, descripcion]
+      [req.user.id, parsedIdHabitacion, descripcion]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {

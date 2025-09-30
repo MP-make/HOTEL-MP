@@ -69,8 +69,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('reclamo-habitacion').value = '';
                 loadReclamos(); // reload
             } else {
-                const error = await response.json();
-                alert('Error al enviar reclamo: ' + (error.error || 'Desconocido'));
+                try {
+                    const error = await response.json();
+                    alert('Error al enviar reclamo: ' + (error.error || 'Desconocido'));
+                } catch (error) {
+                    console.error('Error parsing error response:', error);
+                    alert('Error al enviar reclamo.');
+                }
             }
         } catch (error) {
             console.error('Error enviando reclamo:', error);
@@ -93,9 +98,13 @@ async function loadUserInfo() {
             return;
         }
         if (response.ok) {
-            const user = await response.json();
-            document.getElementById('user-display-name').textContent = user.nombre || 'Cliente';
-            document.getElementById('user-id').textContent = user.id;
+            try {
+                const user = await response.json();
+                document.getElementById('user-display-name').textContent = user.nombre || 'Cliente';
+                document.getElementById('user-id').textContent = user.id;
+            } catch (error) {
+                console.error('Error parsing user info:', error);
+            }
         } else {
             console.error('Error cargando info del usuario');
         }
@@ -118,9 +127,14 @@ async function loadReservas() {
             return;
         }
         if (response.ok) {
-            const reservas = await response.json();
-            displayReservas(reservas);
-            populateSelect(reservas);
+            try {
+                const reservas = await response.json();
+                displayReservas(reservas);
+                populateSelect(reservas);
+            } catch (error) {
+                console.error('Error parsing reservas:', error);
+                document.getElementById('reservas-list').innerHTML = '<p>Error al cargar reservas.</p>';
+            }
         } else {
             document.getElementById('reservas-list').innerHTML = '<p>No se pudieron cargar las reservas.</p>';
         }
@@ -183,8 +197,13 @@ async function loadReclamos() {
             return;
         }
         if (response.ok) {
-            const reclamos = await response.json();
-            displayReclamos(reclamos);
+            try {
+                const reclamos = await response.json();
+                displayReclamos(reclamos);
+            } catch (error) {
+                console.error('Error parsing reclamos:', error);
+                document.getElementById('reclamos-list').innerHTML = '<p>Error al cargar reclamos.</p>';
+            }
         } else {
             document.getElementById('reclamos-list').innerHTML = '<p>No se pudieron cargar los reclamos.</p>';
         }
