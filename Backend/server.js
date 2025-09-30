@@ -680,19 +680,19 @@ app.get("/api/admin/dashboard", authenticateToken, requireAdmin, async (req, res
     const reservasPendientes = await queryWithRetry("SELECT COUNT(*)::int AS count FROM reservas WHERE estado_reserva = 'pendiente'");
     const reservasCompletadas = await queryWithRetry("SELECT COUNT(*)::int AS count FROM reservas WHERE estado_reserva = 'completada'");
     const ingresos = await queryWithRetry(`
-      SELECT COALESCE(SUM(h.precio_por_dia * (r.fecha_checkout - r.fecha_checkin)), 0)::float AS total
+      SELECT COALESCE(SUM(h.precio_por_dia * (r.fecha_checkout::date - r.fecha_checkin::date)), 0)::float AS total
       FROM reservas r JOIN habitaciones h ON r.id_habitacion = h.id_habitacion
       WHERE r.estado_reserva = 'completada'
     `);
-    res.json({
-      total_habitaciones: totalHabitaciones.rows[0].count,
-      habitaciones_disponibles: habitacionesDisponibles.rows[0].count,
-      total_encargados: totalEncargados.rows[0].count,
-      total_reservas: totalReservas.rows[0].count,
-      reservas_pendientes: reservasPendientes.rows[0].count,
-      reservas_completadas: reservasCompletadas.rows[0].count,
-      ingresos_est: ingresos.rows[0].total
-    });
+
+    // Ingresos mensuales (últimos 12 meses)
+    const ingresosMensuales = await queryWithRetry(`
+      SELECT TO_CHAR(r.fecha_checkout, 'YYYY-MM') as month, COALESCE(SUM(h.precio_por_dia * (r.fecha_checkout::date - r.fecha_checkin::date)), 0)::float as total
+      FROM reservas r JOIN habitaciones h ON r.id_habitacion = h.id_habitacion
+      WHERE r.estado_reserva = 'completada' AND r.fecha_checkout >= NOW() - INTERVAL '12 months'
+      GROUP BY month ORDER BY month
+    `);
+
   } catch (err) {
     console.error("Error obteniendo métricas del dashboard:", err);
     res.status(500).json({ error: "Error al obtener métricas" });
