@@ -197,12 +197,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 contenedor.innerHTML = `
                     <div class="habitaciones-grid">
-                        ${data.habitaciones.map(habitacion => `
+                        ${data.habitaciones.slice(0, 4).map(habitacion => {
+                            const fotoSrc = habitacion.fotos && habitacion.fotos.length > 0 
+                                ? (habitacion.fotos[0].startsWith('/') ? habitacion.fotos[0] : '/img/habitaciones/' + encodeURI(habitacion.fotos[0])) 
+                                : 'https://source.unsplash.com/featured/?luxury-hotel-room';
+                            return `
                             <div class="habitacion-card">
-                                <img src="${habitacion.fotos && habitacion.fotos.length > 0 ? habitacion.fotos[0] : '/img/habitaciones/default-room.jpg'}" 
+                                <img src="${fotoSrc}" 
                                      alt="${habitacion.numero_habitacion}" 
-                                     class="habitacion-imagen"
-                                     onerror="this.src='https://source.unsplash.com/featured/?luxury-hotel-room'">
+                                     class="habitacion-imagen">
                                 <div class="habitacion-info">
                                     <h3 class="habitacion-titulo">Habitación ${habitacion.numero_habitacion}</h3>
                                     <p class="habitacion-descripcion">${habitacion.categoria} - Piso ${habitacion.piso} - Capacidad ${habitacion.capacidad}</p>
@@ -226,7 +229,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                     </button>
                                 </div>
                             </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </div>
                 `;
 
@@ -281,7 +285,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (habitacion.fotos && habitacion.fotos.length > 1) {
                     imagenContainer.innerHTML = `
                         <div class="reserva-carousel">
-                            ${habitacion.fotos.map((foto, index) => `<img src="${foto}" alt="Habitación" class="reserva-img" style="display: ${index === 0 ? 'block' : 'none'};">`).join('')}
+                            ${habitacion.fotos.map((foto, index) => {
+                                const fotoSrc = foto.startsWith('/') ? foto : '/img/habitaciones/' + encodeURI(foto);
+                                return `<img src="${fotoSrc}" alt="Habitación" class="reserva-img" style="display: ${index === 0 ? 'block' : 'none'};">`;
+                            }).join('')}
                             <button class="reserva-arrow prev">&lt;</button>
                             <button class="reserva-arrow next">&gt;</button>
                         </div>
@@ -303,7 +310,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         showImg(currentImg);
                     });
                 } else {
-                    imagenContainer.innerHTML = `<img id="reservaHabitacionImagen" src="${habitacion.fotos && habitacion.fotos.length > 0 ? habitacion.fotos[0] : '/img/habitaciones/default-room.jpg'}" alt="Habitación" class="reserva-img">`;
+                    const fotoSrc = habitacion.fotos && habitacion.fotos.length > 0 
+                        ? (habitacion.fotos[0].startsWith('/') ? habitacion.fotos[0] : '/img/habitaciones/' + encodeURI(habitacion.fotos[0])) 
+                        : '/img/habitaciones/default-room.jpg';
+                    imagenContainer.innerHTML = `<img id="reservaHabitacionImagen" src="${fotoSrc}" alt="Habitación" class="reserva-img">`;
                 }
             }
             document.getElementById('reservaMessage').textContent = '';
@@ -358,6 +368,13 @@ document.addEventListener('DOMContentLoaded', () => {
         function mostrarBotonesLogin() {
             document.getElementById('authButtons').classList.remove('hidden');
             document.getElementById('userProfile').classList.add('hidden');
+            // Ocultar sección de reservas
+            document.getElementById('mis-reservas').style.display = 'none';
+            // Remover enlace de nav si existe
+            const misReservasLink = document.getElementById('mis-reservas-link');
+            if (misReservasLink) {
+                misReservasLink.remove();
+            }
         }
 
         // Función para mostrar el perfil del usuario cuando está logueado
@@ -365,6 +382,19 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('authButtons').classList.add('hidden');
             document.getElementById('userProfile').classList.remove('hidden');
             document.getElementById('userName').textContent = usuarioActual.nombre;
+            // Si es cliente, mostrar sección de reservas y agregar enlace al nav
+            if (usuarioActual.rol === 'cliente') {
+                document.getElementById('mis-reservas').style.display = 'block';
+                const navLinks = document.querySelector('.nav-links');
+                if (!document.getElementById('mis-reservas-link')) {
+                    const li = document.createElement('li');
+                    li.id = 'mis-reservas-link';
+                    li.innerHTML = '<a href="#mis-reservas">Mis reservas</a>';
+                    navLinks.appendChild(li);
+                }
+            } else {
+                document.getElementById('mis-reservas').style.display = 'none';
+            }
         }
 
         // Función para cerrar sesión
@@ -406,6 +436,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // Mostrar usuario logueado
                     mostrarUsuarioLogueado();
+                    
+                    if (usuarioActual && usuarioActual.rol === 'cliente') {
+                        cargarReservasCliente();
+                    }
                     
                     // Redireccionar según el rol
                     if (data.redirectUrl) {
@@ -520,12 +554,114 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert('Reserva creada exitosamente');
                     closeModal('reservaModal');
                     cargarHabitaciones(); // reload to update availability
+                    
+                    if (usuarioActual && usuarioActual.rol === 'cliente') {
+                        cargarReservasCliente();
+                    }
                 } else {
                     document.getElementById('reservaMessage').textContent = data.error || 'Error al crear reserva';
                 }
             } catch (error) {
                 console.error('Error en reserva:', error);
                 document.getElementById('reservaMessage').textContent = 'Error de conexión';
+            }
+        }
+
+        // Función para cargar reservas del cliente
+        async function cargarReservasCliente() {
+            if (!usuarioActual || usuarioActual.rol !== 'cliente') return;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/cliente/reservas', {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const reservas = await response.json();
+                console.log('Reservas cargadas:', reservas);
+                
+                const contenedor = document.getElementById('reservasGrid');
+                if (!contenedor) {
+                    console.error('No se encontró el contenedor de reservas');
+                    return;
+                }
+
+                if (!reservas || reservas.length === 0) {
+                    contenedor.innerHTML = `
+                        <div class="no-reservas">
+                            <h3>No tienes reservas activas</h3>
+                            <p>Realiza una reserva para ver tus habitaciones aquí.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Mostrar máximo 4 reservas
+                contenedor.innerHTML = `
+                    <div class="reservas-grid">
+                        ${reservas.slice(0, 4).map(reserva => {
+                            const fotoSrc = reserva.fotos && reserva.fotos.length > 0 
+                                ? (reserva.fotos[0].startsWith('/') ? reserva.fotos[0] : '/img/habitaciones/' + encodeURI(reserva.fotos[0])) 
+                                : 'https://source.unsplash.com/featured/?luxury-hotel-room';
+                            const checkin = new Date(reserva.fecha_checkin).toLocaleDateString('es-ES');
+                            const checkout = new Date(reserva.fecha_checkout).toLocaleDateString('es-ES');
+                            return `
+                            <div class="reserva-card">
+                                <img src="${fotoSrc}" 
+                                     alt="Habitación ${reserva.numero_habitacion}" 
+                                     class="reserva-imagen">
+                                <div class="reserva-info">
+                                    <h3 class="reserva-titulo">Reserva #${reserva.id_reserva}</h3>
+                                    <p class="reserva-descripcion">Habitación ${reserva.numero_habitacion} - ${reserva.categoria}</p>
+                                    <p class="reserva-fechas">Check-in: ${checkin} | Check-out: ${checkout}</p>
+                                    <p class="reserva-estado">Estado: ${reserva.estado_reserva}</p>
+                                    <button class="btn-detalles" 
+                                            data-id="${reserva.id_reserva}">
+                                        Ver Detalles
+                                    </button>
+                                </div>
+                            </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+
+                // Agregar botón "Ver Todas Mis Reservas" después del grid
+                const section = document.getElementById('mis-reservas');
+                const existingButton = section.querySelector('.btn-ver-todas');
+                if (!existingButton) {
+                    const buttonDiv = document.createElement('div');
+                    buttonDiv.className = 'text-center mt-8';
+                    buttonDiv.innerHTML = '<a href="PanelCliente.html" class="btn-primary btn-ver-mas">Ver Todas Mis Reservas</a>';
+                    section.appendChild(buttonDiv);
+                }
+
+                // Agregar event listeners a los botones de detalles
+                document.querySelectorAll('.btn-detalles').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const reservaId = parseInt(btn.getAttribute('data-id'));
+                        // Aquí puedes abrir un modal con detalles o algo
+                        alert('Detalles de la reserva #' + reservaId);
+                    });
+                });
+
+            } catch (error) {
+                console.error('Error al cargar reservas:', error);
+                const contenedor = document.getElementById('reservasGrid');
+                if (contenedor) {
+                    contenedor.innerHTML = `
+                        <div class="no-reservas">
+                            <h3>Error al cargar las reservas</h3>
+                            <p>Ha ocurrido un problema al cargar la información. Por favor, recargue la página.</p>
+                        </div>
+                    `;
+                }
             }
         }
 
@@ -537,6 +673,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Verificar si hay un usuario logueado
                 verificarSesion();
+                
+                if (usuarioActual && usuarioActual.rol === 'cliente') {
+                    cargarReservasCliente();
+                }
                 
                 console.log('Sistema inicializado correctamente');
             } catch (error) {

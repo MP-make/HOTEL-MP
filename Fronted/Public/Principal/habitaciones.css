@@ -26,7 +26,7 @@ h1, h2, h3, h4 {
 main {
     flex: 1;
     padding: 60px 20px;
-    max-width: 1200px;
+    max-width: 90vw;
     margin: 0 auto;
 }   
 
@@ -112,27 +112,6 @@ Botones
 .btn-flotante:hover {
     transform: scale(1.1);
     background: linear-gradient(90deg, #CCCCCC, #999999);
-}
-
-/* Botón "Ver Más Habitaciones" */
-.btn-ver-mas {
-    font-size: 1.2rem;
-    padding: 15px 30px;
-    background: linear-gradient(45deg, #333333, #666666);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    text-decoration: none;
-    display: inline-block;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    animation: pulse 2s infinite;
-}
-
-.btn-ver-mas:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-    animation: none;
 }
 
 /* ==============================
@@ -476,117 +455,6 @@ Habitaciones
 }
 
 .no-habitaciones p {
-    color: #666;
-    font-size: 16px;
-    margin-bottom: 25px;
-}
-
-/* ==============================
-Reservas
-============================== */
-.reservas-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 30px;
-    padding: 20px 0;
-}
-
-.reserva-card {
-    background: white;
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
-}
-
-.reserva-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
-    border-color: #8B4513;
-}
-
-.reserva-imagen {
-    width: 100%;
-    height: 250px;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-}
-
-.reserva-card:hover .reserva-imagen {
-    transform: scale(1.05);
-}
-
-.reserva-info {
-    padding: 25px;
-}
-
-.reserva-titulo {
-    color: #333333;
-    font-size: 22px;
-    font-weight: bold;
-    margin: 0 0 15px 0;
-    text-align: center;
-}
-
-.reserva-descripcion {
-    color: #666;
-    font-size: 14px;
-    line-height: 1.6;
-    margin: 0 0 10px 0;
-    text-align: center;
-}
-
-.reserva-fechas {
-    color: #666;
-    font-size: 14px;
-    margin: 0 0 10px 0;
-    text-align: center;
-}
-
-.reserva-estado {
-    color: #333333;
-    font-weight: bold;
-    font-size: 16px;
-    text-align: center;
-    margin: 0 0 20px 0;
-}
-
-.btn-detalles {
-    width: 100%;
-    padding: 12px;
-    background: linear-gradient(45deg, #333333, #666666);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.btn-detalles:hover {
-    background: linear-gradient(45deg, #666666, #333333);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-}
-
-.no-reservas {
-    text-align: center;
-    padding: 60px 20px;
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    margin: 20px 0;
-}
-
-.no-reservas h3 {
-    color: #333333;
-    margin-bottom: 15px;
-    font-size: 24px;
-}
-
-.no-reservas p {
     color: #666;
     font-size: 16px;
     margin-bottom: 25px;
@@ -976,18 +844,6 @@ Animaciones
     }
 }
 
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.05);
-    }
-    100% {
-        transform: scale(1);
-    }
-}
-
 /* ==============================
 Responsivo
 ============================== */
@@ -1105,4 +961,73 @@ Responsivo
     .habitacion-precio {
         font-size: 18px;
     }
+}
+
+/* ==============================
+Filtros de Habitaciones
+============================== */
+.filtros-container {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 20px;
+    padding: 30px;
+    background: #f9f9f9;
+    border-radius: 10px;
+    margin-bottom: 40px;
+    align-items: end;
+}
+
+.filtro-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.filtro-item label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.filtro-item .form-input {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.filtro-item button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+#btnBuscar {
+    background: #333;
+    color: white;
+}
+
+#btnBuscar:hover {
+    background: #555;
+}
+
+#btnLimpiar {
+    background: #ccc;
+    color: #333;
+}
+
+#btnLimpiar:hover {
+    background: #aaa;
+}
+
+/* ==============================
+Grid de Habitaciones
+============================== */
+.habitacion-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 40px;
+    padding: 40px 0;
 }
