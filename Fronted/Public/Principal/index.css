@@ -34,6 +34,11 @@ section {
     border-radius: 14px;
 }
 
+.welcome-text {
+    font-family: 'Lato', 'Open Sans', sans-serif;
+    font-weight: 400;
+}
+
 /* ==============================
 Botones principales
 ============================== */

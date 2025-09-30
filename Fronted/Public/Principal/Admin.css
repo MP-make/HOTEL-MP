@@ -2,9 +2,9 @@
    ESTILOS GENERALES
 ======================= */
 body {
-  font-family: 'Inter', sans-serif;
-  background-color: #FAF9F7;
-  color: #333;
+  font-family: 'Lato', sans-serif;
+  background-color: #F1EADA;
+  color: #584738;
 }
 
 /* =======================
@@ -12,8 +12,8 @@ body {
 ======================= */
 .sidebar-admin {
   width: 260px;
-  background: linear-gradient(180deg, #8B4513, #5C2E0F);
-  color: white;
+  background: linear-gradient(180deg, #584738, #B59E7D);
+  color: #F1EADA;
   padding: 24px 12px;
   display: flex;
   flex-direction: column;
@@ -21,13 +21,13 @@ body {
 }
 
 .sidebar-admin h2 {
-  color: #FFD700;
+  color: #F1EADA;
 }
 
 .sidebar-item {
   display: block;
   padding: 12px 20px;
-  color: white;
+  color: #F1EADA;
   text-decoration: none;
   font-weight: 500;
   transition: all 0.3s ease;
@@ -36,14 +36,14 @@ body {
 }
 
 .sidebar-item:hover {
-  background-color: #FFC107;
-  color: #5C2E0F;
+  background-color: #B59E7D;
+  color: #584738;
   transform: translateX(4px);
 }
 
 .sidebar-item.active {
-  background-color: #FFD700;
-  color: #5C2E0F;
+  background-color: #F1EADA;
+  color: #584738;
   font-weight: bold;
 }
 
@@ -51,8 +51,8 @@ body {
  HEADER
 ======================= */
 .header-admin {
-  background: linear-gradient(90deg, #8B4513, #FF7043);
-  color: white;
+  background: linear-gradient(90deg, #584738, #B59E7D);
+  color: #F1EADA;
   padding: 24px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.15);
   border-radius: 0 0 12px 12px;
@@ -61,7 +61,7 @@ body {
 .header-admin h1 {
   font-size: 1.8rem;
   font-weight: bold;
-  color: #FFD700;
+  color: #F1EADA;
   text-shadow: 0 2px 4px rgba(0,0,0,0.25);
 }
 
@@ -69,7 +69,7 @@ body {
  CONTENIDO
 ======================= */
 .admin-card {
-  background: #fdfdfd;
+  background: #F1EADA;
   padding: 24px;
   border-radius: 14px;
   box-shadow: 0 6px 14px rgba(0,0,0,0.08);
@@ -77,7 +77,7 @@ body {
 }
 
 .admin-card h2 {
-  color: #8B4513;
+  color: #584738;
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 16px;
@@ -92,8 +92,8 @@ table {
 }
 
 thead {
-  background: #FFD700;
-  color: #5C2E0F;
+  background: #B59E7D;
+  color: #584738;
 }
 
 th, td {
@@ -102,7 +102,7 @@ th, td {
 }
 
 tbody tr:nth-child(even) {
-  background-color: #FAF9F7;
+  background-color: #CEC1A8;
 }
 
 /* =======================
@@ -152,15 +152,19 @@ tbody tr:nth-child(even) {
   width: 100%;
 }
 .btn-minimal {
-  background: rgba(0,0,0,0.65);
-  color: #fff;
+  background: linear-gradient(135deg, #B59E7D, #584738);
+  color: #F1EADA;
   border: none;
   padding: 6px 10px;
   font-size: 13px;
   border-radius: 6px;
   cursor: pointer;
+  transition: all 0.3s ease;
 }
-.btn-minimal:hover { background: rgba(0,0,0,0.8); }
+.btn-minimal:hover {
+  background: linear-gradient(135deg, #CEC1A8, #AAA396);
+  transform: translateY(-1px);
+}
 .carrusel-controls {
   display: flex;
   justify-content: space-between;
@@ -179,14 +183,69 @@ tbody tr:nth-child(even) {
   font-size: 13px;
 }
 .carrusel-upload-form .submit-small {
-  background: #0ea5a4;
-  color: #fff;
+  background: linear-gradient(135deg, #B59E7D, #584738);
+  color: #F1EADA;
   border: none;
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
+  transition: all 0.3s ease;
+}
+.submit-small:hover {
+  background: linear-gradient(135deg, #CEC1A8, #AAA396);
+  transform: translateY(-1px);
 }
 .carrusel-empty {
   color: #6b7280;
   font-size: 14px;
+}
+
+/* =======================
+   BOTONES PRINCIPALES
+======================= */
+.btn-principal {
+    background: linear-gradient(135deg, #CEC1A8, #B59E7D);
+    color: #584738;
+    font-weight: 600;
+    padding: 12px 28px;
+    border-radius: 10px;
+    transition: all 0.3s ease-in-out;
+    display: inline-block;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    border: none;
+    cursor: pointer;
+}
+
+.btn-principal:hover {
+    background: linear-gradient(135deg, #B59E7D, #AAA396);
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
+}
+
+.btn-principal:disabled {
+    background-color: #CEC1A8;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Botones de envío */
+.btn-submit {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, #B59E7D, #584738);
+    border: none;
+    border-radius: 12px;
+    color: #F1EADA;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-submit:hover {
+    background: linear-gradient(135deg, #CEC1A8, #AAA396);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
