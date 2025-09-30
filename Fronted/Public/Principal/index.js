@@ -163,6 +163,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 4000);
         }
 
+        // Variable global para las habitaciones
+        let habitacionesData = [];
+
         // Función mejorada para cargar habitaciones
         async function cargarHabitaciones() {
             try {
@@ -173,6 +176,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const data = await response.json();
                 console.log('Habitaciones cargadas:', data);
+                
+                habitacionesData = data.habitaciones; // Guardar globalmente
                 
                 const contenedor = document.getElementById('habitacionGrid');
                 if (!contenedor) {
@@ -255,7 +260,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             currentHabitacionId = habitacionId;
-            document.getElementById('reservaHabitacionNombre').textContent = nombreHabitacion;
+            const habitacion = habitacionesData.find(h => h.id_habitacion === habitacionId);
+            if (habitacion) {
+                document.getElementById('reservaHabitacionNombre').textContent = nombreHabitacion;
+                document.getElementById('reservaHabitacionImagen').src = habitacion.fotos && habitacion.fotos.length > 0 ? habitacion.fotos[0] : '/img/habitaciones/default-room.jpg';
+                document.getElementById('reservaHabitacionCategoria').textContent = `Categoría: ${habitacion.categoria}`;
+                document.getElementById('reservaHabitacionPiso').textContent = `Piso: ${habitacion.piso}`;
+                document.getElementById('reservaHabitacionCapacidad').textContent = `Capacidad: ${habitacion.capacidad} personas`;
+                document.getElementById('reservaHabitacionPrecioDia').textContent = `Precio por día: S/ ${habitacion.precio_por_dia}`;
+                document.getElementById('reservaHabitacionPrecioHora').textContent = `Precio por hora: S/ ${habitacion.precio_por_hora}`;
+            }
             document.getElementById('reservaMessage').textContent = '';
             openModal('reservaModal');
         }

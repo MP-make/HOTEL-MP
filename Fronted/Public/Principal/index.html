@@ -224,20 +224,32 @@
 
     <!-- MODAL RESERVA -->
     <div id="reservaModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content reserva-modal-content">
             <span class="close-modal" data-modal-close="reservaModal">&times;</span>
             <h2>Reservar Habitación</h2>
-            <p id="reservaHabitacionNombre"></p>
-            <form id="reservaForm">
-                <label for="fechaCheckin">Fecha de Check-in:</label>
-                <input type="datetime-local" id="fechaCheckin" required class="form-input">
-                
-                <label for="fechaCheckout">Fecha de Check-out:</label>
-                <input type="datetime-local" id="fechaCheckout" required class="form-input">
-                
-                <p id="reservaMessage" class="text-red-500 my-2 text-center"></p>
-                <button type="submit" class="btn-submit">Confirmar Reserva</button>
-            </form>
+            <div class="reserva-container">
+                <div class="reserva-imagen">
+                    <img id="reservaHabitacionImagen" src="/img/habitaciones/default-room.jpg" alt="Habitación" class="reserva-img">
+                </div>
+                <div class="reserva-detalles">
+                    <p id="reservaHabitacionNombre" class="reserva-nombre"></p>
+                    <p id="reservaHabitacionCategoria" class="reserva-info"></p>
+                    <p id="reservaHabitacionPiso" class="reserva-info"></p>
+                    <p id="reservaHabitacionCapacidad" class="reserva-info"></p>
+                    <p id="reservaHabitacionPrecioDia" class="reserva-info"></p>
+                    <p id="reservaHabitacionPrecioHora" class="reserva-info"></p>
+                    <form id="reservaForm">
+                        <label for="fechaCheckin">Fecha de Check-in:</label>
+                        <input type="datetime-local" id="fechaCheckin" required class="form-input">
+                        
+                        <label for="fechaCheckout">Fecha de Check-out:</label>
+                        <input type="datetime-local" id="fechaCheckout" required class="form-input">
+                        
+                        <p id="reservaMessage" class="text-red-500 my-2 text-center"></p>
+                        <button type="submit" class="btn-confirmar-reserva">Confirmar Reserva <i class="fas fa-check"></i></button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 

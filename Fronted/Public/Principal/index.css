@@ -693,6 +693,90 @@ Modales
 }
 
 /* ==============================
+Modal de Reserva
+============================== */
+.reserva-modal-content {
+    max-width: 900px;
+    width: 95%;
+}
+
+.reserva-container {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.reserva-imagen {
+    flex: 1.5;
+}
+
+.reserva-img {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.reserva-detalles {
+    flex: 1;
+}
+
+.reserva-nombre {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #584738;
+    margin-bottom: 10px;
+}
+
+.reserva-info {
+    margin: 5px 0;
+    color: #666;
+    font-size: 0.95rem;
+}
+
+.btn-confirmar-reserva {
+    background: linear-gradient(135deg, #B59E7D, #584738);
+    color: white;
+    font-weight: bold;
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    font-size: 1rem;
+}
+
+.btn-confirmar-reserva:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-confirmar-reserva i {
+    margin-left: 5px;
+}
+
+/* Responsivo para modal de reserva */
+@media (max-width: 768px) {
+    .reserva-modal-content {
+        max-width: 90%;
+    }
+
+    .reserva-container {
+        flex-direction: column;
+    }
+
+    .reserva-imagen {
+        flex: none;
+    }
+
+    .reserva-img {
+        height: 200px;
+        object-fit: cover;
+    }
+}
+
+/* ==============================
 Responsivo
 ============================== */
 @media (max-width: 768px) {
