@@ -693,6 +693,39 @@ app.get("/api/admin/dashboard", authenticateToken, requireAdmin, async (req, res
       GROUP BY month ORDER BY month
     `);
 
+    // Check-ins diarios (últimos 30 días)
+    const checkinsDiarios = await queryWithRetry(`
+      SELECT r.fecha_checkin::date as date, COUNT(*)::int as count
+      FROM reservas r
+      WHERE r.fecha_checkin >= NOW() - INTERVAL '30 days'
+      GROUP BY date ORDER BY date
+    `);
+
+    // Distribución ingresos por categoría
+    const distribucionIngresos = await queryWithRetry(`
+      SELECT c.nombre as categoria, COALESCE(SUM(h.precio_por_dia * (r.fecha_checkout::date - r.fecha_checkin::date)), 0)::float as total
+      FROM reservas r JOIN habitaciones h ON r.id_habitacion = h.id_habitacion
+      JOIN categorias_habitaciones c ON h.id_categoria = c.id_categoria
+      WHERE r.estado_reserva = 'completada'
+      GROUP BY c.nombre ORDER BY total DESC
+    `);
+
+    res.json({
+      total_habitaciones: totalHabitaciones.rows[0].count,
+      habitaciones_disponibles: habitacionesDisponibles.rows[0].count,
+      total_encargados: totalEncargados.rows[0].count,
+      total_reservas: totalReservas.rows[0].count,
+      reservas_pendientes: reservasPendientes.rows[0].count,
+      reservas_completadas: reservasCompletadas.rows[0].count,
+      ingresos_est: ingresos.rows[0].total,
+      ingresos_mensuales: ingresosMensuales.rows,
+      checkins_diarios: checkinsDiarios.rows,
+      distribucion_ingresos: distribucionIngresos.rows,
+      chart_ingresos_mensuales: ingresosMensuales.rows,
+      chart_distribucion_pagos: distribucionIngresos.rows,
+      chart_servicios_rentables: [],
+      chart_picos_checkin_checkout: checkinsDiarios.rows
+    });
   } catch (err) {
     console.error("Error obteniendo métricas del dashboard:", err);
     res.status(500).json({ error: "Error al obtener métricas" });

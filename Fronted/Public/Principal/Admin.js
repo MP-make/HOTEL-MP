@@ -106,6 +106,7 @@
                 render: async () => {
                     try {
                         const metrics = await apiGet('/admin/dashboard');
+                        window.currentMetrics = metrics;
                         return `
                         <div class="space-y-8">
                             <!-- 1. Resumen Financiero y de Ocupación (Métricas Clave Hoy) -->
@@ -158,36 +159,33 @@
                                     <div class="p-4 bg-white rounded shadow">
                                         <h4 class="font-semibold">Ingresos Mensuales (Vs. Meta)</h4>
                                         <p class="text-sm text-gray-600">Gráfico de barras/líneas comparando los ingresos diarios/semanales con las metas establecidas para el mes.</p>
-                                        <!-- Placeholder for chart -->
-                                        <div class="mt-4 h-32 bg-gray-100 rounded flex items-center justify-center">
-                                            <span class="text-gray-500">[Gráfico de Ingresos Mensuales]</span>
+                                        <!-- Chart placeholder -->
+                                        <div class="mt-4">
+                                            <canvas id="chart-ingresos-mensuales" width="400" height="200"></canvas>
                                         </div>
                                     </div>
                                     <div class="p-4 bg-white rounded shadow">
                                         <h4 class="font-semibold">Distribución de Ingresos (Por Método de Pago)</h4>
                                         <p class="text-sm text-gray-600">Muestra qué porcentaje de los ingresos provienen de Tarjetas, Efectivo, Transferencias, etc.</p>
-                                        <!-- Placeholder for chart -->
-                                        <div class="mt-4 h-32 bg-gray-100 rounded flex items-center justify-center">
-                                            <span class="text-gray-500">[Gráfico de Distribución de Ingresos]</span>
+                                        <!-- Chart placeholder -->
+                                        <div class="mt-4">
+                                            <canvas id="chart-distribucion-pagos" width="400" height="200"></canvas>
                                         </div>
                                     </div>
                                     <div class="p-4 bg-white rounded shadow">
                                         <h4 class="font-semibold">Servicios Adicionales Más Rentables</h4>
                                         <p class="text-sm text-gray-600">Ranking de servicios que generan más ingresos (ej. Desayuno Premium, Tour Local, Lavandería, Room Service).</p>
                                         <!-- Placeholder for list -->
-                                        <ul class="mt-4 text-sm">
-                                            <li>Desayuno Premium: $${metrics.servicio_1 || 0}</li>
-                                            <li>Tour Local: $${metrics.servicio_2 || 0}</li>
-                                            <li>Lavandería: $${metrics.servicio_3 || 0}</li>
-                                            <li>Room Service: $${metrics.servicio_4 || 0}</li>
+                                        <ul id="servicios-rentables-list" class="mt-4 text-sm">
+                                            <li>No hay datos disponibles aún.</li>
                                         </ul>
                                     </div>
                                     <div class="p-4 bg-white rounded shadow">
                                         <h4 class="font-semibold">Picos de Check-in/Check-out</h4>
                                         <p class="text-sm text-gray-600">Gráfico que muestra las horas de mayor actividad en recepción (entradas/salidas). Ayuda a optimizar el personal.</p>
-                                        <!-- Placeholder for chart -->
-                                        <div class="mt-4 h-32 bg-gray-100 rounded flex items-center justify-center">
-                                            <span class="text-gray-500">[Gráfico de Picos de Actividad]</span>
+                                        <!-- Chart placeholder -->
+                                        <div class="mt-4">
+                                            <canvas id="chart-picos-checkin-checkout" width="400" height="200"></canvas>
                                         </div>
                                     </div>
                                 </div>
@@ -280,6 +278,98 @@
                         return `<div class="admin-card"><p class="text-red-500">Error cargando métricas: ${err.message}</p></div>`;
                     }
                 },
+                postRender: () => {
+                    if (window.currentMetrics) {
+                        const metrics = window.currentMetrics;
+
+                        // Ingresos Mensuales
+                        const ingresosCanvas = document.getElementById('chart-ingresos-mensuales');
+                        if (ingresosCanvas && metrics.chart_ingresos_mensuales && metrics.chart_ingresos_mensuales.rows) {
+                            const data = metrics.chart_ingresos_mensuales.rows;
+                            new Chart(ingresosCanvas, {
+                                type: 'bar',
+                                data: {
+                                    labels: data.map(r => r.mes),
+                                    datasets: [{
+                                        label: 'Ingresos Mensuales',
+                                        data: data.map(r => r.total),
+                                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                                        borderColor: 'rgba(54, 162, 235, 1)',
+                                        borderWidth: 1
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true
+                                        }
+                                    }
+                                }
+                            });
+                        }
+
+                        // Distribución de Pagos
+                        const pagosCanvas = document.getElementById('chart-distribucion-pagos');
+                        if (pagosCanvas && metrics.chart_distribucion_ingresos && metrics.chart_distribucion_ingresos.rows) {
+                            const data = metrics.chart_distribucion_ingresos.rows;
+                            new Chart(pagosCanvas, {
+                                type: 'pie',
+                                data: {
+                                    labels: data.map(r => r.metodo_pago),
+                                    datasets: [{
+                                        data: data.map(r => r.total),
+                                        backgroundColor: [
+                                            'rgba(255, 99, 132, 0.5)',
+                                            'rgba(54, 162, 235, 0.5)',
+                                            'rgba(255, 205, 86, 0.5)',
+                                            'rgba(75, 192, 192, 0.5)',
+                                            'rgba(153, 102, 255, 0.5)'
+                                        ],
+                                        borderColor: [
+                                            'rgba(255, 99, 132, 1)',
+                                            'rgba(54, 162, 235, 1)',
+                                            'rgba(255, 205, 86, 1)',
+                                            'rgba(75, 192, 192, 1)',
+                                            'rgba(153, 102, 255, 1)'
+                                        ],
+                                        borderWidth: 1
+                                    }]
+                                },
+                                options: {
+                                    responsive: true
+                                }
+                            });
+                        }
+
+                        // Picos de Check-in/Check-out
+                        const picosCanvas = document.getElementById('chart-picos-checkin-checkout');
+                        if (picosCanvas && metrics.chart_checkins_diarios && metrics.chart_checkins_diarios.rows) {
+                            const data = metrics.chart_checkins_diarios.rows;
+                            new Chart(picosCanvas, {
+                                type: 'line',
+                                data: {
+                                    labels: data.map(r => r.fecha),
+                                    datasets: [{
+                                        label: 'Check-ins Diarios',
+                                        data: data.map(r => r.checkins),
+                                        fill: false,
+                                        borderColor: 'rgba(75, 192, 192, 1)',
+                                        tension: 0.1
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
             },
             // CONFIGURACIÓN DE HOTEL: permite establecer pisos, habitaciones por piso y categorías
             'configuracion-hotel': {
