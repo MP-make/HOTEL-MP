@@ -150,6 +150,9 @@
                 title: 'Configuración de Hotel',
                 render: async () => {
                     try {
+                        // Obtener configuración del hotel
+                        const config = await apiGet('/admin/hotel-config').catch(() => ({ num_pisos: 1, habitaciones_por_piso: 10 }));
+
                         // Obtener categorías desde el backend en lugar de localStorage
                         const categorias = await apiGet('/admin/categorias').catch(() => []);
 
@@ -194,54 +197,104 @@
                         `;
 
                         return `
-                        <div class="admin-card">
-                            <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-2 0H9m-2 0H5m-2 0h2M7 7h10M7 11h6m-6 4h3"></path>
-                                </svg>
-                                Gestión de Categorías de Habitaciones
-                            </h2>
+                        <div class="space-y-8">
+                            <!-- Configuración General del Hotel -->
+                            <div class="admin-card">
+                                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                                    <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-2 0H9m-2 0H5m-2 0h2M7 7h10M7 11h6m-6 4h3"></path>
+                                    </svg>
+                                    Configuración General del Hotel
+                                </h2>
 
-                            <div class="mb-6">
-                                <p class="text-gray-600 mb-4">
-                                    Administra las categorías de habitaciones de tu hotel. Las habitaciones existentes mantendrán su categoría actual.
-                                </p>
-                                
-                                <div class="flex flex-wrap gap-3 mb-6">
-                                    <button id="add-categoria-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center">
-                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                <form id="hotel-config-form" class="space-y-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Número de Pisos</label>
+                                            <input type="number" id="num-pisos" name="num_pisos" min="1" max="50" value="${config.num_pisos || 1}" 
+                                                   class="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500" required>
+                                            <p class="text-sm text-gray-500 mt-1">Máximo número de pisos del hotel</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Habitaciones por Piso</label>
+                                            <input type="number" id="hab-por-piso" name="habitaciones_por_piso" min="1" max="100" value="${config.habitaciones_por_piso || 10}" 
+                                                   class="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500" required>
+                                            <p class="text-sm text-gray-500 mt-1">Máximo número de habitaciones por piso</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-end">
+                                        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                                            Guardar Configuración
+                                        </button>
+                                    </div>
+                                </form>
+
+                                <!-- Información adicional -->
+                                <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <h3 class="font-semibold text-blue-800 mb-2">
+                                        <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                         </svg>
-                                        Añadir Categoría
-                                    </button>
-                                    
-                                    <button id="refresh-categorias-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center">
-                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                        </svg>
-                                        Actualizar Lista
-                                    </button>
+                                        Información Importante
+                                    </h3>
+                                    <ul class="text-blue-700 text-sm space-y-1">
+                                        <li>• Estas configuraciones se usan como límites al crear habitaciones</li>
+                                        <li>• El número de habitación debe ser piso*100 + número (ej: piso 1, hab 101-110)</li>
+                                        <li>• No se pueden crear habitaciones que excedan estos límites</li>
+                                    </ul>
                                 </div>
                             </div>
 
-                            <div id="categorias-container" class="space-y-4">
-                                ${categoriasHtml}
-                            </div>
-
-                            <!-- Información adicional -->
-                            <div class="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                <h3 class="font-semibold text-blue-800 mb-2">
-                                    <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            <!-- Gestión de Categorías de Habitaciones -->
+                            <div class="admin-card">
+                                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                                    <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-2 0H9m-2 0H5m-2 0h2M7 7h10M7 11h6m-6 4h3"></path>
                                     </svg>
-                                    Información Importante
-                                </h3>
-                                <ul class="text-blue-700 text-sm space-y-1">
-                                    <li>• Las categorías se almacenan en la base de datos del hotel</li>
-                                    <li>• No puedes eliminar categorías que estén siendo utilizadas por habitaciones</li>
-                                    <li>• Los cambios se aplican inmediatamente al crear/editar habitaciones</li>
-                                    <li>• Los nombres de categorías deben ser únicos</li>
-                                </ul>
+                                    Gestión de Categorías de Habitaciones
+                                </h2>
+
+                                <div class="mb-6">
+                                    <p class="text-gray-600 mb-4">
+                                        Administra las categorías de habitaciones de tu hotel. Las habitaciones existentes mantendrán su categoría actual.
+                                    </p>
+                                    
+                                    <div class="flex flex-wrap gap-3 mb-6">
+                                        <button id="add-categoria-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                            </svg>
+                                            Añadir Categoría
+                                        </button>
+                                        
+                                        <button id="refresh-categorias-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                            </svg>
+                                            Actualizar Lista
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div id="categorias-container" class="space-y-4">
+                                    ${categoriasHtml}
+                                </div>
+
+                                <!-- Información adicional -->
+                                <div class="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <h3 class="font-semibold text-blue-800 mb-2">
+                                        <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        Información Importante
+                                    </h3>
+                                    <ul class="text-blue-700 text-sm space-y-1">
+                                        <li>• Las categorías se almacenan en la base de datos del hotel</li>
+                                        <li>• No puedes eliminar categorías que estén siendo utilizadas por habitaciones</li>
+                                        <li>• Los cambios se aplican inmediatamente al crear/editar habitaciones</li>
+                                        <li>• Los nombres de categorías deben ser únicos</li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                         `;
@@ -388,6 +441,26 @@
                                         }
                                     }
                                 );
+                            }
+                        });
+                    }
+
+                    // Handler para el formulario de configuración del hotel
+                    const configForm = document.getElementById('hotel-config-form');
+                    if (configForm) {
+                        configForm.addEventListener('submit', async (e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.target);
+                            const data = {
+                                num_pisos: parseInt(formData.get('num_pisos'), 10),
+                                habitaciones_por_piso: parseInt(formData.get('habitaciones_por_piso'), 10)
+                            };
+
+                            try {
+                                await apiPut('/admin/hotel-config', data);
+                                showModal('Éxito', '<p>Configuración del hotel guardada correctamente.</p>');
+                            } catch (err) {
+                                showModal('Error', `<p>${err.message}</p>`);
                             }
                         });
                     }
@@ -559,9 +632,9 @@
                     // --- Handler para 'Añadir Habitación' (modal con validaciones según configuración del hotel) ---
                     async function openAddHabitacionModal() {
                         try {
-                            // cargar configuración local (puede venir del formulario de configuración de hotel)
-                            const cfg = JSON.parse(localStorage.getItem('hotel_config') || '{}');
-                            const pisos = parseInt(cfg.pisos || 1, 10) || 1;
+                            // obtener configuración del hotel desde la API
+                            const cfg = await apiGet('/admin/hotel-config').catch(() => ({ num_pisos: 1, habitaciones_por_piso: 10 }));
+                            const pisos = parseInt(cfg.num_pisos || 1, 10) || 1;
                             const habPorPiso = parseInt(cfg.habitaciones_por_piso || 10, 10) || 10;
                             const categoriasCfg = Array.isArray(cfg.categorias) ? cfg.categorias : [];
 
@@ -741,11 +814,12 @@
                     try {
                         const imgsRes = await apiGet('/admin/carrusel');
                         const images = Array.isArray(imgsRes) ? imgsRes : (imgsRes.images || imgsRes.rows || []);
+                        console.log('Images received from API:', images);
                         const listHtml = (images && images.length) ? images.map(img => `
                             <div class="carrusel-thumb">
                                 <img src="${img.url || img}" alt="carrusel">
                                 <div class="thumb-actions">
-                                    <button data-id="${img.id || ''}" data-url="${img.url || img}" class="delete-carrusel-btn btn-minimal">Eliminar</button>
+                                    <button data-filename="${img.filename || ''}" data-url="${img.url || img}" class="delete-carrusel-btn btn-minimal">Eliminar</button>
                                     <a href="${img.url || img}" target="_blank" class="btn-minimal">Abrir</a>
                                 </div>
                             </div>
@@ -773,15 +847,10 @@
                         listEl.addEventListener('click', async (e) => {
                             const btn = e.target.closest('.delete-carrusel-btn');
                             if (!btn) return;
-                            const id = btn.getAttribute('data-id');
-                            const url = btn.getAttribute('data-url');
+                            const filename = btn.getAttribute('data-filename');
                             showConfirmModal('Eliminar imagen del carrusel?', async () => {
                                 try {
-                                    if (id) {
-                                        await apiDelete(`/admin/carrusel/${id}`);
-                                    } else {
-                                        await apiPost('/admin/carrusel/delete', { url });
-                                    }
+                                    await apiDelete(`/admin/carrusel/${encodeURIComponent(filename)}`);
                                     loadSection('gestion-carrusel');
                                     showModal('Éxito', '<p>Imagen eliminada.</p>');
                                 } catch (err) {

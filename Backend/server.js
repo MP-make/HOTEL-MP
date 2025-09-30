@@ -521,12 +521,42 @@ app.post('/api/admin/habitaciones', authenticateToken, requireAdmin, upload.arra
       return res.status(400).json({ error: "Faltan datos obligatorios: numero_habitacion, tipo o id_categoria" });
     }
 
+    // Obtener configuración del hotel
+    const configRes = await queryWithRetry("SELECT num_pisos, habitaciones_por_piso FROM public.hotel_config LIMIT 1");
+    if (configRes.rows.length === 0) {
+      return res.status(500).json({ error: "Configuración del hotel no encontrada" });
+    }
+    const { num_pisos, habitaciones_por_piso } = configRes.rows[0];
+
+    // Validar piso
+    const pisoNum = parseInt(piso, 10);
+    if (isNaN(pisoNum) || pisoNum < 1 || pisoNum > num_pisos) {
+      return res.status(400).json({ error: `El piso debe estar entre 1 y ${num_pisos}` });
+    }
+
+    // Validar numero_habitacion: debe ser piso*100 + number, number 1 to habitaciones_por_piso
+    const habNum = parseInt(numero_habitacion, 10);
+    if (isNaN(habNum)) {
+      return res.status(400).json({ error: "numero_habitacion debe ser un número válido" });
+    }
+    const expectedPiso = Math.floor(habNum / 100);
+    const number = habNum % 100;
+    if (expectedPiso !== pisoNum || number < 1 || number > habitaciones_por_piso) {
+      return res.status(400).json({ error: `numero_habitacion inválido. Para piso ${pisoNum}, debe ser ${pisoNum}01 a ${pisoNum}${String(habitaciones_por_piso).padStart(2, '0')}` });
+    }
+
+    // Verificar duplicado
+    const dup = await queryWithRetry("SELECT id_habitacion FROM public.habitaciones WHERE numero_habitacion = $1", [numero_habitacion]);
+    if (dup.rows.length > 0) {
+      return res.status(409).json({ error: "Ya existe una habitación con ese número" });
+    }
+
     // insertar habitación
     const result = await queryWithRetry(
       `INSERT INTO public.habitaciones
       (numero_habitacion, tipo, disponible, id_categoria, precio_por_hora, precio_por_dia, piso, capacidad)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id_habitacion`,
-      [numero_habitacion, tipo, sanitizeBoolean(disponible), id_categoria, precio_por_hora || null, precio_por_dia || null, piso || null, capacidad || null]
+      [numero_habitacion, tipo, sanitizeBoolean(disponible), id_categoria, precio_por_hora || null, precio_por_dia || null, pisoNum, capacidad || null]
     );
 
     const habitacionId = result.rows[0].id_habitacion;
@@ -1125,12 +1155,12 @@ const uploadCarousel = multer({ storage: carouselStorage });
 app.get('/api/carrusel', async (req, res) => {
     try {
         const files = fs.readdirSync(carouselDir).filter(f => !f.startsWith('.'));
-        const images = files.map(f => ({ url: '/img/carousel/' + f, descripcion: f }));
+        const images = files.map(f => ({ url: '/img/carousel/' + encodeURIComponent(f), descripcion: f }));
         if (images.length === 0) {
             const defaultImages = [
-                { url: '/img/carousel/1758185301931-Casa del inka - vista principal.png', descripcion: 'Vista principal' },
-                { url: '/img/carousel/1758185310826-Casa del inka - vista entrada.png', descripcion: 'Vista entrada' },
-                { url: '/img/carousel/1758596592120-37b93177.webp', descripcion: 'Instalaciones' }
+                { url: '/img/carousel/' + encodeURIComponent('1758185301931-Casa del inka - vista principal.png'), descripcion: 'Vista principal' },
+                { url: '/img/carousel/' + encodeURIComponent('1758185310826-Casa del inka - vista entrada.png'), descripcion: 'Vista entrada' },
+                { url: '/img/carousel/' + encodeURIComponent('1758596592120-37b93177.webp'), descripcion: 'Instalaciones' }
             ];
             return res.json({ images: defaultImages });
         }
@@ -1145,8 +1175,8 @@ app.get('/api/carrusel', async (req, res) => {
 app.get('/api/admin/carrusel', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const files = fs.readdirSync(carouselDir).filter(f => !f.startsWith('.'));
-    const urls = files.map(f => '/img/carousel/' + f);
-    res.json({ images: urls });
+    const images = files.map(f => ({ url: '/img/carousel/' + encodeURIComponent(f), filename: f }));
+    res.json({ images });
   } catch (err) {
     console.error('Error leyendo carrusel (admin):', err);
     res.status(500).json({ error: 'Error al leer imágenes del carrusel' });
@@ -1307,5 +1337,49 @@ app.delete("/api/admin/categorias/:id", authenticateToken, requireAdmin, async (
     } catch (err) {
         console.error("Error al eliminar categoría:", err);
         res.status(500).json({ error: "Error al eliminar categoría", detalle: err.message });
+    }
+});
+
+/**
+ * @route GET /api/admin/hotel-config
+ * @desc Obtener la configuración del hotel (pisos y habitaciones por piso)
+ */
+app.get("/api/admin/hotel-config", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const result = await queryWithRetry("SELECT * FROM public.hotel_config LIMIT 1");
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Configuración del hotel no encontrada" });
+        }
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Error al obtener configuración del hotel:", err);
+        res.status(500).json({ error: "Error al obtener configuración del hotel" });
+    }
+});
+
+/**
+ * @route PUT /api/admin/hotel-config
+ * @desc Actualizar la configuración del hotel
+ */
+app.put("/api/admin/hotel-config", authenticateToken, requireAdmin, async (req, res) => {
+    const { num_pisos, habitaciones_por_piso } = req.body;
+    try {
+        if (num_pisos < 1 || habitaciones_por_piso < 1) {
+            return res.status(400).json({ error: "Los valores deben ser mayores a 0" });
+        }
+
+        const result = await queryWithRetry(
+            "UPDATE public.hotel_config SET num_pisos = $1, habitaciones_por_piso = $2, updated_at = CURRENT_TIMESTAMP WHERE id = (SELECT id FROM public.hotel_config LIMIT 1) RETURNING *",
+            [num_pisos, habitaciones_por_piso]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Configuración del hotel no encontrada" });
+        }
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Error al actualizar configuración del hotel:", err);
+        res.status(500).json({ error: "Error al actualizar configuración del hotel", detalle: err.message });
     }
 });

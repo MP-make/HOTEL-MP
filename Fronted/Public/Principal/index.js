@@ -73,9 +73,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     console.log('No hay imágenes para el carrusel, usando imágenes por defecto');
                     carouselImages = [
-                        { url: '/img/carousel/1758185301931-Casa del inka - vista principal.png', descripcion: 'Vista principal de Casa del Inka' },
-                        { url: '/img/carousel/1758185310826-Casa del inka - vista entrada.png', descripcion: 'Entrada principal del hotel' },
-                        { url: '/img/carousel/1758596592120-37b93177.webp', descripcion: 'Instalaciones del hotel' }
+                        { url: '/img/carousel/' + encodeURIComponent('1758185301931-Casa del inka - vista principal.png'), descripcion: 'Vista principal de Casa del Inka' },
+                        { url: '/img/carousel/' + encodeURIComponent('1758185310826-Casa del inka - vista entrada.png'), descripcion: 'Entrada principal del hotel' },
+                        { url: '/img/carousel/' + encodeURIComponent('1758596592120-37b93177.webp'), descripcion: 'Instalaciones del hotel' }
                     ];
                     mostrarCarrusel();
                     iniciarCarruselAutomatico();
@@ -84,8 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Error al cargar el carrusel:', error);
                 // Usar imágenes por defecto en caso de error
                 carouselImages = [
-                    { url: '/img/carousel/1758185301931-Casa del inka - vista principal.png', descripcion: 'Vista principal de Casa del Inka' },
-                    { url: '/img/carousel/1758185310826-Casa del inka - vista entrada.png', descripcion: 'Entrada principal del hotel' }
+                    { url: '/img/carousel/' + encodeURIComponent('1758185301931-Casa del inka - vista principal.png'), descripcion: 'Vista principal de Casa del Inka' },
+                    { url: '/img/carousel/' + encodeURIComponent('1758185310826-Casa del inka - vista entrada.png'), descripcion: 'Entrada principal del hotel' }
                 ];
                 mostrarCarrusel();
                 iniciarCarruselAutomatico();
@@ -94,50 +94,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Función para mostrar el carrusel en el DOM
         function mostrarCarrusel() {
-            const carouselContainer = document.getElementById('hero-carousel');
-            if (!carouselContainer) return;
+            const carouselTrack = document.getElementById('carouselTrack');
+            const carouselIndicators = document.getElementById('carouselIndicators');
+            if (!carouselTrack || !carouselIndicators) return;
 
-            carouselContainer.innerHTML = `
-                <div class="carousel-container">
-                    ${carouselImages.map((image, index) => `
-                        <div class="carousel-slide ${index === 0 ? 'active' : ''}">
-                            <img src="${image.url}" alt="${image.descripcion || 'Imagen de Casa del Inka'}" 
-                                 onerror="this.src='/img/carousel/1758185301931-Casa del inka - vista principal.png'">
-                            <div class="carousel-overlay">
-                                <p>${image.descripcion || 'Casa del Inka'}</p>
-                            </div>
-                        </div>
-                    `).join('')}
-                    
-                    ${carouselImages.length > 1 ? `
-                        <button class="carousel-controls carousel-prev" onclick="cambiarSlide(-1)">‹</button>
-                        <button class="carousel-controls carousel-next" onclick="cambiarSlide(1)">›</button>
-                        
-                        <div class="carousel-indicators">
-                            ${carouselImages.map((_, index) => `
-                                <div class="indicator ${index === 0 ? 'active' : ''}" onclick="irASlide(${index})"></div>
-                            `).join('')}
-                        </div>
-                    ` : ''}
+            carouselTrack.innerHTML = carouselImages.map((image, index) => `
+                <div class="carousel-slide">
+                    <img src="${image.url}" alt="${image.descripcion || 'Imagen de Casa del Inka'}" 
+                         onerror="this.src='/img/carousel/${encodeURIComponent('1758185301931-Casa del inka - vista principal.png')}'">
                 </div>
-            `;
+            `).join('');
+
+            carouselIndicators.innerHTML = carouselImages.map((_, index) => `
+                <div class="carousel-dot ${index === 0 ? 'active' : ''}" data-slide="${index}"></div>
+            `).join('');
+
+            // Add event listeners
+            document.querySelector('.carousel-arrow.prev').addEventListener('click', () => cambiarSlide(-1));
+            document.querySelector('.carousel-arrow.next').addEventListener('click', () => cambiarSlide(1));
+            document.querySelectorAll('.carousel-dot').forEach(dot => {
+                dot.addEventListener('click', (e) => {
+                    const slide = parseInt(e.target.getAttribute('data-slide'));
+                    irASlide(slide);
+                });
+            });
         }
 
         // Función para cambiar de slide
         function cambiarSlide(direccion) {
             if (carouselImages.length <= 1) return;
             
-            const slides = document.querySelectorAll('.carousel-slide');
-            const indicators = document.querySelectorAll('.indicator');
+            const carouselTrack = document.getElementById('carouselTrack');
+            const indicators = document.querySelectorAll('.carousel-dot');
             
-            slides[currentSlide].classList.remove('active');
             indicators[currentSlide].classList.remove('active');
             
             currentSlide += direccion;
             if (currentSlide >= carouselImages.length) currentSlide = 0;
             if (currentSlide < 0) currentSlide = carouselImages.length - 1;
             
-            slides[currentSlide].classList.add('active');
+            carouselTrack.style.transform = `translateX(-${currentSlide * 100}%)`;
             indicators[currentSlide].classList.add('active');
         }
 
@@ -145,15 +141,14 @@ document.addEventListener('DOMContentLoaded', () => {
         function irASlide(index) {
             if (carouselImages.length <= 1) return;
             
-            const slides = document.querySelectorAll('.carousel-slide');
-            const indicators = document.querySelectorAll('.indicator');
+            const carouselTrack = document.getElementById('carouselTrack');
+            const indicators = document.querySelectorAll('.carousel-dot');
             
-            slides[currentSlide].classList.remove('active');
             indicators[currentSlide].classList.remove('active');
             
             currentSlide = index;
             
-            slides[currentSlide].classList.add('active');
+            carouselTrack.style.transform = `translateX(-${currentSlide * 100}%)`;
             indicators[currentSlide].classList.add('active');
         }
 
