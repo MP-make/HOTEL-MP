@@ -105,6 +105,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (targetSectionId === 'habitaciones') {
                     loadRoomsList();
                 }
+
+                // Si la sección es reclamos, cargar reclamos
+                if (targetSectionId === 'reclamos') {
+                    loadClaims();
+                }
             }
         });
     });
@@ -127,15 +132,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (userIdDisplay) userIdDisplay.textContent = currentUser.id || '';
 
     // --- Funciones para cargar habitaciones (lista simple) ---
-    async function loadRoomsList() {
+    async function loadRoomsList(page = 1) {
         const container = document.getElementById('rooms-list');
         if (!container) return;
         try {
-            const res = await fetch('/api/encargado/habitaciones', { headers: getAuthHeaders() });
+            const numero = document.getElementById('filter-numero')?.value || '';
+            const categoria = document.getElementById('filter-categoria')?.value || '';
+            const piso = document.getElementById('filter-piso')?.value || '';
+            const disponible = document.getElementById('filter-disponible')?.value || '';
+
+            const params = new URLSearchParams();
+            if (numero) params.set('numero', numero);
+            if (categoria) params.set('categoria', categoria);
+            if (piso) params.set('piso', piso);
+            if (disponible) params.set('disponible', disponible);
+
+            const url = '/api/encargado/habitaciones?' + params.toString();
+            const res = await fetch(url, { headers: getAuthHeaders() });
             if (!res.ok) throw new Error('Error al obtener habitaciones');
             const habitaciones = await res.json();
             if (!Array.isArray(habitaciones) || habitaciones.length === 0) {
-                container.innerHTML = '<p style="text-align:center">No hay habitaciones.</p>';
+                container.innerHTML = '<p style="text-align:center">No hay habitaciones que coincidan con los filtros.</p>';
                 return;
             }
             container.innerHTML = '<table class="rooms-table"><thead><tr><th>#</th><th>Categoría</th><th>Piso</th><th>Capacidad</th><th>Precio/Día</th><th>Disponible</th><th>Acciones</th></tr></thead><tbody>' +
@@ -200,24 +217,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            container.innerHTML = reservas.map(r => {
-                const checkin = new Date(r.fecha_checkin).toLocaleString();
-                const checkout = new Date(r.fecha_checkout).toLocaleString();
-                return `
-                    <div class="reserva-card" data-id="${r.id_reserva}">
-                        <p><strong>ID:</strong> ${r.id_reserva}</p>
-                        <p><strong>Cliente:</strong> ${r.cliente_nombre} ${r.cliente_email? `(${r.cliente_email})`: ''}</p>
-                        <p><strong>Habitación:</strong> ${r.numero_habitacion}</p>
-                        <p><strong>Check-in:</strong> ${checkin}</p>
-                        <p><strong>Check-out:</strong> ${checkout}</p>
-                        <p><strong>Estado:</strong> <span class="estado-res">${r.estado_reserva}</span></p>
-                        <div class="res-actions">
-                            ${r.estado_reserva !== 'completada' ? `<button class="btn" data-action="completar" data-id="${r.id_reserva}">Marcar como completada</button>` : ''}
-                            <button class="btn btn-secondary" data-action="ver" data-id="${r.id_reserva}">Ver detalles</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+            container.innerHTML = '<table class="reservas-table"><thead><tr><th>ID</th><th>Cliente</th><th>Habitación</th><th>Check-in</th><th>Check-out</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>' +
+                reservas.map(r => {
+                    const checkin = new Date(r.fecha_checkin).toLocaleString();
+                    const checkout = new Date(r.fecha_checkout).toLocaleString();
+                    return `<tr><td>${r.id_reserva}</td><td>${r.cliente_nombre} ${r.cliente_email? `(${r.cliente_email})`: ''}</td><td>${r.numero_habitacion}</td><td>${checkin}</td><td>${checkout}</td><td><span class="estado-res">${r.estado_reserva}</span></td><td>${r.estado_reserva !== 'completada' ? `<button class="btn" data-action="completar" data-id="${r.id_reserva}">Completar</button>` : ''}</td></tr>`;
+                }).join('') +
+                '</tbody></table>';
 
             renderPagination(total, currentPage, parseInt(json.pageSize || pageSize, 10));
         } catch (err) {
@@ -247,9 +253,71 @@ document.addEventListener('DOMContentLoaded', () => {
         if (page < totalPages) pagContainer.appendChild(createBtn('Siguiente »', page + 1));
     }
 
+    // --- FUNCIONES DE RECLAMOS ---
+    async function loadClaims() {
+        const container = document.getElementById('claims-list');
+        if (!container) return;
+        container.innerHTML = '<p style="text-align:center">Cargando reclamos...</p>';
+        try {
+            const texto = document.getElementById('filter-reclamo-texto')?.value || '';
+            const habitacion = document.getElementById('filter-reclamo-habitacion')?.value || '';
+            const estado = document.getElementById('filter-reclamo-estado')?.value || '';
+
+            const params = new URLSearchParams();
+            if (texto) params.set('texto', texto);
+            if (habitacion) params.set('habitacion', habitacion);
+            if (estado) params.set('estado', estado);
+
+            const url = '/api/encargado/reclamos?' + params.toString();
+            const res = await fetch(url, { headers: getAuthHeaders() });
+            if (!res.ok) throw new Error('Error al obtener reclamos');
+            const reclamos = await res.json();
+            if (!Array.isArray(reclamos) || reclamos.length === 0) {
+                container.innerHTML = '<p style="text-align:center">No hay reclamos que coincidan con los filtros.</p>';
+                return;
+            }
+            container.innerHTML = '<table class="reclamos-table"><thead><tr><th>ID</th><th>Habitación</th><th>Reclamo</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody>' +
+                reclamos.map(r => `<tr><td>${r.id_reclamo}</td><td>${r.numero_habitacion}</td><td>${r.descripcion}</td><td>${r.estado}</td><td>${new Date(r.fecha_creacion).toLocaleString()}</td><td>${r.estado === 'pendiente' ? `<button class="btn" data-action="resolver" data-id="${r.id_reclamo}">Resolver</button>` : ''}</td></tr>`).join('') +
+                '</tbody></table>';
+        } catch (err) {
+            console.error('Error al cargar reclamos:', err);
+            container.innerHTML = '<p style="text-align:center;color:red">Error al cargar reclamos.</p>';
+        }
+    }
+
     // Aplicar filtros
     const applyBtn = document.getElementById('applyFilters');
     if (applyBtn) applyBtn.addEventListener('click', () => loadReservas(1));
+
+    const applyBtnHabitaciones = document.getElementById('applyFiltersHabitaciones');
+    if (applyBtnHabitaciones) applyBtnHabitaciones.addEventListener('click', () => loadRoomsList(1));
+
+    const applyBtnReclamos = document.getElementById('applyFiltersReclamos');
+    if (applyBtnReclamos) applyBtnReclamos.addEventListener('click', () => loadClaims());
+
+    // --- Manejar formulario de agregar reclamo ---
+    const addClaimForm = document.getElementById('add-claim-form');
+    if (addClaimForm) {
+        addClaimForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = document.getElementById('claim-text').value;
+            const room = document.getElementById('claim-room').value;
+            try {
+                const res = await fetch('/api/encargado/reclamos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                    body: JSON.stringify({ descripcion: text, numero_habitacion: room })
+                });
+                if (!res.ok) throw new Error('Error al agregar reclamo');
+                alert('Reclamo agregado');
+                loadClaims();
+                addClaimForm.reset();
+            } catch (err) {
+                console.error(err);
+                alert('Error al agregar reclamo');
+            }
+        });
+    }
 
     // Delegación de acciones en la sección de reservas (usa token en las llamadas)
     document.body.addEventListener('click', async (e) => {
@@ -273,19 +341,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert('Error al completar la reserva. Revisa la consola.');
                 }
             });
-        } else if (action === 'ver') {
-            // Mostrar detalles en modal simple
-            const card = btn.closest('.reserva-card');
-            if (!card) return;
-            const idr = card.getAttribute('data-id');
-            const detalles = card.innerHTML;
-            // Reusar confirm modal para mostrar info
-            showConfirmModal('Detalles de la reserva', () => {});
-            // Sobrescribir el contenido del modal con detalles
-            const modalMessage = document.getElementById('modal-message');
-            if (modalMessage) modalMessage.innerHTML = detalles + '<br><button id="close-info" class="btn btn-secondary">Cerrar</button>';
-            const closeInfo = document.getElementById('close-info');
-            if (closeInfo) closeInfo.addEventListener('click', hideConfirmModal);
+        } else if (action === 'resolver') {
+            showConfirmModal('Marcar reclamo como resuelto?', async () => {
+                try {
+                    const res = await fetch(`/api/encargado/reclamos/${id}/resolver`, { method: 'PUT', headers });
+                    if (!res.ok) throw new Error('Error al resolver reclamo');
+                    loadClaims();
+                } catch (err) {
+                    console.error(err);
+                    alert('Error al resolver reclamo');
+                }
+            });
         }
     });
 

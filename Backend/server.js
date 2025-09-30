@@ -584,6 +584,92 @@ app.post('/api/admin/habitaciones', authenticateToken, requireAdmin, upload.arra
 });
 
 /**
+ * @route POST /api/encargado/habitaciones
+ * @desc Crear una nueva habitación (encargado)
+ */
+app.post('/api/encargado/habitaciones', authenticateToken, upload.array("fotos", 10), async (req, res) => {
+  // Solo encargados o admins
+  if (!(req.user && (req.user.rol === 'encargado' || req.user.rol === 'admin'))) {
+    return res.status(403).json({ error: 'Acceso no autorizado' });
+  }
+
+  try {
+    console.log("👉 Datos recibidos en req.body:", req.body);
+    console.log("👉 Archivos recibidos en req.files:", req.files);
+
+    const {
+      numero_habitacion,
+      piso,
+      capacidad,
+      disponible = 'true',
+      id_categoria,
+      precio_por_hora,
+      precio_por_dia
+    } = req.body;
+
+    if (!numero_habitacion || !id_categoria) {
+      return res.status(400).json({ error: "Faltan datos obligatorios: numero_habitacion o id_categoria" });
+    }
+
+    // Obtener configuración del hotel
+    const configRes = await queryWithRetry("SELECT num_pisos, habitaciones_por_piso FROM public.hotel_config LIMIT 1");
+    if (configRes.rows.length === 0) {
+      return res.status(500).json({ error: "Configuración del hotel no encontrada" });
+    }
+    const { num_pisos, habitaciones_por_piso } = configRes.rows[0];
+
+    // Validar piso
+    const pisoNum = parseInt(piso, 10);
+    if (isNaN(pisoNum) || pisoNum < 1 || pisoNum > num_pisos) {
+      return res.status(400).json({ error: `El piso debe estar entre 1 y ${num_pisos}` });
+    }
+
+    // Validar numero_habitacion: debe ser piso*100 + number, number 1 to habitaciones_por_piso
+    const habNum = parseInt(numero_habitacion, 10);
+    if (isNaN(habNum)) {
+      return res.status(400).json({ error: "numero_habitacion debe ser un número válido" });
+    }
+    const expectedPiso = Math.floor(habNum / 100);
+    const number = habNum % 100;
+    if (expectedPiso !== pisoNum || number < 1 || number > habitaciones_por_piso) {
+      return res.status(400).json({ error: `numero_habitacion inválido. Para piso ${pisoNum}, debe ser ${pisoNum}01 a ${pisoNum}${String(habitaciones_por_piso).padStart(2, '0')}` });
+    }
+
+    // Verificar duplicado
+    const dup = await queryWithRetry("SELECT id_habitacion FROM public.habitaciones WHERE numero_habitacion = $1", [numero_habitacion]);
+    if (dup.rows.length > 0) {
+      return res.status(409).json({ error: "Ya existe una habitación con ese número" });
+    }
+
+    // insertar habitación
+    const result = await queryWithRetry(
+      `INSERT INTO public.habitaciones
+      (numero_habitacion, disponible, id_categoria, precio_por_hora, precio_por_dia, piso, capacidad)
+      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id_habitacion`,
+      [numero_habitacion, sanitizeBoolean(disponible), id_categoria, precio_por_hora || null, precio_por_dia || null, pisoNum, capacidad || null]
+    );
+
+    const habitacionId = result.rows[0].id_habitacion;
+
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const fotoPath = '/img/habitaciones/' + file.filename; // siempre con slash inicial
+        await queryWithRetry(
+          `INSERT INTO public.habitaciones_fotos (id_habitacion, ruta_foto) VALUES ($1, $2)`,
+          [habitacionId, fotoPath]
+        );
+      }
+    }
+
+    res.status(201).json({ message: "Habitación creada con éxito", id: habitacionId });
+
+  } catch (err) {
+    console.error("❌ Error al crear habitación (encargado):", err);
+    res.status(500).json({ error: "Error interno del servidor", detalle: err.message });
+  }
+});
+
+/**
  * @route PUT /api/admin/habitaciones/:id
  * @desc Actualizar una habitación
  */
@@ -1082,6 +1168,109 @@ app.get("/api/encargado/habitaciones", authenticateToken, async (req, res) => {
   } catch (err) {
     console.error("Error al obtener habitaciones (encargado):", err);
     res.status(500).json({ error: "Error al obtener habitaciones" });
+  }
+});
+
+/**
+ * @route GET /api/encargado/habitaciones/:id/fotos
+ * @desc Obtener fotos de una habitación (encargado)
+ */
+app.get('/api/encargado/habitaciones/:id/fotos', authenticateToken, async (req, res) => {
+  // Solo encargados o admins
+  if (!(req.user && (req.user.rol === 'encargado' || req.user.rol === 'admin'))) {
+    return res.status(403).json({ error: 'Acceso no autorizado' });
+  }
+
+  const { id } = req.params;
+  try {
+    const result = await queryWithRetry('SELECT ruta_foto FROM public.habitaciones_fotos WHERE id_habitacion = $1 ORDER BY ruta_foto', [id]);
+    const fotos = result.rows.map(row => ({ url: row.ruta_foto }));
+    res.json(fotos);
+  } catch (err) {
+    console.error('Error al obtener fotos de habitación (encargado):', err);
+    res.status(500).json({ error: 'Error al obtener fotos' });
+  }
+});
+
+/**
+ * @route POST /api/encargado/habitaciones/:id/fotos
+ * @desc Subir fotos a una habitación (encargado)
+ */
+app.post('/api/encargado/habitaciones/:id/fotos', authenticateToken, upload.array("fotos", 10), async (req, res) => {
+  // Solo encargados o admins
+  if (!(req.user && (req.user.rol === 'encargado' || req.user.rol === 'admin'))) {
+    return res.status(403).json({ error: 'Acceso no autorizado' });
+  }
+
+  const { id } = req.params;
+  try {
+    // Verificar que la habitación existe
+    const habCheck = await queryWithRetry('SELECT id_habitacion FROM public.habitaciones WHERE id_habitacion = $1', [id]);
+    if (habCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Habitación no encontrada' });
+    }
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No se enviaron archivos' });
+    }
+
+    const inserted = [];
+    for (const file of req.files) {
+      const fotoPath = '/img/habitaciones/' + file.filename;
+      await queryWithRetry('INSERT INTO public.habitaciones_fotos (id_habitacion, ruta_foto) VALUES ($1, $2)', [id, fotoPath]);
+      inserted.push({ url: fotoPath });
+    }
+
+    res.status(201).json({ message: 'Fotos subidas con éxito', fotos: inserted });
+  } catch (err) {
+    console.error('Error al subir fotos (encargado):', err);
+    res.status(500).json({ error: 'Error al subir fotos', detalle: err.message });
+  }
+});
+
+/**
+ * @route DELETE /api/encargado/habitaciones/:id/fotos
+ * @desc Eliminar una foto de una habitación (encargado)
+ */
+app.delete('/api/encargado/habitaciones/:id/fotos', authenticateToken, async (req, res) => {
+  // Solo encargados o admins
+  if (!(req.user && (req.user.rol === 'encargado' || req.user.rol === 'admin'))) {
+    return res.status(403).json({ error: 'Acceso no autorizado' });
+  }
+
+  const { id } = req.params;
+  const { url } = req.query;
+  if (!url) {
+    return res.status(400).json({ error: 'Parámetro url requerido' });
+  }
+
+  try {
+    // Verificar que la habitación existe
+    const habCheck = await queryWithRetry('SELECT id_habitacion FROM public.habitaciones WHERE id_habitacion = $1', [id]);
+    if (habCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Habitación no encontrada' });
+    }
+
+    // Eliminar de DB
+    const delResult = await queryWithRetry('DELETE FROM public.habitaciones_fotos WHERE id_habitacion = $1 AND ruta_foto = $2', [id, url]);
+    if (delResult.rowCount === 0) {
+      return res.status(404).json({ error: 'Foto no encontrada' });
+    }
+
+    // Intentar eliminar archivo físico
+    try {
+      const filePath = path.join(__dirname, '..', 'Fronted', 'Public', url);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    } catch (fileErr) {
+      console.warn('No se pudo eliminar archivo físico:', fileErr.message);
+    }
+
+    res.json({ message: 'Foto eliminada con éxito' });
+  } catch (err) {
+    console.error('Error al eliminar foto (encargado):', err);
+    res.status(500).json({ error: 'Error al eliminar foto', detalle: err.message });
   }
 });
 

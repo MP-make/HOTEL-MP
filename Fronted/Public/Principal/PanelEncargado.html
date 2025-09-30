@@ -32,17 +32,17 @@
     <section id="habitaciones">
         <div class="card">
         <h2>Gestión de Habitaciones</h2>
-        <form id="add-room-form">
-            <label for="room-number">Número de Habitación:</label>
-            <input type="number" id="room-number" class="input" placeholder="Ej. 101" required>
-            <label for="room-type">Tipo de Habitación:</label>
-            <input type="text" id="room-type" class="input" placeholder="Ej. Doble, Suite" required>
-            <button type="submit" class="btn">Agregar Habitación</button>
-        </form>
+        <div class="filtros-habitaciones" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+            <input id="filter-numero" placeholder="Número habitación" class="input" style="flex:1;min-width:120px;">
+            <input id="filter-categoria" placeholder="Categoría" class="input" style="flex:1;min-width:120px;">
+            <input id="filter-piso" type="number" placeholder="Piso" class="input" style="width:100px;">
+            <select id="filter-disponible" class="input" style="width:120px;">
+                <option value="">Disponibilidad</option>
+                <option value="true">Disponible</option>
+                <option value="false">Ocupada</option>
+            </select>
+            <button id="applyFiltersHabitaciones" class="btn">Aplicar</button>
         </div>
-
-        <div class="card" style="margin-top: 24px;">
-        <h2>Lista de Habitaciones</h2>
         <div id="rooms-list">
             <p style="text-align: center;">Cargando habitaciones...</p>
         </div>
@@ -85,9 +85,19 @@
 
         <div class="card" style="margin-top: 24px;">
         <h2>Reclamos Pendientes</h2>
-        <ul class="reclamos-list" id="claims-list">
+        <div class="filtros-reclamos" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+            <input id="filter-reclamo-texto" placeholder="Buscar en texto" class="input" style="flex:1;min-width:160px;">
+            <input id="filter-reclamo-habitacion" type="number" placeholder="Habitación" class="input" style="width:120px;">
+            <select id="filter-reclamo-estado" class="input" style="width:120px;">
+                <option value="">Estado</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="resuelto">Resuelto</option>
+            </select>
+            <button id="applyFiltersReclamos" class="btn">Aplicar</button>
+        </div>
+        <div id="claims-list">
             <p style="text-align: center;">Cargando reclamos...</p>
-        </ul>
+        </div>
         </div>
     </section>
     </main>
