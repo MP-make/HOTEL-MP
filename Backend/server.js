@@ -773,9 +773,9 @@ app.get("/api/admin/dashboard", authenticateToken, requireAdmin, async (req, res
 
 /**
  * @route GET /api/admin/habitaciones
- * @desc Obtener todas las habitaciones
+ * @desc Obtener todas las habitaciones (Admin y Encargado)
  */
-app.get("/api/admin/habitaciones", authenticateToken, requireAdmin, async (req, res) => {
+app.get("/api/admin/habitaciones", authenticateToken, requireEncargado, async (req, res) => {
   try {
     const result = await queryWithRetry("SELECT h.*, c.nombre as categoria FROM habitaciones h JOIN categorias_habitaciones c ON h.id_categoria = c.id_categoria ORDER BY h.numero_habitacion");
     res.json(result.rows);
@@ -787,9 +787,9 @@ app.get("/api/admin/habitaciones", authenticateToken, requireAdmin, async (req, 
 
 /**
  * @route GET /api/admin/carrusel
- * @desc Obtener imágenes del carrusel
+ * @desc Obtener imágenes del carrusel (Admin y Encargado)
  */
-app.get("/api/admin/carrusel", authenticateToken, requireAdmin, async (req, res) => {
+app.get("/api/admin/carrusel", authenticateToken, requireEncargado, async (req, res) => {
   try {
     const carouselDir = path.join(__dirname, '..', 'Fronted', 'Public', 'img', 'carousel');
     if (!fs.existsSync(carouselDir)) {
@@ -806,9 +806,9 @@ app.get("/api/admin/carrusel", authenticateToken, requireAdmin, async (req, res)
 
 /**
  * @route POST /api/admin/carrusel
- * @desc Subir imágenes al carrusel
+ * @desc Subir imágenes al carrusel (Admin y Encargado)
  */
-app.post("/api/admin/carrusel", authenticateToken, requireAdmin, uploadCarousel.array('fotos'), async (req, res) => {
+app.post("/api/admin/carrusel", authenticateToken, requireEncargado, uploadCarousel.array('fotos'), async (req, res) => {
   try {
     res.status(201).json({ message: 'Imágenes subidas correctamente' });
   } catch (err) {
@@ -819,9 +819,9 @@ app.post("/api/admin/carrusel", authenticateToken, requireAdmin, uploadCarousel.
 
 /**
  * @route DELETE /api/admin/carrusel/:filename
- * @desc Eliminar imagen del carrusel
+ * @desc Eliminar imagen del carrusel (Admin y Encargado)
  */
-app.delete("/api/admin/carrusel/:filename", authenticateToken, requireAdmin, async (req, res) => {
+app.delete("/api/admin/carrusel/:filename", authenticateToken, requireEncargado, async (req, res) => {
   const { filename } = req.params;
   try {
     const filePath = path.join(carouselDir, filename);
@@ -858,9 +858,9 @@ app.get("/api/carrusel", async (req, res) => {
 
 /**
  * @route GET /api/admin/reservas
- * @desc Obtener todas las reservas
+ * @desc Obtener todas las reservas (Admin y Encargado)
  */
-app.get("/api/admin/reservas", authenticateToken, requireAdmin, async (req, res) => {
+app.get("/api/admin/reservas", authenticateToken, requireEncargado, async (req, res) => {
   try {
     const result = await queryWithRetry("SELECT r.*, h.numero_habitacion, u.nombre as cliente_nombre, u.email as cliente_email FROM reservas r JOIN habitaciones h ON r.id_habitacion = h.id_habitacion JOIN usuarios u ON r.id_usuario = u.id ORDER BY r.fecha_creacion DESC");
     res.json(result.rows);
@@ -872,9 +872,9 @@ app.get("/api/admin/reservas", authenticateToken, requireAdmin, async (req, res)
 
 /**
  * @route PUT /api/admin/reservas/:id/completar
- * @desc Completar reserva
+ * @desc Completar reserva (Admin y Encargado)
  */
-app.put("/api/admin/reservas/:id/completar", authenticateToken, requireAdmin, async (req, res) => {
+app.put("/api/admin/reservas/:id/completar", authenticateToken, requireEncargado, async (req, res) => {
   const { id } = req.params;
   try {
     const result = await queryWithRetry("UPDATE reservas SET estado_reserva = 'completada' WHERE id_reserva = $1 RETURNING id_habitacion", [parseInt(id)]);
@@ -887,6 +887,21 @@ app.put("/api/admin/reservas/:id/completar", authenticateToken, requireAdmin, as
   } catch (err) {
     console.error("Error completando reserva:", err);
     res.status(500).json({ error: "Error al completar reserva" });
+  }
+});
+
+/**
+ * @route DELETE /api/admin/reservas/:id
+ * @desc Eliminar reserva (Admin y Encargado)
+ */
+app.delete("/api/admin/reservas/:id", authenticateToken, requireEncargado, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await queryWithRetry("DELETE FROM reservas WHERE id_reserva = $1", [parseInt(id)]);
+    res.status(204).send();
+  } catch (err) {
+    console.error("Error eliminando reserva:", err);
+    res.status(500).json({ error: "Error al eliminar reserva" });
   }
 });
 
