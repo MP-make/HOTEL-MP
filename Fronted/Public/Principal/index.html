@@ -267,6 +267,43 @@
         </div>
     </div>
 
+    <!-- MODAL DETALLES DE RESERVA -->
+    <div id="detallesReservaModal" class="modal">
+        <div class="modal-content reserva-modal-content">
+            <span class="close-modal" data-modal-close="detallesReservaModal">&times;</span>
+            <h2>Detalles de la Reserva</h2>
+            <div class="reserva-container">
+                <div class="reserva-imagen-detalle">
+                    <img id="detalleHabitacionImagen" src="" alt="Habitación" class="reserva-img">
+                </div>
+                <div class="reserva-detalles-info">
+                    <h3 id="detalleReservaId" class="detalle-titulo"></h3>
+                    <div class="detalle-info-group">
+                        <p><strong>Habitación:</strong> <span id="detalleNumeroHabitacion"></span></p>
+                        <p><strong>Categoría:</strong> <span id="detalleCategoria"></span></p>
+                        <p><strong>Estado:</strong> <span id="detalleEstado" class="badge-estado"></span></p>
+                    </div>
+                    <div class="detalle-info-group">
+                        <p><strong>Check-in:</strong> <span id="detalleFechaCheckin"></span></p>
+                        <p><strong>Check-out:</strong> <span id="detalleFechaCheckout"></span></p>
+                        <p><strong>Fecha de creación:</strong> <span id="detalleFechaCreacion"></span></p>
+                    </div>
+                    
+                    <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
+                    
+                    <h4>Enviar Reclamo sobre esta Reserva</h4>
+                    <form id="reclamoReservaForm">
+                        <label for="reclamoDescripcion">Descripción del reclamo:</label>
+                        <textarea id="reclamoDescripcion" class="form-input" rows="4" placeholder="Describe tu reclamo..." required></textarea>
+                        <input type="hidden" id="reclamoHabitacionId" value="">
+                        <p id="reclamoMessage" class="text-red-500 my-2 text-center"></p>
+                        <button type="submit" class="btn-submit">Enviar Reclamo</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="index.js"></script>
 </body>
 

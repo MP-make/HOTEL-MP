@@ -963,6 +963,173 @@ Modales
 }
 
 /* ==============================
+Modales
+============================== */
+/* Modal general */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.65);
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(3px);
+}
+
+.modal-content {
+    background: #FFFFFF;
+    padding: 35px 28px;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+    position: relative;
+    animation: fadeIn 0.4s ease-in-out;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.modal-content h2 {
+    color: #333333;
+    font-size: 1.9rem;
+    margin-bottom: 1.2rem;
+}
+
+.close-modal {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    color: #999;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.close-modal:hover {
+    color: #333;
+}
+
+/* Modal de Reserva y Detalles */
+.reserva-modal-content {
+    max-width: 900px;
+    width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.reserva-container {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+}
+
+.reserva-imagen-detalle {
+    flex: 1;
+    max-width: 400px;
+}
+
+.reserva-img {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.reserva-detalles-info {
+    flex: 1;
+    padding: 0 20px;
+    text-align: left;
+}
+
+.detalle-titulo {
+    color: #333333;
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0 0 20px 0;
+}
+
+.detalle-info-group {
+    margin-bottom: 20px;
+}
+
+.detalle-info-group p {
+    margin: 8px 0;
+    color: #555;
+    font-size: 15px;
+}
+
+.detalle-info-group strong {
+    color: #333;
+    font-weight: 600;
+}
+
+.badge-estado {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: bold;
+    background: #d4edda;
+    color: #155724;
+}
+
+.reserva-detalles-info h4 {
+    color: #333;
+    font-size: 18px;
+    margin: 20px 0 15px 0;
+    font-weight: 600;
+}
+
+.reserva-detalles-info textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1.5px solid #ccc;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    margin-bottom: 10px;
+}
+
+.reserva-detalles-info textarea:focus {
+    border-color: #666;
+    outline: none;
+    box-shadow: 0 0 5px rgba(102, 102, 102, 0.3);
+}
+
+.reserva-detalles-info label {
+    display: block;
+    margin-bottom: 8px;
+    color: #333;
+    font-weight: 600;
+}
+
+/* Responsive para modales */
+@media (max-width: 768px) {
+    .reserva-modal-content {
+        max-width: 95%;
+        padding: 20px 15px;
+    }
+
+    .reserva-container {
+        flex-direction: column;
+    }
+
+    .reserva-imagen-detalle {
+        max-width: 100%;
+    }
+
+    .reserva-detalles-info {
+        padding: 0;
+    }
+}
+
+/* ==============================
 Animaciones
 ============================== */
 @keyframes fadeIn {

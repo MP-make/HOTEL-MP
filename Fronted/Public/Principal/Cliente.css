@@ -537,6 +537,92 @@ FILTROS DE RESERVAS
 }
 
 /* =======================
+MODAL DETALLES DE RESERVA
+======================= */
+.reserva-imagen-detalle {
+    flex: 1;
+    max-width: 400px;
+}
+
+.reserva-detalles-info {
+    flex: 1;
+    padding: 0 20px;
+}
+
+.detalle-titulo {
+    color: #333333;
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0 0 20px 0;
+}
+
+.detalle-info-group {
+    margin-bottom: 20px;
+}
+
+.detalle-info-group p {
+    margin: 8px 0;
+    color: #555;
+    font-size: 15px;
+}
+
+.detalle-info-group strong {
+    color: #333;
+    font-weight: 600;
+}
+
+.badge-estado {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: bold;
+    background: #d4edda;
+    color: #155724;
+}
+
+.reserva-detalles-info h4 {
+    color: #333;
+    font-size: 18px;
+    margin: 20px 0 15px 0;
+    font-weight: 600;
+}
+
+.reserva-detalles-info textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1.5px solid #ccc;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    margin-bottom: 10px;
+}
+
+.reserva-detalles-info textarea:focus {
+    border-color: #666;
+    outline: none;
+    box-shadow: 0 0 5px rgba(102, 102, 102, 0.3);
+}
+
+/* Estilos para cerrar modal */
+.close-modal {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    color: #999;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.close-modal:hover {
+    color: #333;
+}
+
+/* =======================
 MODAL
 ======================= */
 .modal-overlay {

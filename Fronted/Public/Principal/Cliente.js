@@ -17,6 +17,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // Cargar reclamos
     loadReclamos();
 
+    // Event listeners para cerrar modales
+    document.querySelectorAll('.close-modal').forEach(closeBtn => {
+        closeBtn.addEventListener('click', function() {
+            const modalId = this.getAttribute('data-modal-close');
+            document.getElementById(modalId).style.display = 'none';
+        });
+    });
+
+    // Cerrar modal al hacer clic fuera
+    window.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal')) {
+            e.target.style.display = 'none';
+        }
+    });
+
     // Event listeners para filtros de reservas
     document.getElementById('btnFiltrarReservas').addEventListener('click', filtrarReservas);
     document.getElementById('btnLimpiarReservas').addEventListener('click', function() {
@@ -181,7 +196,15 @@ function displayReservas(reservas) {
                         <p class="reserva-fechas">Check-in: ${checkin} | Check-out: ${checkout}</p>
                         <p class="reserva-estado">Estado: ${reserva.estado_reserva}</p>
                         <button class="btn-detalles" 
-                                data-id="${reserva.id_reserva}">
+                                data-id="${reserva.id_reserva}"
+                                data-habitacion="${reserva.numero_habitacion}"
+                                data-categoria="${reserva.categoria}"
+                                data-checkin="${reserva.fecha_checkin}"
+                                data-checkout="${reserva.fecha_checkout}"
+                                data-estado="${reserva.estado_reserva}"
+                                data-fecha-creacion="${reserva.fecha_creacion}"
+                                data-id-habitacion="${reserva.id_habitacion}"
+                                data-foto="${fotoSrc}">
                             Ver Detalles
                         </button>
                     </div>
@@ -190,7 +213,106 @@ function displayReservas(reservas) {
             }).join('')}
         </div>
     `;
+
+    // Event listeners para ver detalles
+    document.querySelectorAll('.btn-detalles').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const reservaData = {
+                id: this.getAttribute('data-id'),
+                habitacion: this.getAttribute('data-habitacion'),
+                categoria: this.getAttribute('data-categoria'),
+                checkin: this.getAttribute('data-checkin'),
+                checkout: this.getAttribute('data-checkout'),
+                estado: this.getAttribute('data-estado'),
+                fechaCreacion: this.getAttribute('data-fecha-creacion'),
+                idHabitacion: this.getAttribute('data-id-habitacion'),
+                foto: this.getAttribute('data-foto')
+            };
+            mostrarDetallesReserva(reservaData);
+        });
+    });
 }
+
+function mostrarDetallesReserva(reserva) {
+    // Llenar los datos del modal
+    document.getElementById('detalleReservaId').textContent = `Reserva #${reserva.id}`;
+    document.getElementById('detalleNumeroHabitacion').textContent = reserva.habitacion;
+    document.getElementById('detalleCategoria').textContent = reserva.categoria;
+    document.getElementById('detalleEstado').textContent = reserva.estado;
+    
+    // Formatear fechas
+    const checkin = new Date(reserva.checkin).toLocaleString('es-ES', { 
+        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+    });
+    const checkout = new Date(reserva.checkout).toLocaleString('es-ES', { 
+        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+    });
+    const fechaCreacion = new Date(reserva.fechaCreacion).toLocaleString('es-ES', { 
+        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+    });
+    
+    document.getElementById('detalleFechaCheckin').textContent = checkin;
+    document.getElementById('detalleFechaCheckout').textContent = checkout;
+    document.getElementById('detalleFechaCreacion').textContent = fechaCreacion;
+    
+    // Establecer la imagen
+    document.getElementById('detalleHabitacionImagen').src = reserva.foto;
+    
+    // Guardar el ID de la habitación para el reclamo
+    document.getElementById('reclamoHabitacionId').value = reserva.idHabitacion;
+    
+    // Limpiar el formulario de reclamo
+    document.getElementById('reclamoReservaForm').reset();
+    document.getElementById('reclamoMessage').textContent = '';
+    
+    // Abrir el modal
+    document.getElementById('detallesReservaModal').style.display = 'flex';
+}
+
+// Manejar el envío del formulario de reclamo desde el modal de detalles
+document.getElementById('reclamoReservaForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const descripcion = document.getElementById('reclamoDescripcion').value.trim();
+    const id_habitacion = document.getElementById('reclamoHabitacionId').value;
+    
+    if (!descripcion) {
+        document.getElementById('reclamoMessage').textContent = 'Por favor, describe el reclamo.';
+        return;
+    }
+    
+    const token = localStorage.getItem('token');
+    
+    try {
+        const response = await fetch('/api/cliente/reclamos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ descripcion, id_habitacion: parseInt(id_habitacion) })
+        });
+        
+        if (response.status === 401) {
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+            return;
+        }
+        
+        if (response.ok) {
+            alert('Reclamo enviado exitosamente.');
+            document.getElementById('reclamoReservaForm').reset();
+            document.getElementById('detallesReservaModal').style.display = 'none';
+            loadReclamos(); // Recargar la lista de reclamos
+        } else {
+            const error = await response.json();
+            document.getElementById('reclamoMessage').textContent = 'Error al enviar reclamo: ' + (error.error || 'Desconocido');
+        }
+    } catch (error) {
+        console.error('Error enviando reclamo:', error);
+        document.getElementById('reclamoMessage').textContent = 'Error al enviar reclamo.';
+    }
+});
 
 function populateSelect(reservas) {
     const select = document.getElementById('reclamo-habitacion');
@@ -321,7 +443,7 @@ function filtrarReservas() {
     } else if (orden === 'recientes') {
         filtered.sort((a, b) => new Date(b.fecha_checkin) - new Date(b.fecha_checkin));
     } else if (orden === 'antiguas') {
-        filtered.sort((a, b) => new Date(a.fecha_checkin) - new Date(b.fecha_checkin));
+        filtered.sort((a, b) => new Date(a.fecha_checkin) - new Date(a.fecha_checkin));
     }
     
     console.log(`Filtrado: ${filtered.length} reservas de ${window.reservas.length} totales`);

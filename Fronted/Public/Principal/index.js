@@ -608,7 +608,15 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <p class="reserva-fechas">Check-in: ${checkin} | Check-out: ${checkout}</p>
                                     <p class="reserva-estado">Estado: ${reserva.estado_reserva}</p>
                                     <button class="btn-detalles" 
-                                            data-id="${reserva.id_reserva}">
+                                            data-id="${reserva.id_reserva}"
+                                            data-habitacion="${reserva.numero_habitacion}"
+                                            data-categoria="${reserva.categoria}"
+                                            data-checkin="${reserva.fecha_checkin}"
+                                            data-checkout="${reserva.fecha_checkout}"
+                                            data-estado="${reserva.estado_reserva}"
+                                            data-fecha-creacion="${reserva.fecha_creacion}"
+                                            data-id-habitacion="${reserva.id_habitacion}"
+                                            data-foto="${fotoSrc}">
                                         Ver Detalles
                                     </button>
                                 </div>
@@ -631,9 +639,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Agregar event listeners a los botones de detalles
                 document.querySelectorAll('.btn-detalles').forEach(btn => {
                     btn.addEventListener('click', () => {
-                        const reservaId = parseInt(btn.getAttribute('data-id'));
-                        // Aquí puedes abrir un modal con detalles o algo
-                        alert('Detalles de la reserva #' + reservaId);
+                        const reservaData = {
+                            id: btn.getAttribute('data-id'),
+                            habitacion: btn.getAttribute('data-habitacion'),
+                            categoria: btn.getAttribute('data-categoria'),
+                            checkin: btn.getAttribute('data-checkin'),
+                            checkout: btn.getAttribute('data-checkout'),
+                            estado: btn.getAttribute('data-estado'),
+                            fechaCreacion: btn.getAttribute('data-fecha-creacion'),
+                            idHabitacion: btn.getAttribute('data-id-habitacion'),
+                            foto: btn.getAttribute('data-foto')
+                        };
+                        mostrarDetallesReserva(reservaData);
                     });
                 });
 
@@ -650,6 +667,87 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
+
+        // Función para mostrar detalles de una reserva
+        function mostrarDetallesReserva(reserva) {
+            // Llenar los datos del modal
+            document.getElementById('detalleReservaId').textContent = `Reserva #${reserva.id}`;
+            document.getElementById('detalleNumeroHabitacion').textContent = reserva.habitacion;
+            document.getElementById('detalleCategoria').textContent = reserva.categoria;
+            document.getElementById('detalleEstado').textContent = reserva.estado;
+            
+            // Formatear fechas
+            const checkin = new Date(reserva.checkin).toLocaleString('es-ES', { 
+                year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+            });
+            const checkout = new Date(reserva.checkout).toLocaleString('es-ES', { 
+                year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+            });
+            const fechaCreacion = new Date(reserva.fechaCreacion).toLocaleString('es-ES', { 
+                year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+            });
+            
+            document.getElementById('detalleFechaCheckin').textContent = checkin;
+            document.getElementById('detalleFechaCheckout').textContent = checkout;
+            document.getElementById('detalleFechaCreacion').textContent = fechaCreacion;
+            
+            // Establecer la imagen
+            document.getElementById('detalleHabitacionImagen').src = reserva.foto;
+            
+            // Guardar el ID de la habitación para el reclamo
+            document.getElementById('reclamoHabitacionId').value = reserva.idHabitacion;
+            
+            // Limpiar el formulario de reclamo
+            document.getElementById('reclamoReservaForm').reset();
+            document.getElementById('reclamoMessage').textContent = '';
+            
+            // Abrir el modal
+            openModal('detallesReservaModal');
+        }
+
+        // Manejar el envío del formulario de reclamo desde el modal de detalles
+        document.getElementById('reclamoReservaForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const descripcion = document.getElementById('reclamoDescripcion').value.trim();
+            const id_habitacion = document.getElementById('reclamoHabitacionId').value;
+            
+            if (!descripcion) {
+                document.getElementById('reclamoMessage').textContent = 'Por favor, describe el reclamo.';
+                return;
+            }
+            
+            const token = localStorage.getItem('token');
+            
+            try {
+                const response = await fetch('/api/cliente/reclamos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ descripcion, id_habitacion: parseInt(id_habitacion) })
+                });
+                
+                if (response.status === 401) {
+                    localStorage.removeItem('token');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                if (response.ok) {
+                    alert('Reclamo enviado exitosamente.');
+                    document.getElementById('reclamoReservaForm').reset();
+                    closeModal('detallesReservaModal');
+                } else {
+                    const error = await response.json();
+                    document.getElementById('reclamoMessage').textContent = 'Error al enviar reclamo: ' + (error.error || 'Desconocido');
+                }
+            } catch (error) {
+                console.error('Error enviando reclamo:', error);
+                document.getElementById('reclamoMessage').textContent = 'Error al enviar reclamo.';
+            }
+        });
 
         // Función para inicializar todo el sistema
         async function inicializarSistema() {
