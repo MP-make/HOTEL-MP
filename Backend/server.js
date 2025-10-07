@@ -261,7 +261,7 @@ try {
     if (user.rol === 'cliente') {
     redirectUrl = '/index.html';
     } else if (user.rol === 'encargado') {
-    redirectUrl = '/PanelEncargado.html';
+    redirectUrl = '/PanelAdmin.html';  // CAMBIO: Encargado va al Panel Admin
     } else if (user.rol === 'admin') {
     redirectUrl = '/PanelAdmin.html';
     } else {
@@ -896,11 +896,185 @@ app.put("/api/admin/reservas/:id/completar", authenticateToken, requireAdmin, as
  */
 app.get("/api/admin/encargados", authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const result = await queryWithRetry("SELECT id, nombre, email FROM usuarios WHERE rol = (SELECT id_rol FROM roles WHERE nombre = 'encargado')");
+    const result = await queryWithRetry("SELECT u.id, u.nombre, u.email, r.nombre as rol FROM usuarios u JOIN roles r ON u.rol = r.id_rol WHERE r.nombre = 'encargado'");
     res.json(result.rows);
   } catch (err) {
     console.error("Error obteniendo encargados:", err);
     res.status(500).json({ error: "Error al obtener encargados" });
+  }
+});
+
+/**
+ * @route POST /api/admin/encargados
+ * @desc Crear un nuevo encargado
+ */
+app.post("/api/admin/encargados", authenticateToken, requireAdmin, async (req, res) => {
+  const { nombre, email, password } = req.body;
+  
+  try {
+    // Validaciones básicas
+    if (!nombre || !email || !password) {
+      return res.status(400).json({ error: "Nombre, email y contraseña son obligatorios" });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: "Email inválido" });
+    }
+
+    // Verificar que el email no existe
+    const existingUser = await queryWithRetry("SELECT id FROM usuarios WHERE email = $1", [email]);
+    if (existingUser.rows.length > 0) {
+      return res.status(409).json({ error: "El email ya está en uso" });
+    }
+
+    // Obtener el ID del rol 'encargado'
+    const roleRes = await queryWithRetry("SELECT id_rol FROM roles WHERE nombre = 'encargado'");
+    if (roleRes.rows.length === 0) {
+      return res.status(500).json({ error: "Rol 'encargado' no configurado en la base de datos" });
+    }
+    const encargadoRolId = roleRes.rows[0].id_rol;
+
+    // Hash de la contraseña
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    // Insertar usuario
+    const result = await queryWithRetry(
+      "INSERT INTO usuarios (nombre, email, password, rol) VALUES ($1, $2, $3, $4) RETURNING id, nombre, email",
+      [nombre, email, passwordHash, encargadoRolId]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error("Error creando encargado:", err);
+    res.status(500).json({ error: "Error al crear encargado", detalle: err.message });
+  }
+});
+
+/**
+ * @route PUT /api/admin/encargados/:id
+ * @desc Actualizar un encargado
+ */
+app.put("/api/admin/encargados/:id", authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { nombre, email, password } = req.body;
+  
+  try {
+    // Validaciones básicas
+    if (!nombre || !email) {
+      return res.status(400).json({ error: "Nombre y email son obligatorios" });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: "Email inválido" });
+    }
+
+    const userId = parseInt(id, 10);
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: "ID inválido" });
+    }
+
+    // Verificar que el usuario existe y es encargado
+    const userExists = await queryWithRetry(
+      "SELECT u.id FROM usuarios u JOIN roles r ON u.rol = r.id_rol WHERE u.id = $1 AND r.nombre = 'encargado'",
+      [userId]
+    );
+    if (userExists.rows.length === 0) {
+      return res.status(404).json({ error: "Encargado no encontrado" });
+    }
+
+    // Verificar que el email no esté usado por otro usuario
+    const emailExists = await queryWithRetry(
+      "SELECT id FROM usuarios WHERE email = $1 AND id != $2",
+      [email, userId]
+    );
+    if (emailExists.rows.length > 0) {
+      return res.status(409).json({ error: "El email ya está en uso por otro usuario" });
+    }
+
+    // Si se proporciona contraseña, hashearla
+    let updateQuery, params;
+    if (password) {
+      const saltRounds = 10;
+      const passwordHash = await bcrypt.hash(password, saltRounds);
+      updateQuery = "UPDATE usuarios SET nombre = $1, email = $2, password = $3 WHERE id = $4 RETURNING id, nombre, email";
+      params = [nombre, email, passwordHash, userId];
+    } else {
+      updateQuery = "UPDATE usuarios SET nombre = $1, email = $2 WHERE id = $3 RETURNING id, nombre, email";
+      params = [nombre, email, userId];
+    }
+
+    const result = await queryWithRetry(updateQuery, params);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error actualizando encargado:", err);
+    res.status(500).json({ error: "Error al actualizar encargado", detalle: err.message });
+  }
+});
+
+/**
+ * @route DELETE /api/admin/encargados/:id
+ * @desc Eliminar un encargado
+ */
+app.delete("/api/admin/encargados/:id", authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const userId = parseInt(id, 10);
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: "ID inválido" });
+    }
+
+    // Verificar que el usuario existe y es encargado
+    const userExists = await queryWithRetry(
+      "SELECT u.id FROM usuarios u JOIN roles r ON u.rol = r.id_rol WHERE u.id = $1 AND r.nombre = 'encargado'",
+      [userId]
+    );
+    if (userExists.rows.length === 0) {
+      return res.status(404).json({ error: "Encargado no encontrado" });
+    }
+
+    // Eliminar usuario
+    await queryWithRetry("DELETE FROM usuarios WHERE id = $1", [userId]);
+    res.status(204).send();
+  } catch (err) {
+    console.error("Error eliminando encargado:", err);
+    res.status(500).json({ error: "Error al eliminar encargado", detalle: err.message });
+  }
+});
+
+/**
+ * @route POST /api/admin/assign-encargado
+ * @desc Asignar rol de encargado a un usuario existente por email
+ */
+app.post("/api/admin/assign-encargado", authenticateToken, requireAdmin, async (req, res) => {
+  const { email } = req.body;
+  
+  try {
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({ error: "Email válido requerido" });
+    }
+
+    // Verificar que el usuario existe
+    const user = await queryWithRetry("SELECT id, rol FROM usuarios WHERE email = $1", [email]);
+    if (user.rows.length === 0) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    // Obtener el ID del rol encargado
+    const roleRes = await queryWithRetry("SELECT id_rol FROM roles WHERE nombre = 'encargado'");
+    if (roleRes.rows.length === 0) {
+      return res.status(500).json({ error: "Rol 'encargado' no configurado" });
+    }
+    const encargadoRolId = roleRes.rows[0].id_rol;
+
+    // Actualizar rol del usuario
+    await queryWithRetry("UPDATE usuarios SET rol = $1 WHERE id = $2", [encargadoRolId, user.rows[0].id]);
+    
+    res.json({ message: "Usuario asignado como encargado exitosamente" });
+  } catch (err) {
+    console.error("Error asignando encargado:", err);
+    res.status(500).json({ error: "Error al asignar encargado", detalle: err.message });
   }
 });
 
@@ -967,6 +1141,125 @@ app.post("/api/admin/habitaciones", authenticateToken, requireAdmin, upload.arra
   } catch (err) {
     console.error("Error creando habitación:", err);
     res.status(500).json({ error: "Error al crear habitación", detalle: err.message });
+  }
+});
+
+/**
+ * @route PUT /api/admin/habitaciones/:id
+ * @desc Actualizar una habitación existente
+ */
+app.put("/api/admin/habitaciones/:id", authenticateToken, requireAdmin, upload.array('fotos'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { numero_habitacion, piso, id_categoria, precio_por_dia, precio_por_hora, capacidad, descripcion } = req.body;
+    const disponible = req.body.disponible !== undefined ? sanitizeBoolean(req.body.disponible) : true;
+
+    // Validaciones básicas
+    if (!numero_habitacion || !id_categoria) {
+      return res.status(400).json({ error: "Número de habitación e ID de categoría son obligatorios" });
+    }
+
+    const habitacionId = parseInt(id, 10);
+    const numHab = parseInt(numero_habitacion, 10);
+    
+    if (isNaN(habitacionId) || isNaN(numHab) || numHab <= 0) {
+      return res.status(400).json({ error: "IDs deben ser enteros positivos válidos" });
+    }
+
+    // Verificar que la habitación existe
+    const habitacionExists = await queryWithRetry("SELECT id_habitacion FROM habitaciones WHERE id_habitacion = $1", [habitacionId]);
+    if (habitacionExists.rows.length === 0) {
+      return res.status(404).json({ error: "Habitación no encontrada" });
+    }
+
+    // Verificar que el número de habitación no esté usado por otra habitación
+    const numExists = await queryWithRetry("SELECT id_habitacion FROM habitaciones WHERE numero_habitacion = $1 AND id_habitacion != $2", [numHab, habitacionId]);
+    if (numExists.rows.length > 0) {
+      return res.status(409).json({ error: "Ya existe otra habitación con ese número" });
+    }
+
+    // Verificar que la categoría existe
+    const catExists = await queryWithRetry("SELECT id_categoria FROM categorias_habitaciones WHERE id_categoria = $1", [id_categoria]);
+    if (catExists.rows.length === 0) {
+      return res.status(400).json({ error: "Categoría no encontrada" });
+    }
+
+    // Actualizar habitación
+    const updateQuery = `
+      UPDATE habitaciones 
+      SET numero_habitacion = $1, piso = $2, id_categoria = $3, precio_por_dia = $4, 
+          precio_por_hora = $5, capacidad = $6, descripcion = $7, disponible = $8
+      WHERE id_habitacion = $9
+      RETURNING *
+    `;
+    const params = [
+      numHab,
+      piso ? parseInt(piso, 10) : null,
+      id_categoria,
+      precio_por_dia ? parseFloat(precio_por_dia) : null,
+      precio_por_hora ? parseFloat(precio_por_hora) : null,
+      capacidad ? parseInt(capacidad, 10) : null,
+      descripcion || null,
+      disponible,
+      habitacionId
+    ];
+
+    const result = await queryWithRetry(updateQuery, params);
+    const habitacionActualizada = result.rows[0];
+
+    // Si hay fotos nuevas, agregarlas
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const rutaFoto = file.filename;
+        await queryWithRetry("INSERT INTO habitaciones_fotos (id_habitacion, ruta_foto) VALUES ($1, $2)", [habitacionId, rutaFoto]);
+      }
+    }
+
+    res.json(habitacionActualizada);
+  } catch (err) {
+    console.error("Error actualizando habitación:", err);
+    res.status(500).json({ error: "Error al actualizar habitación", detalle: err.message });
+  }
+});
+
+/**
+ * @route DELETE /api/admin/habitaciones/:id
+ * @desc Eliminar una habitación
+ */
+app.delete("/api/admin/habitaciones/:id", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const habitacionId = parseInt(id, 10);
+
+    // Verificar que no hay reservas pendientes para esta habitación
+    const reservasPendientes = await queryWithRetry(
+      "SELECT COUNT(*)::int AS count FROM reservas WHERE id_habitacion = $1 AND estado_reserva = 'pendiente'",
+      [habitacionId]
+    );
+
+    if (reservasPendientes.rows[0].count > 0) {
+      return res.status(409).json({ 
+        error: "No se puede eliminar la habitación porque tiene reservas pendientes" 
+      });
+    }
+
+    // Eliminar fotos asociadas
+    const fotos = await queryWithRetry("SELECT ruta_foto FROM habitaciones_fotos WHERE id_habitacion = $1", [habitacionId]);
+    for (const foto of fotos.rows) {
+      const filePath = path.join(uploadDir, foto.ruta_foto);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+    await queryWithRetry("DELETE FROM habitaciones_fotos WHERE id_habitacion = $1", [habitacionId]);
+
+    // Eliminar habitación
+    await queryWithRetry("DELETE FROM habitaciones WHERE id_habitacion = $1", [habitacionId]);
+
+    res.status(204).send();
+  } catch (err) {
+    console.error("Error eliminando habitación:", err);
+    res.status(500).json({ error: "Error al eliminar habitación", detalle: err.message });
   }
 });
 

@@ -4,109 +4,7 @@
         const sidebarItems = document.querySelectorAll(".sidebar-item");
         const mainContentArea = document.getElementById("mainContent");
         const sectionTitle = document.getElementById("sectionTitle");
-        
-        // ============ CONTROL DE ACCESO POR ROL ============
-        let usuarioActual = null;
-        let rolUsuario = null;
-
-        // Función para verificar sesión y obtener rol
-        function verificarSesionYRol() {
-            const token = localStorage.getItem('token');
-            const user = localStorage.getItem('user');
-            
-            if (!token || !user) {
-                // No hay sesión, redirigir al login
-                window.location.href = 'index.html';
-                return false;
-            }
-            
-            try {
-                usuarioActual = JSON.parse(user);
-                rolUsuario = usuarioActual.rol;
-                
-                // Verificar que el rol sea admin o encargado
-                if (rolUsuario !== 'admin' && rolUsuario !== 'encargado') {
-                    alert('Acceso denegado. No tienes permisos para acceder a este panel.');
-                    window.location.href = 'index.html';
-                    return false;
-                }
-                
-                return true;
-            } catch (error) {
-                console.error('Error al verificar sesión:', error);
-                window.location.href = 'index.html';
-                return false;
-            }
-        }
-
-        // Configuración de permisos por rol
-        const PERMISOS = {
-            admin: [
-                'dashboard',
-                'configuracion-hotel',
-                'gestion-habitaciones',
-                'gestion-carrusel',
-                'gestion-reservas',
-                'gestion-encargados',
-                'salir'
-            ],
-            encargado: [
-                'gestion-habitaciones',
-                'gestion-carrusel',
-                'gestion-reservas',
-                'salir'
-            ]
-        };
-
-        // Función para verificar si el usuario tiene permiso para una sección
-        function tienePermiso(seccion) {
-            if (!rolUsuario) return false;
-            return PERMISOS[rolUsuario].includes(seccion);
-        }
-
-        // Función para ocultar/mostrar secciones del sidebar según el rol
-        function aplicarControlDeAcceso() {
-            sidebarItems.forEach(item => {
-                const seccion = item.getAttribute('data-section');
-                
-                if (!tienePermiso(seccion)) {
-                    // Ocultar la sección no permitida
-                    item.style.display = 'none';
-                } else {
-                    // Mostrar la sección permitida
-                    item.style.display = 'flex';
-                }
-            });
-
-            // Determinar la sección inicial según el rol
-            let seccionInicial = 'dashboard';
-            if (rolUsuario === 'encargado') {
-                seccionInicial = 'gestion-habitaciones'; // Primera sección visible para encargados
-            }
-            
-            // Cargar la sección inicial
-            loadSection(seccionInicial);
-            
-            // Activar el elemento del sidebar correspondiente
-            sidebarItems.forEach(item => {
-                if (item.getAttribute('data-section') === seccionInicial) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
-            });
-        }
-
-        // Verificar sesión al cargar la página
-        if (!verificarSesionYRol()) {
-            return; // Detener la ejecución si no hay sesión válida
-        }
-
-        // Aplicar control de acceso
-        aplicarControlDeAcceso();
-
-        // ============ FIN CONTROL DE ACCESO ============
-
+    
         // --- Funciones del Modal (igual a las tuyas) ---
         function showModal(title, contentHtml, onShow) {
             let modal = document.getElementById('dynamicModal');
@@ -1709,27 +1607,8 @@
                 const habitaciones = await apiGet('/admin/habitaciones');
                 const habitacion = habitaciones.find(h => String(h.id_habitacion) === String(id));
                 if (!habitacion) throw new Error('Habitación no encontrada');
-                
-                // Obtener fotos existentes de la habitación
-                let fotosExistentes = [];
-                try {
-                    const fotosRes = await apiGet(`/encargado/habitaciones/${id}/fotos`);
-                    fotosExistentes = Array.isArray(fotosRes) ? fotosRes : [];
-                } catch (err) {
-                    console.log('No se pudieron cargar las fotos:', err);
-                }
-                
                 const categorias = await apiGet('/admin/categorias').catch(() => []);
                 const options = (categorias.length ? categorias.map(c => `<option value="${c.id_categoria}" ${c.id_categoria === habitacion.id_categoria ? 'selected' : ''}>${c.nombre}</option>`).join('') : `<option value="${habitacion.id_categoria}">${habitacion.categoria || 'N/A'}</option>`);
-                
-                // HTML de las imágenes existentes
-                const fotosHtml = fotosExistentes.length > 0 ? fotosExistentes.map(foto => `
-                    <div class="relative inline-block mr-2 mb-2">
-                        <img src="/img/habitaciones/${foto}" alt="Foto habitación" class="w-32 h-32 object-cover rounded border-2 border-gray-300">
-                        <button type="button" class="delete-foto-btn absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-700 text-sm font-bold" data-foto="${foto}" data-habitacion="${id}">×</button>
-                    </div>
-                `).join('') : '<p class="text-gray-500 text-sm">No hay imágenes actualmente</p>';
-                
                 const formHtml = `
                 <form id="habitacion-form" class="space-y-4" enctype="multipart/form-data">
                     <input type="hidden" name="id_habitacion" value="${habitacion.id_habitacion}">
@@ -1761,22 +1640,6 @@
                         <input type="number" name="capacidad" value="${habitacion.capacidad || ''}" class="mt-1 block w-full border border-gray-300 rounded p-2">
                     </div>
                     </div>
-                    
-                    <!-- Imágenes existentes -->
-                    <div class="border-t pt-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Imágenes actuales de la habitación</label>
-                        <div id="fotos-existentes" class="flex flex-wrap mb-3">
-                            ${fotosHtml}
-                        </div>
-                    </div>
-                    
-                    <!-- Agregar nuevas imágenes -->
-                    <div class="border-t pt-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Agregar nuevas fotos</label>
-                        <input type="file" name="fotos" accept="image/*" multiple class="mt-1 block w-full border border-gray-300 rounded p-2">
-                        <p class="text-sm text-gray-500 mt-1">Puedes seleccionar múltiples imágenes nuevas</p>
-                    </div>
-                    
                     <div>
                     <label class="inline-flex items-center">
                         <input type="checkbox" name="disponible" ${habitacion.disponible ? 'checked' : ''} class="form-checkbox">
@@ -1788,59 +1651,9 @@
                 `;
                 showModal('Editar Habitación', formHtml, () => {
                     const form = document.getElementById('habitacion-form');
-                    
-                    // Manejar eliminación de fotos individuales
-                    const fotosContainer = document.getElementById('fotos-existentes');
-                    if (fotosContainer) {
-                        fotosContainer.addEventListener('click', async (e) => {
-                            if (e.target.classList.contains('delete-foto-btn')) {
-                                const foto = e.target.getAttribute('data-foto');
-                                const habitacionId = e.target.getAttribute('data-habitacion');
-                                
-                                showConfirmModal('¿Eliminar esta imagen?', async () => {
-                                    try {
-                                        const token = localStorage.getItem('token') || '';
-                                        const headers = { 
-                                            'Authorization': 'Bearer ' + token, 
-                                            'Content-Type': 'application/json' 
-                                        };
-                                        const res = await fetch(`/api/encargado/habitaciones/${habitacionId}/fotos/delete`, {
-                                            method: 'POST',
-                                            headers,
-                                            body: JSON.stringify({ url: foto })
-                                        });
-                                        
-                                        if (!res.ok) {
-                                            const errorData = await res.json().catch(() => ({}));
-                                            throw new Error(errorData.error || 'Error al eliminar imagen');
-                                        }
-                                        
-                                        // Remover la imagen del DOM
-                                        e.target.closest('.relative').remove();
-                                        
-                                        // Si no quedan más imágenes, mostrar mensaje
-                                        if (fotosContainer.querySelectorAll('.relative').length === 0) {
-                                            fotosContainer.innerHTML = '<p class="text-gray-500 text-sm">No hay imágenes actualmente</p>';
-                                        }
-                                        
-                                        showModal('Éxito', '<p>Imagen eliminada correctamente.</p>');
-                                    } catch (err) {
-                                        showModal('Error', `<p>${err.message}</p>`);
-                                    }
-                                });
-                            }
-                        });
-                    }
-                    
                     form.addEventListener('submit', async (e) => {
                         e.preventDefault();
-                        const formData = new FormData(form);
-                        
-                        // FIX: Asegurar que disponible se envíe correctamente
-                        const disponibleCheckbox = form.querySelector('input[name="disponible"]');
-                        if (disponibleCheckbox) {
-                            formData.set('disponible', disponibleCheckbox.checked ? 'true' : 'false');
-                        }
+                        const formData = new FormData(form); // incluye archivo si se selecciona
 
                         try {
                             const token = localStorage.getItem('token') || '';
