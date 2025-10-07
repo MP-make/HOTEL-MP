@@ -47,6 +47,7 @@
                 'gestion-habitaciones',
                 'gestion-carrusel',
                 'gestion-reservas',
+                'gestion-reclamos',
                 'gestion-encargados',
                 'salir'
             ],
@@ -54,6 +55,7 @@
                 'gestion-habitaciones',
                 'gestion-carrusel',
                 'gestion-reservas',
+                'gestion-reclamos',
                 'salir'
             ]
         };
@@ -1376,6 +1378,212 @@
                 }
             },
     
+            'gestion-reclamos': {
+                title: 'Gestión de Reclamos',
+                render: async () => {
+                    try {
+                        const reclamosRes = await apiGet('/encargado/reclamos');
+                        const reclamos = Array.isArray(reclamosRes) ? reclamosRes : [];
+
+                        return `
+                        <div class="space-y-6">
+                            <!-- Formulario para agregar reclamo -->
+                            <div class="admin-card">
+                                <h2 class="text-xl font-semibold mb-4">Agregar Nuevo Reclamo</h2>
+                                <form id="add-reclamo-form" class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Número de Habitación</label>
+                                        <input type="number" id="reclamo-habitacion" name="numero_habitacion" required 
+                                               class="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500" 
+                                               placeholder="Ej: 101">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Descripción del Reclamo</label>
+                                        <textarea id="reclamo-descripcion" name="descripcion" required rows="3"
+                                                  class="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500" 
+                                                  placeholder="Describa el problema o reclamo..."></textarea>
+                                    </div>
+                                    <div class="flex justify-end">
+                                        <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                                            Agregar Reclamo
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Lista de reclamos -->
+                            <div class="admin-card">
+                                <h2 class="text-xl font-semibold mb-4">Reclamos Registrados</h2>
+                                
+                                <!-- Filtros -->
+                                <div class="mb-4 p-4 bg-white rounded shadow flex flex-wrap gap-3 items-end">
+                                    <div>
+                                        <label class="block text-sm text-gray-600">Buscar en descripción</label>
+                                        <input id="filter-reclamo-texto" type="text" class="mt-1 border border-gray-300 rounded p-2" placeholder="Texto del reclamo">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm text-gray-600">Número de Habitación</label>
+                                        <input id="filter-reclamo-habitacion" type="number" class="mt-1 border border-gray-300 rounded p-2" placeholder="Habitación">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm text-gray-600">Estado</label>
+                                        <select id="filter-reclamo-estado" class="mt-1 border border-gray-300 rounded p-2">
+                                            <option value="">Todos</option>
+                                            <option value="pendiente">Pendiente</option>
+                                            <option value="resuelto">Resuelto</option>
+                                        </select>
+                                    </div>
+                                    <div class="ml-auto flex gap-2">
+                                        <button id="btn-filtrar-reclamos" class="bg-blue-600 text-white px-4 py-2 rounded">Buscar</button>
+                                        <button id="btn-limpiar-filtros-reclamos" class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Limpiar</button>
+                                    </div>
+                                </div>
+
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full bg-white rounded-lg shadow overflow-hidden">
+                                        <thead class="bg-gray-100">
+                                            <tr>
+                                                <th class="py-3 px-4 text-left">ID</th>
+                                                <th class="py-3 px-4 text-left">Habitación</th>
+                                                <th class="py-3 px-4 text-left">Descripción</th>
+                                                <th class="py-3 px-4 text-left">Estado</th>
+                                                <th class="py-3 px-4 text-left">Fecha</th>
+                                                <th class="py-3 px-4 text-left">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="reclamos-tbody" class="divide-y divide-gray-200">
+                                            ${reclamos.length ? reclamos.map(r => `
+                                                <tr class="border-b hover:bg-gray-50">
+                                                    <td class="py-3 px-4">${r.id_reclamo}</td>
+                                                    <td class="py-3 px-4">${r.numero_habitacion}</td>
+                                                    <td class="py-3 px-4">${r.descripcion}</td>
+                                                    <td class="py-3 px-4">
+                                                        <span class="px-2 py-1 rounded text-xs ${r.estado === 'pendiente' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}">
+                                                            ${r.estado}
+                                                        </span>
+                                                    </td>
+                                                    <td class="py-3 px-4">${new Date(r.fecha_creacion).toLocaleString()}</td>
+                                                    <td class="py-3 px-4">
+                                                        ${r.estado === 'pendiente' ? `
+                                                            <button data-id="${r.id_reclamo}" class="resolver-reclamo-btn px-3 py-1 rounded bg-green-600 text-white text-xs hover:bg-green-700">
+                                                                Resolver
+                                                            </button>
+                                                        ` : '<span class="text-sm text-gray-500">Resuelto</span>'}
+                                                    </td>
+                                                </tr>
+                                            `).join('') : '<tr><td colspan="6" class="text-center py-4">No hay reclamos registrados.</td></tr>'}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    } catch (err) {
+                        return `<div class="admin-card"><p class="text-red-500">Error cargando reclamos: ${err.message}</p></div>`;
+                    }
+                },
+                postRender: () => {
+                    // Función para renderizar reclamos con filtros
+                    async function renderReclamosWithFilters() {
+                        try {
+                            const texto = (document.getElementById('filter-reclamo-texto') || {}).value || '';
+                            const habitacion = (document.getElementById('filter-reclamo-habitacion') || {}).value || '';
+                            const estado = (document.getElementById('filter-reclamo-estado') || {}).value || '';
+
+                            const params = new URLSearchParams();
+                            if (texto) params.append('texto', texto);
+                            if (habitacion) params.append('habitacion', habitacion);
+                            if (estado) params.append('estado', estado);
+
+                            const url = '/encargado/reclamos' + (params.toString() ? `?${params.toString()}` : '');
+                            const reclamosRes = await apiGet(url);
+                            let reclamos = Array.isArray(reclamosRes) ? reclamosRes : [];
+
+                            const tbody = document.getElementById('reclamos-tbody');
+                            if (!tbody) return;
+
+                            const rows = reclamos.map(r => `
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="py-3 px-4">${r.id_reclamo}</td>
+                                    <td class="py-3 px-4">${r.numero_habitacion}</td>
+                                    <td class="py-3 px-4">${r.descripcion}</td>
+                                    <td class="py-3 px-4">
+                                        <span class="px-2 py-1 rounded text-xs ${r.estado === 'pendiente' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}">
+                                            ${r.estado}
+                                        </span>
+                                    </td>
+                                    <td class="py-3 px-4">${new Date(r.fecha_creacion).toLocaleString()}</td>
+                                    <td class="py-3 px-4">
+                                        ${r.estado === 'pendiente' ? `
+                                            <button data-id="${r.id_reclamo}" class="resolver-reclamo-btn px-3 py-1 rounded bg-green-600 text-white text-xs hover:bg-green-700">
+                                                Resolver
+                                            </button>
+                                        ` : '<span class="text-sm text-gray-500">Resuelto</span>'}
+                                    </td>
+                                </tr>
+                            `).join('');
+
+                            tbody.innerHTML = rows.length ? rows : '<tr><td colspan="6" class="text-center py-4">No hay reclamos que coincidan con los filtros.</td></tr>';
+                        } catch (err) {
+                            showModal('Error', `<p>${err.message}</p>`);
+                        }
+                    }
+
+                    // Inicializar tabla
+                    renderReclamosWithFilters();
+
+                    // Botones de filtro
+                    const btnBuscar = document.getElementById('btn-filtrar-reclamos');
+                    if (btnBuscar) btnBuscar.addEventListener('click', renderReclamosWithFilters);
+                    
+                    const btnLimpiar = document.getElementById('btn-limpiar-filtros-reclamos');
+                    if (btnLimpiar) btnLimpiar.addEventListener('click', () => {
+                        document.getElementById('filter-reclamo-texto').value = '';
+                        document.getElementById('filter-reclamo-habitacion').value = '';
+                        document.getElementById('filter-reclamo-estado').value = '';
+                        renderReclamosWithFilters();
+                    });
+
+                    // Formulario para agregar reclamo
+                    const addReclamoForm = document.getElementById('add-reclamo-form');
+                    if (addReclamoForm) {
+                        addReclamoForm.addEventListener('submit', async (e) => {
+                            e.preventDefault();
+                            const habitacion = document.getElementById('reclamo-habitacion').value;
+                            const descripcion = document.getElementById('reclamo-descripcion').value;
+
+                            try {
+                                await apiPost('/encargado/reclamos', {
+                                    numero_habitacion: habitacion,
+                                    descripcion: descripcion
+                                });
+                                showModal('Éxito', '<p>Reclamo agregado correctamente.</p>');
+                                addReclamoForm.reset();
+                                renderReclamosWithFilters();
+                            } catch (err) {
+                                showModal('Error', `<p>${err.message}</p>`);
+                            }
+                        });
+                    }
+
+                    // Delegación de eventos para resolver reclamos
+                    document.body.addEventListener('click', async (e) => {
+                        if (e.target.classList.contains('resolver-reclamo-btn')) {
+                            const id = e.target.getAttribute('data-id');
+                            showConfirmModal('¿Marcar este reclamo como resuelto?', async () => {
+                                try {
+                                    await apiPut(`/encargado/reclamos/${id}/resolver`, {});
+                                    showModal('Éxito', '<p>Reclamo marcado como resuelto.</p>');
+                                    renderReclamosWithFilters();
+                                } catch (err) {
+                                    showModal('Error', `<p>${err.message}</p>`);
+                                }
+                            });
+                        }
+                    });
+                }
+            },
+
             'gestion-encargados': {
                 title: 'Gestión de Encargados',
                 render: async () => {
@@ -1654,7 +1862,6 @@
                         <input type="file" name="fotos" accept="image/*" multiple class="mt-1 block w-full border border-gray-300 rounded p-2">
                         <p class="text-sm text-gray-500 mt-1">Puedes seleccionar múltiples imágenes nuevas</p>
                     </div>
-                    
                     <div>
                     <label class="inline-flex items-center">
                         <input type="checkbox" name="disponible" ${habitacion.disponible ? 'checked' : ''} class="form-checkbox">
