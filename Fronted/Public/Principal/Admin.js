@@ -102,8 +102,7 @@
             return; // Detener la ejecución si no hay sesión válida
         }
 
-        // Aplicar control de acceso
-        aplicarControlDeAcceso();
+        // NO aplicar control de acceso aquí todavía - se hace después de definir loadSection
 
         // ============ FIN CONTROL DE ACCESO ============
 
@@ -319,7 +318,7 @@
                                     <div class="p-4 bg-white rounded shadow md:col-span-2">
                                         <h4 class="font-semibold">Rendimiento por Categoría de Habitación</h4>
                                         <p class="text-sm text-gray-600">Compara la ocupación y el ADR entre las categorías de habitaciones (Ej: Simple vs. Doble vs. Matrimonial vs. Suite).</p>
-                                        <!-- Placeholder for table or chart -->
+                                        <!-- Placeholder for table -->
                                         <div class="mt-4 overflow-x-auto">
                                             <table class="min-w-full bg-gray-50 rounded">
                                                 <thead>
@@ -946,12 +945,16 @@
                             const cfg = await apiGet('/admin/hotel-config').catch(() => ({ num_pisos: 1, habitaciones_por_piso: 10 }));
                             const pisos = parseInt(cfg.num_pisos || 1, 10) || 1;
                             const habPorPiso = parseInt(cfg.habitaciones_por_piso || 10, 10) || 10;
-                            const categoriasCfg = Array.isArray(cfg.categorias) ? cfg.categorias : [];
 
-                            // fallback de categorias desde API si no hay configuración local
-                            let categoriasApi = [];
-                            try { categoriasApi = await apiGet('/admin/categorias'); } catch(e){ /* ignore */ }
-                            const categorias = (categoriasCfg.length ? categoriasCfg : categoriasApi.map(c=>({ nombre: c.nombre, id_categoria: c.id_categoria, precio_min_dia: c.precio_min_dia, precio_min_hora: c.precio_min_hora }))) || [];
+                            // OBTENER CATEGORÍAS DIRECTAMENTE DEL API (sin intentar desde cfg.categorias)
+                            console.log('Obteniendo categorías desde el API...');
+                            let categorias = [];
+                            try { 
+                                categorias = await apiGet('/admin/categorias');
+                                console.log('Categorías obtenidas:', categorias);
+                            } catch(e){ 
+                                console.error('Error al obtener categorías:', e);
+                            }
 
                             // obtener habitaciones existentes para calcular números ocupados
                             const habitacionesRes = await apiGet('/admin/habitaciones').catch(()=>[]);
@@ -971,11 +974,10 @@
                                 return opts.join('') || '<option value="">(No hay números disponibles en este piso)</option>';
                             }
 
-                            const categoriasOptions = (categorias.map((c,idx) => {
-                                const precioMinDia = c.precio_min_dia != null ? c.precio_min_dia : (c.precio_min || '');
-                                const precioMinHora = c.precio_min_hora != null ? c.precio_min_hora : (c.precio_hora_min || '');
-                                return `<option data-precio-dia="${precioMinDia}" data-precio-hora="${precioMinHora}" value="${c.id_categoria || idx}">${c.nombre}</option>`;
-                            }).join('')) || '<option value="">Sin categorías</option>';
+                            // Generar opciones de categorías correctamente
+                            const categoriasOptions = categorias.length > 0 
+                                ? categorias.map(c => `<option data-precio-dia="${c.precio_min_dia || ''}" data-precio-hora="${c.precio_min_hora || ''}" value="${c.id_categoria}">${c.nombre}</option>`).join('')
+                                : '<option value="">Sin categorías disponibles</option>';
 
                             const formHtml = `
                                 <form id="add-habitacion-form" enctype="multipart/form-data">
@@ -1575,132 +1577,8 @@
         mainContentArea.addEventListener('click', async (e) => {
             const target = e.target;
     
-        // Añadir habitación (abre modal)
-        if (target && target.id === 'add-habitacion-btn') {
-            try {
-                // obtener configuración local del hotel (plantillas de categorías)
-                const cfg = JSON.parse(localStorage.getItem('hotel_config') || '{}');
-
-                // obtener categorías del backend y combinarlas con las del config (config tiene prioridad visual)
-                const serverCats = await apiGet('/admin/categorias').catch(() => []);
-                const cfgCats = Array.isArray(cfg.categorias) ? cfg.categorias.map((c, i) => ({ id: `cfg-${i}`, nombre: c.nombre, capacidad: c.capacidad || 1, precio_min_dia: c.precio_min_dia || '', precio_min_hora: c.precio_min_hora || '', cantidad_banos: c.cantidad_banos || 1, cantidad_camas: c.cantidad_camas || 1 })) : [];
-                const allCats = (cfgCats.length ? cfgCats : []).concat(serverCats.map(sc => ({ id: sc.id_categoria || sc.id, nombre: sc.nombre || sc.tipo || 'Sin nombre', capacidad: sc.capacidad || '', precio_min_dia: sc.precio_min_dia || '', precio_min_hora: sc.precio_min_hora || '', cantidad_banos: sc.cantidad_banos || 1, cantidad_camas: sc.cantidad_camas || 1 })));
-                const options = allCats.map(c => `<option value="${c.id}" data-capacidad="${c.capacidad || ''}" data-precio-dia="${c.precio_min_dia || ''}" data-precio-hora="${c.precio_min_hora || ''}" data-cantidad-banos="${c.cantidad_banos || ''}" data-cantidad-camas="${c.cantidad_camas || ''}">${c.nombre}${c.capacidad ? ` (cap ${c.capacidad})` : ''}</option>`).join('');
-
-                const formHtml = `
-                <form id="habitacion-form" class="space-y-4" enctype="multipart/form-data">
-                    <div>
-                    <label class="block text-sm font-medium text-gray-700">Número de Habitación</label>
-                    <input name="numero_habitacion" required class="mt-1 block w-full border border-gray-300 rounded p-2">
-                    </div>
-                    <div>
-                    <label class="block text-sm font-medium text-gray-700">Categoría</label>
-                    <select name="id_categoria" id="select-categoria" class="mt-1 block w-full border border-gray-300 rounded p-2">${options}</select>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Precio por Día (USD)</label>
-                        <input type="number" step="0.01" name="precio_por_dia" id="input-precio-dia" class="mt-1 block w-full border border-gray-300 rounded p-2">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Precio por Hora (USD)</label>
-                        <input type="number" step="0.01" name="precio_por_hora" id="input-precio-hora" class="mt-1 block w-full border border-gray-300 rounded p-2">
-                    </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 items-end">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Capacidad (personas)</label>
-                        <input type="number" name="capacidad" id="input-capacidad" class="mt-1 block w-full border border-gray-300 rounded p-2">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Cantidad de baños</label>
-                        <input type="number" name="cantidad_banos" id="input-cantidad-banos" class="mt-1 block w-full border border-gray-300 rounded p-2">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Cantidad de camas</label>
-                        <input type="number" name="cantidad_camas" id="input-cantidad-camas" class="mt-1 block w-full border border-gray-300 rounded p-2">
-                    </div>
-                    </div>
-                    <div>
-                    <label class="block text-sm font-medium text-gray-700">Fotos de referencia</label>
-                    <input type="file" name="fotos" accept="image/*" multiple class="mt-1 block w-full border border-gray-300 rounded p-2">
-                    <div id="preview-fotos" class="flex flex-wrap mt-2"></div>
-                    </div>
-                    <div>
-                    <label class="inline-flex items-center">
-                        <input type="checkbox" name="disponible" checked class="form-checkbox">
-                        <span class="ml-2">Disponible</span>
-                    </label>
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Guardar</button>
-                </form>
-                `;
-                 showModal('Añadir Habitación', formHtml, () => {
-                    const form = document.getElementById('habitacion-form');
-                    // actualizar capacidad/precios/cantidad de baños y camas según categoría seleccionada
-                    const selectCat = document.getElementById('select-categoria');
-                    const inputCap = document.getElementById('input-capacidad');
-                    const inputPrecioDia = document.getElementById('input-precio-dia');
-                    const inputPrecioHora = document.getElementById('input-precio-hora');
-                    const inputBanos = document.getElementById('input-cantidad-banos');
-                    const inputCamas = document.getElementById('input-cantidad-camas');
-
-                    if (selectCat) {
-                        selectCat.addEventListener('change', (ev) => {
-                            const opt = ev.target.selectedOptions[0];
-                            if (!opt) return;
-                            const cap = opt.getAttribute('data-capacidad');
-                            const precioDia = opt.getAttribute('data-precio-dia');
-                            const precioHora = opt.getAttribute('data-precio-hora');
-                            const cantidadBanos = opt.getAttribute('data-cantidad-banos');
-                            const cantidadCamas = opt.getAttribute('data-cantidad-camas');
-                            if (cap) inputCap.value = cap;
-                            if (precioDia !== null && precioDia !== '') inputPrecioDia.value = precioDia;
-                            if (precioHora !== null && precioHora !== '') inputPrecioHora.value = precioHora;
-                            if (cantidadBanos !== null && cantidadBanos !== '') inputBanos.value = cantidadBanos;
-                            if (cantidadCamas !== null && cantidadCamas !== '') inputCamas.value = cantidadCamas;
-                        });
-                    }
-
-                    form.addEventListener('submit', async (e) => {
-                        e.preventDefault();
-                        const formData = new FormData(form); // incluye archivo
-
-                        try {
-                            const token = localStorage.getItem('token') || '';
-                            const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
-                            const res = await fetch('/api/admin/habitaciones', {
-                                method: 'POST',
-                                body: formData,
-                                headers
-                            });
-                            if (!res.ok) {
-                                let errMsg = res.statusText || 'Error al crear habitación';
-                                try {
-                                    const body = await res.json();
-                                    errMsg = body.error || body.message || body.detalle || JSON.stringify(body) || errMsg;
-                                } catch (ee) {
-                                    try { const txt = await res.text(); if (txt) errMsg = txt; } catch (__){ }
-                                }
-                                throw new Error(errMsg);
-                            }
-                            await res.json();
-
-                            loadSection('gestion-habitaciones');
-                            hideModal();
-                            showModal('Éxito', '<p>Habitación creada con éxito.</p>');
-                        } catch (err) {
-                            showModal('Error', `<p>${err.message}</p>`);
-                        }
-                    });
-                     // Indicar al handler global que NO reprocesE este formulario (evita doble envío)
-                     form.dataset.skipGlobal = 'true';
-                 });
-             } catch (err) {
-                 showModal('Error', `<p>${err.message}</p>`);
-             }
-             return;
-         }
+        // El botón "Añadir Habitación" se maneja en el postRender de gestion-habitaciones
+        // NO interceptar aquí para que el event listener del postRender funcione correctamente
 
         // Editar habitación
         if (target && target.classList.contains('edit-btn') && target.closest('#mainContent')) {
@@ -2101,7 +1979,8 @@
             }
         });
     
-        // Cargar sección por defecto
-        loadSection('dashboard');
+        // NO cargar sección por defecto aquí, ya se hace en aplicarControlDeAcceso()
+        // La sección inicial se determina según el rol en aplicarControlDeAcceso()
+        aplicarControlDeAcceso();
     });
 

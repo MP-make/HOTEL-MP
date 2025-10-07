@@ -324,7 +324,7 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
  * RUTAS AUXILIARES (categorías)
  * =========================
  */
-app.get("/api/admin/categorias", authenticateToken, requireAdmin, async (req, res) => {
+app.get("/api/admin/categorias", authenticateToken, requireEncargado, async (req, res) => {
 try {
     const result = await queryWithRetry("SELECT * FROM public.categorias_habitaciones ORDER BY id_categoria");
     res.json(result.rows);
@@ -549,7 +549,7 @@ app.post("/api/cliente/reclamos", authenticateToken, async (req, res) => {
  * RUTAS DEL ADMIN - CATEGORÍAS (CRUD)
  * =========================
  */
-app.get("/api/admin/categorias", authenticateToken, requireAdmin, async (req, res) => {
+app.get("/api/admin/categorias", authenticateToken, requireEncargado, async (req, res) => {
 try {
     const result = await queryWithRetry("SELECT * FROM public.categorias_habitaciones ORDER BY id_categoria");
     res.json(result.rows);
@@ -658,9 +658,9 @@ app.delete("/api/admin/categorias/:id", authenticateToken, requireAdmin, async (
 
 /**
  * @route GET /api/admin/hotel-config
- * @desc Obtener la configuración del hotel (pisos y habitaciones por piso)
+ * @desc Obtener la configuración del hotel (pisos y habitaciones por piso) - ACCESO PARA ENCARGADOS Y ADMIN
  */
-app.get("/api/admin/hotel-config", authenticateToken, requireAdmin, async (req, res) => {
+app.get("/api/admin/hotel-config", authenticateToken, requireEncargado, async (req, res) => {
     try {
         const result = await queryWithRetry("SELECT * FROM public.hotel_config LIMIT 1");
         if (result.rows.length === 0) {
@@ -1095,9 +1095,9 @@ app.post("/api/admin/assign-encargado", authenticateToken, requireAdmin, async (
 
 /**
  * @route POST /api/admin/habitaciones
- * @desc Crear una nueva habitación
+ * @desc Crear una nueva habitación (Admin y Encargado)
  */
-app.post("/api/admin/habitaciones", authenticateToken, requireAdmin, upload.array('fotos'), async (req, res) => {
+app.post("/api/admin/habitaciones", authenticateToken, requireEncargado, upload.array('fotos'), async (req, res) => {
   try {
     const { numero_habitacion, piso, id_categoria, precio_por_dia, precio_por_hora, capacidad, descripcion } = req.body;
     const disponible = req.body.disponible !== undefined ? sanitizeBoolean(req.body.disponible) : true;
@@ -1161,9 +1161,9 @@ app.post("/api/admin/habitaciones", authenticateToken, requireAdmin, upload.arra
 
 /**
  * @route PUT /api/admin/habitaciones/:id
- * @desc Actualizar una habitación existente
+ * @desc Actualizar una habitación existente (Admin y Encargado)
  */
-app.put("/api/admin/habitaciones/:id", authenticateToken, requireAdmin, upload.array('fotos'), async (req, res) => {
+app.put("/api/admin/habitaciones/:id", authenticateToken, requireEncargado, upload.array('fotos'), async (req, res) => {
   try {
     const { id } = req.params;
     const { numero_habitacion, piso, id_categoria, precio_por_dia, precio_por_hora, capacidad, descripcion } = req.body;
@@ -1239,9 +1239,9 @@ app.put("/api/admin/habitaciones/:id", authenticateToken, requireAdmin, upload.a
 
 /**
  * @route DELETE /api/admin/habitaciones/:id
- * @desc Eliminar una habitación
+ * @desc Eliminar una habitación (Admin y Encargado)
  */
-app.delete("/api/admin/habitaciones/:id", authenticateToken, requireAdmin, async (req, res) => {
+app.delete("/api/admin/habitaciones/:id", authenticateToken, requireEncargado, async (req, res) => {
   try {
     const { id } = req.params;
     const habitacionId = parseInt(id, 10);
