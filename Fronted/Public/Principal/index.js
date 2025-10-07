@@ -205,7 +205,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="habitacion-card">
                                 <img src="${fotoSrc}" 
                                      alt="${habitacion.numero_habitacion}" 
-                                     class="habitacion-imagen">
+                                     class="habitacion-imagen"
+                                     onerror="this.onerror=null; this.src='https://source.unsplash.com/featured/?luxury-hotel-room';">
                                 <div class="habitacion-info">
                                     <h3 class="habitacion-titulo">Habitación ${habitacion.numero_habitacion}</h3>
                                     <p class="habitacion-descripcion">${habitacion.categoria} - Piso ${habitacion.piso} - Capacidad ${habitacion.capacidad}</p>
@@ -280,40 +281,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('reservaHabitacionCapacidad').textContent = `Capacidad: ${habitacion.capacidad} personas`;
                 document.getElementById('reservaHabitacionPrecioDia').textContent = `Precio por día: S/ ${habitacion.precio_por_dia}`;
                 
-                // Handle image carousel
-                const imagenContainer = document.querySelector('.reserva-imagen');
-                if (habitacion.fotos && habitacion.fotos.length > 1) {
-                    imagenContainer.innerHTML = `
-                        <div class="reserva-carousel">
-                            ${habitacion.fotos.map((foto, index) => {
-                                const fotoSrc = foto.startsWith('/') ? foto : '/img/habitaciones/' + foto;
-                                return `<img src="${fotoSrc}" alt="Habitación" class="reserva-img" style="display: ${index === 0 ? 'block' : 'none'};">`;
-                            }).join('')}
-                            <button class="reserva-arrow prev">&lt;</button>
-                            <button class="reserva-arrow next">&gt;</button>
-                        </div>
-                    `;
-                    // Carousel logic
-                    let currentImg = 0;
-                    const imgs = imagenContainer.querySelectorAll('.reserva-img');
-                    const prevBtn = imagenContainer.querySelector('.reserva-arrow.prev');
-                    const nextBtn = imagenContainer.querySelector('.reserva-arrow.next');
-                    function showImg(index) {
-                        imgs.forEach((img, i) => img.style.display = i === index ? 'block' : 'none');
+                // Handle image display - CORRECCIÓN AQUÍ
+                const imagenElement = document.getElementById('reservaHabitacionImagen');
+                if (imagenElement) {
+                    // Determinar la URL de la imagen
+                    let fotoSrc = 'https://source.unsplash.com/featured/?luxury-hotel-room';
+                    
+                    if (habitacion.fotos && habitacion.fotos.length > 0) {
+                        fotoSrc = habitacion.fotos[0].startsWith('/') ? habitacion.fotos[0] : '/img/habitaciones/' + habitacion.fotos[0];
                     }
-                    prevBtn.addEventListener('click', () => {
-                        currentImg = (currentImg - 1 + imgs.length) % imgs.length;
-                        showImg(currentImg);
-                    });
-                    nextBtn.addEventListener('click', () => {
-                        currentImg = (currentImg + 1) % imgs.length;
-                        showImg(currentImg);
-                    });
-                } else {
-                    const fotoSrc = habitacion.fotos && habitacion.fotos.length > 0 
-                        ? (habitacion.fotos[0].startsWith('/') ? habitacion.fotos[0] : '/img/habitaciones/' + habitacion.fotos[0]) 
-                        : '/img/habitaciones/default-room.jpg';
-                    imagenContainer.innerHTML = `<img id="reservaHabitacionImagen" src="${fotoSrc}" alt="Habitación" class="reserva-img">`;
+                    
+                    imagenElement.src = fotoSrc;
+                    imagenElement.alt = nombreHabitacion;
+                    imagenElement.style.display = 'block';
+                    
+                    // Agregar manejador de error para la imagen
+                    imagenElement.onerror = function() {
+                        this.onerror = null; // Evitar loop infinito
+                        this.src = 'https://source.unsplash.com/featured/?luxury-hotel-room';
+                    };
                 }
             }
             document.getElementById('reservaMessage').textContent = '';
