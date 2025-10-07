@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let usuarioActual = null;
     let currentHabitacionId = null;
 
+    // API Base URL
+    const API_BASE = '/api';
+
     // Funciones para modales
     const openModal = (id) => {
         const modal = document.getElementById(id);
@@ -94,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Manejar login
     async function manejarLogin(email, password) {
         try {
-            const response = await fetch('/api/login', {
+            const response = await fetch(`${API_BASE}/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
@@ -106,7 +109,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 usuarioActual = data.user;
                 closeModal('loginModal');
                 mostrarUsuarioLogueado();
-                if (data.redirectUrl) window.location.href = data.redirectUrl;
+                document.getElementById('loginMessage').textContent = '';
+                // Recargar datos después del login
+                await cargarDatos();
             } else {
                 document.getElementById('loginMessage').textContent = data.error || 'Error al iniciar sesión';
             }
@@ -119,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Manejar registro
     async function manejarRegistro(nombre, email, password) {
         try {
-            const response = await fetch('/api/register', {
+            const response = await fetch(`${API_BASE}/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ nombre, email, password }),
@@ -163,32 +168,71 @@ document.addEventListener('DOMContentLoaded', () => {
     // Cargar categorías
     async function cargarCategorias() {
         try {
-            const response = await fetch('/api/categorias');
+            const response = await fetch(`${API_BASE}/categorias`);
+            if (!response.ok) throw new Error('Error al cargar categorías');
             const data = await response.json();
+            // El endpoint /api/categorias devuelve { categorias: [...] }
             categoriasData = data.categorias || [];
             const select = document.getElementById('categoria');
             select.innerHTML = '<option value="">Todas</option>';
             categoriasData.forEach(cat => {
                 select.innerHTML += `<option value="${cat.nombre}">${cat.nombre}</option>`;
             });
+            console.log('Categorías cargadas:', categoriasData);
         } catch (error) {
             console.error('Error cargando categorías:', error);
+            categoriasData = [];
         }
     }
 
     // Cargar habitaciones y reservas
     async function cargarDatos() {
         try {
-            const token = localStorage.getItem('token');
-            const habResponse = await fetch('/api/cliente/habitaciones');
+            // Cargar habitaciones disponibles
+            const habResponse = await fetch(`${API_BASE}/habitaciones`);
+            if (!habResponse.ok) throw new Error('Error al cargar habitaciones');
             const habData = await habResponse.json();
-            habitacionesData = habData.habitaciones || [];
-            if (token) {
-                const resResponse = await fetch('/api/reservas', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const resData = await resResponse.json();
-                reservasData = resData.reservas || [];
+            habitacionesData = Array.isArray(habData) ? habData : (habData.habitaciones || []);
+            
+            console.log('Habitaciones cargadas:', habitacionesData.map(h => ({
+                numero: h.numero_habitacion,
+                capacidad: h.capacidad,
+                tipo_capacidad: typeof h.capacidad
+            })));
+            
+            // Agregar fotos de las habitaciones
+            for (let habitacion of habitacionesData) {
+                try {
+                    const fotosResponse = await fetch(`${API_BASE}/habitaciones/${habitacion.id_habitacion}/fotos`);
+                    if (fotosResponse.ok) {
+                        const fotosData = await fotosResponse.json();
+                        habitacion.fotos = Array.isArray(fotosData) ? fotosData : [];
+                    } else {
+                        habitacion.fotos = [];
+                    }
+                } catch (err) {
+                    console.error(`Error cargando fotos de habitación ${habitacion.id_habitacion}:`, err);
+                    habitacion.fotos = [];
+                }
+            }
+
+            // Si hay usuario logueado, cargar sus reservas
+            const token = localStorage.getItem('token');
+            if (token && usuarioActual) {
+                try {
+                    const resResponse = await fetch(`${API_BASE}/cliente/reservas`, {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    if (resResponse.ok) {
+                        const resData = await resResponse.json();
+                        reservasData = Array.isArray(resData) ? resData : (resData.reservas || []);
+                    } else {
+                        reservasData = [];
+                    }
+                } catch (err) {
+                    console.error('Error cargando reservas:', err);
+                    reservasData = [];
+                }
             } else {
                 reservasData = [];
             }
@@ -201,18 +245,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Función para verificar disponibilidad
     function estaDisponible(habitacionId, fechaCheckin, fechaCheckout) {
-        if (!fechaCheckin || !fechaCheckout) return habitacionesData.find(h => h.id_habitacion === habitacionId)?.disponible || false;
+        const habitacion = habitacionesData.find(h => h.id_habitacion === habitacionId);
+        if (!habitacion) return false;
+        
+        // Si no hay filtro de fechas, usar el campo disponible de la habitación
+        if (!fechaCheckin || !fechaCheckout) {
+            return habitacion.disponible !== false;
+        }
+        
         const checkin = new Date(fechaCheckin);
         const checkout = new Date(fechaCheckout);
-        const reservasHabitacion = reservasData.filter(r => r.id_habitacion === habitacionId && r.estado_reserva !== 'cancelada');
+        
+        // Verificar si hay conflictos con reservas existentes
+        const reservasHabitacion = reservasData.filter(r => 
+            r.id_habitacion === habitacionId && 
+            r.estado_reserva !== 'cancelada' &&
+            r.estado_reserva !== 'completada'
+        );
+        
         for (const reserva of reservasHabitacion) {
             const resCheckin = new Date(reserva.fecha_checkin);
             const resCheckout = new Date(reserva.fecha_checkout);
+            
+            // Hay conflicto si las fechas se solapan
             if (checkin < resCheckout && checkout > resCheckin) {
                 return false;
             }
         }
-        return true;
+        
+        return habitacion.disponible !== false;
     }
 
     // Filtrar habitaciones
@@ -224,14 +285,37 @@ document.addEventListener('DOMContentLoaded', () => {
         const precioMax = parseFloat(document.getElementById('precioMax').value) || Infinity;
         const capacidad = document.getElementById('capacidad').value;
 
+        console.log('Filtros aplicados:', { categoria, fechaCheckin, fechaCheckout, precioMin, precioMax, capacidad });
+
         const filtradas = habitacionesData.filter(hab => {
-            if (categoria && hab.categoria !== categoria) return false;
-            if (hab.precio_por_dia < precioMin || hab.precio_por_dia > precioMax) return false;
-            if (capacidad && hab.capacidad < parseInt(capacidad)) return false;
-            if (!estaDisponible(hab.id_habitacion, fechaCheckin, fechaCheckout)) return false;
+            // Filtrar por categoría
+            if (categoria && hab.categoria !== categoria) {
+                console.log(`Habitación ${hab.numero_habitacion} descartada por categoría`);
+                return false;
+            }
+            
+            // Filtrar por rango de precio
+            if (hab.precio_por_dia < precioMin || hab.precio_por_dia > precioMax) {
+                console.log(`Habitación ${hab.numero_habitacion} descartada por precio`);
+                return false;
+            }
+            
+            // Filtrar por capacidad (debe ser mayor o igual a la capacidad solicitada)
+            if (capacidad && hab.capacidad < parseInt(capacidad)) {
+                console.log(`Habitación ${hab.numero_habitacion} descartada por capacidad (tiene ${hab.capacidad}, necesita ${capacidad})`);
+                return false;
+            }
+            
+            // Filtrar por disponibilidad y fechas
+            if (!estaDisponible(hab.id_habitacion, fechaCheckin, fechaCheckout)) {
+                console.log(`Habitación ${hab.numero_habitacion} descartada por disponibilidad`);
+                return false;
+            }
+            
             return true;
         });
 
+        console.log(`Se encontraron ${filtradas.length} habitaciones que cumplen los filtros`);
         mostrarHabitaciones(filtradas);
     }
 
@@ -250,27 +334,35 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        contenedor.innerHTML = habitaciones.map(habitacion => `
-            <div class="habitacion-card">
-                <img src="${habitacion.fotos && habitacion.fotos.length > 0 ? habitacion.fotos[0] : '/img/habitaciones/default-room.jpg'}" 
-                     alt="${habitacion.numero_habitacion}" 
-                     class="habitacion-imagen"
-                     onerror="this.src='https://source.unsplash.com/featured/?luxury-hotel-room'">
-                <div class="habitacion-info">
-                    <h3 class="habitacion-titulo">Habitación ${habitacion.numero_habitacion}</h3>
-                    <p class="habitacion-descripcion">${habitacion.categoria} - Piso ${habitacion.piso} - Capacidad ${habitacion.capacidad}</p>
-                    <div class="habitacion-precio">S/ ${habitacion.precio_por_dia} / día</div>
-                    <div class="habitacion-disponibilidad disponible">
-                        Disponible
+        contenedor.innerHTML = habitaciones.map(habitacion => {
+            // Determinar la imagen a mostrar
+            let imagenSrc = 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=400';
+            if (habitacion.fotos && habitacion.fotos.length > 0) {
+                imagenSrc = `/img/habitaciones/${habitacion.fotos[0]}`;
+            }
+
+            return `
+                <div class="habitacion-card">
+                    <img src="${imagenSrc}" 
+                         alt="Habitación ${habitacion.numero_habitacion}" 
+                         class="habitacion-imagen"
+                         onerror="this.src='https://images.unsplash.com/photo-1590490360182-c33d57733427?w=400'">
+                    <div class="habitacion-info">
+                        <h3 class="habitacion-titulo">Habitación ${habitacion.numero_habitacion}</h3>
+                        <p class="habitacion-descripcion">${habitacion.categoria || 'Estándar'} - Piso ${habitacion.piso || 'N/A'} - Capacidad ${habitacion.capacidad || 2} personas</p>
+                        <div class="habitacion-precio">S/ ${parseFloat(habitacion.precio_por_dia).toFixed(2)} / día</div>
+                        <div class="habitacion-disponibilidad disponible">
+                            Disponible
+                        </div>
+                        <button class="btn-reservar" 
+                                data-id="${habitacion.id_habitacion}"
+                                data-nombre="Habitación ${habitacion.numero_habitacion}">
+                            Reservar Ahora
+                        </button>
                     </div>
-                    <button class="btn-reservar" 
-                            data-id="${habitacion.id_habitacion}"
-                            data-nombre="Habitación ${habitacion.numero_habitacion}">
-                        Reservar Ahora
-                    </button>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         // Event listeners para reservar
         document.querySelectorAll('.btn-reservar').forEach(btn => {
@@ -299,10 +391,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const habitacion = habitacionesData.find(h => h.id_habitacion === habitacionId);
         if (habitacion) {
             document.getElementById('reservaHabitacionNombre').textContent = nombreHabitacion;
-            document.getElementById('reservaHabitacionCategoria').textContent = `Categoría: ${habitacion.categoria}`;
-            document.getElementById('reservaHabitacionPiso').textContent = `Piso: ${habitacion.piso}`;
-            document.getElementById('reservaHabitacionCapacidad').textContent = `Capacidad: ${habitacion.capacidad} personas`;
-            document.getElementById('reservaHabitacionPrecioDia').textContent = `Precio por día: S/ ${habitacion.precio_por_dia}`;
+            document.getElementById('reservaHabitacionCategoria').textContent = `Categoría: ${habitacion.categoria || 'Estándar'}`;
+            document.getElementById('reservaHabitacionPiso').textContent = `Piso: ${habitacion.piso || 'N/A'}`;
+            document.getElementById('reservaHabitacionCapacidad').textContent = `Capacidad: ${habitacion.capacidad || 2} personas`;
+            document.getElementById('reservaHabitacionPrecioDia').textContent = `Precio por día: S/ ${parseFloat(habitacion.precio_por_dia).toFixed(2)}`;
             
             // Handle image carousel
             const imagenContainer = document.querySelector('.reserva-imagen');
@@ -310,7 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 imagenContainer.innerHTML = `
                     <div class="reserva-carousel">
                         ${habitacion.fotos.map((foto, index) => {
-                            return `<img src="/img/habitaciones/${foto}" alt="Habitación" class="reserva-img" style="display: ${index === 0 ? 'block' : 'none'};" onerror="this.src='https://source.unsplash.com/featured/?luxury-hotel-room'">`;
+                            return `<img src="/img/habitaciones/${foto}" alt="Habitación" class="reserva-img" style="display: ${index === 0 ? 'block' : 'none'};" onerror="this.src='https://images.unsplash.com/photo-1590490360182-c33d57733427?w=600'">`;
                         }).join('')}
                         <button class="reserva-arrow prev">&lt;</button>
                         <button class="reserva-arrow next">&gt;</button>
@@ -333,23 +425,43 @@ document.addEventListener('DOMContentLoaded', () => {
                     showImg(currentImg);
                 });
             } else {
-                const fotoSrc = habitacion.fotos && habitacion.fotos.length > 0 ? `/img/habitaciones/${habitacion.fotos[0]}` : '/img/habitaciones/default-room.jpg';
-                imagenContainer.innerHTML = `<img id="reservaHabitacionImagen" src="${fotoSrc}" alt="Habitación" class="reserva-img" onerror="this.src='https://source.unsplash.com/featured/?luxury-hotel-room'">`;
+                let fotoSrc = 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=600';
+                if (habitacion.fotos && habitacion.fotos.length > 0) {
+                    fotoSrc = `/img/habitaciones/${habitacion.fotos[0]}`;
+                }
+                imagenContainer.innerHTML = `<img id="reservaHabitacionImagen" src="${fotoSrc}" alt="Habitación" class="reserva-img" onerror="this.src='https://images.unsplash.com/photo-1590490360182-c33d57733427?w=600'">`;
             }
         }
+        
+        // Limpiar el formulario
+        document.getElementById('reservaForm').reset();
         document.getElementById('reservaMessage').textContent = '';
-        checkForm(); // Check if button should be enabled
+        
+        // Establecer fecha mínima como hoy
+        const now = new Date();
+        const minDate = now.toISOString().slice(0, 16);
+        document.querySelector('#reservaModal #fechaCheckin').setAttribute('min', minDate);
+        document.querySelector('#reservaModal #fechaCheckout').setAttribute('min', minDate);
+        
+        checkForm();
         openModal('reservaModal');
     }
 
     // Función para verificar si el formulario de reserva está completo
     function checkForm() {
-        const checkinInput = document.getElementById('fechaCheckin');
-        const checkoutInput = document.getElementById('fechaCheckout');
+        const checkinInput = document.querySelector('#reservaModal #fechaCheckin');
+        const checkoutInput = document.querySelector('#reservaModal #fechaCheckout');
         const btnConfirmar = document.getElementById('btnConfirmarReserva');
         
-        if (checkinInput.value && checkoutInput.value) {
-            btnConfirmar.disabled = false;
+        if (checkinInput && checkoutInput && checkinInput.value && checkoutInput.value) {
+            const checkin = new Date(checkinInput.value);
+            const checkout = new Date(checkoutInput.value);
+            
+            if (checkout > checkin) {
+                btnConfirmar.disabled = false;
+            } else {
+                btnConfirmar.disabled = true;
+            }
         } else {
             btnConfirmar.disabled = true;
         }
@@ -359,11 +471,19 @@ document.addEventListener('DOMContentLoaded', () => {
     async function manejarReserva(e) {
         e.preventDefault();
         
-        const checkin = document.getElementById('fechaCheckin').value;
-        const checkout = document.getElementById('fechaCheckout').value;
+        const checkin = document.querySelector('#reservaModal #fechaCheckin').value;
+        const checkout = document.querySelector('#reservaModal #fechaCheckout').value;
         
         if (!checkin || !checkout) {
             document.getElementById('reservaMessage').textContent = 'Por favor, selecciona las fechas';
+            return;
+        }
+        
+        const checkinDate = new Date(checkin);
+        const checkoutDate = new Date(checkout);
+        
+        if (checkoutDate <= checkinDate) {
+            document.getElementById('reservaMessage').textContent = 'La fecha de checkout debe ser posterior al checkin';
             return;
         }
         
@@ -377,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (document.getElementById('upsell-late-checkout').checked) upsells.push('late-checkout');
         
         try {
-            const response = await fetch('/api/cliente/reservas', {
+            const response = await fetch(`${API_BASE}/cliente/reservas`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -394,24 +514,27 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             
             if (response.ok) {
-                alert('Reserva creada exitosamente');
+                alert('¡Reserva creada exitosamente! Puedes ver tus reservas en "Mis Reservas"');
                 closeModal('reservaModal');
-                cargarDatos(); // reload to update availability
-                mostrarHabitaciones(habitacionesData); // refresh display
+                await cargarDatos(); // Recargar datos
+                mostrarHabitaciones(habitacionesData); // Actualizar vista
             } else {
                 document.getElementById('reservaMessage').textContent = data.error || 'Error al crear reserva';
             }
         } catch (error) {
             console.error('Error en reserva:', error);
-            document.getElementById('reservaMessage').textContent = 'Error de conexión';
+            document.getElementById('reservaMessage').textContent = 'Error de conexión. Intenta nuevamente.';
         }
     }
 
     document.getElementById('reservaForm').addEventListener('submit', manejarReserva);
 
     // Event listeners para los inputs del formulario de reserva
-    document.getElementById('fechaCheckin').addEventListener('input', checkForm);
-    document.getElementById('fechaCheckout').addEventListener('input', checkForm);
+    const reservaCheckin = document.querySelector('#reservaModal #fechaCheckin');
+    const reservaCheckout = document.querySelector('#reservaModal #fechaCheckout');
+    
+    if (reservaCheckin) reservaCheckin.addEventListener('input', checkForm);
+    if (reservaCheckout) reservaCheckout.addEventListener('input', checkForm);
 
     // Event listeners para filtros
     document.getElementById('btnBuscar').addEventListener('click', filtrarHabitaciones);

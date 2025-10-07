@@ -349,6 +349,52 @@ app.get("/api/categorias", async (req, res) => {
 });
 
 /**
+ * @route GET /api/habitaciones
+ * @desc Obtener habitaciones disponibles (público - sin autenticación)
+ */
+app.get("/api/habitaciones", async (req, res) => {
+  try {
+    const dataQ = `
+      SELECT
+          h.id_habitacion,
+          h.numero_habitacion,
+          h.piso,
+          h.capacidad,
+          h.precio_por_dia,
+          h.precio_por_hora,
+          h.disponible,
+          c.nombre AS categoria
+      FROM public.habitaciones h
+      INNER JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria
+      WHERE h.disponible = true
+      GROUP BY h.id_habitacion, c.nombre
+      ORDER BY h.numero_habitacion ASC;
+    `;
+
+    const result = await queryWithRetry(dataQ);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error al obtener habitaciones públicas:", err);
+    res.status(500).json({ error: "Error al obtener habitaciones", code: 500 });
+  }
+});
+
+/**
+ * @route GET /api/habitaciones/:id/fotos
+ * @desc Obtener fotos de una habitación específica (público)
+ */
+app.get("/api/habitaciones/:id/fotos", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await queryWithRetry("SELECT ruta_foto FROM habitaciones_fotos WHERE id_habitacion = $1", [parseInt(id)]);
+    res.json(result.rows.map(r => r.ruta_foto));
+  } catch (err) {
+    console.error("Error obteniendo fotos:", err);
+    res.status(500).json({ error: "Error al obtener fotos" });
+  }
+});
+
+/**
  * =========================
  * RUTAS CLIENTE
  * =========================

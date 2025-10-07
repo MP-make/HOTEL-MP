@@ -20,7 +20,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event listeners para filtros de reservas
     document.getElementById('btnFiltrarReservas').addEventListener('click', filtrarReservas);
     document.getElementById('btnLimpiarReservas').addEventListener('click', function() {
+        document.getElementById('filtro-buscar').value = '';
         document.getElementById('filtro-categoria').value = '';
+        document.getElementById('filtro-estado').value = '';
+        document.getElementById('filtro-fecha-desde').value = '';
+        document.getElementById('filtro-fecha-hasta').value = '';
         document.getElementById('filtro-orden').value = 'ultimas';
         displayReservas(window.reservas);
     });
@@ -268,17 +272,58 @@ function populateFiltroCategoria() {
 
 function filtrarReservas() {
     let filtered = window.reservas.slice();
+    
+    // Filtro por búsqueda de habitación
+    const buscar = document.getElementById('filtro-buscar').value.trim().toLowerCase();
+    if (buscar) {
+        filtered = filtered.filter(r => 
+            r.numero_habitacion.toString().toLowerCase().includes(buscar)
+        );
+    }
+    
+    // Filtro por categoría
     const cat = document.getElementById('filtro-categoria').value;
     if (cat) {
         filtered = filtered.filter(r => r.categoria === cat);
     }
+    
+    // Filtro por estado
+    const estado = document.getElementById('filtro-estado').value;
+    if (estado) {
+        filtered = filtered.filter(r => r.estado_reserva === estado);
+    }
+    
+    // Filtro por rango de fechas (check-in)
+    const fechaDesde = document.getElementById('filtro-fecha-desde').value;
+    const fechaHasta = document.getElementById('filtro-fecha-hasta').value;
+    
+    if (fechaDesde) {
+        const desde = new Date(fechaDesde);
+        filtered = filtered.filter(r => {
+            const checkin = new Date(r.fecha_checkin);
+            return checkin >= desde;
+        });
+    }
+    
+    if (fechaHasta) {
+        const hasta = new Date(fechaHasta);
+        hasta.setHours(23, 59, 59, 999); // Incluir todo el día
+        filtered = filtered.filter(r => {
+            const checkin = new Date(r.fecha_checkin);
+            return checkin <= hasta;
+        });
+    }
+    
+    // Ordenar resultados
     const orden = document.getElementById('filtro-orden').value;
     if (orden === 'ultimas') {
         filtered.sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
     } else if (orden === 'recientes') {
         filtered.sort((a, b) => new Date(b.fecha_checkin) - new Date(b.fecha_checkin));
     } else if (orden === 'antiguas') {
-        filtered.sort((a, b) => new Date(a.fecha_checkin) - new Date(a.fecha_checkin));
+        filtered.sort((a, b) => new Date(a.fecha_checkin) - new Date(b.fecha_checkin));
     }
+    
+    console.log(`Filtrado: ${filtered.length} reservas de ${window.reservas.length} totales`);
     displayReservas(filtered);
 }
