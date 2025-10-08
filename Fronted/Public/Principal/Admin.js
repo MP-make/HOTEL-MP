@@ -1265,7 +1265,7 @@
                                         <td class="py-3 px-4">${r.id_reserva}</td>
                                         <td class="py-3 px-4">${r.cliente_nombre} (${r.cliente_email || ''})</td>
                                         <td class="py-3 px-4">${r.numero_habitacion}</td>
-                                        <td class="py-3 px-4">${new Date(r.fecha_checkin).toLocaleString()} - ${new Date(r.fecha_checkout).toLocaleString()}</td>
+                                        <td class="py-3 px-4">${new Date(r.fecha_checkin).toLocaleString('es-ES', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} - ${new Date(r.fecha_checkout).toLocaleString('es-ES', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                                         <td class="py-3 px-4">${r.estado_reserva}</td>
                                         <td class="py-3 px-4 flex space-x-2">
                                         ${ (r.estado_reserva && String(r.estado_reserva).toLowerCase() !== 'completada') ? `
@@ -1339,7 +1339,7 @@
                                     <td class="py-3 px-4">${r.id_reserva}</td>
                                     <td class="py-3 px-4">${r.cliente_nombre} (${r.cliente_email || ''})</td>
                                     <td class="py-3 px-4">${r.numero_habitacion}</td>
-                                    <td class="py-3 px-4">${new Date(r.fecha_checkin).toLocaleString()} - ${new Date(r.fecha_checkout).toLocaleString()}</td>
+                                    <td class="py-3 px-4">${new Date(r.fecha_checkin).toLocaleString('es-ES', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} - ${new Date(r.fecha_checkout).toLocaleString('es-ES', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                                     <td class="py-3 px-4">${r.estado_reserva}</td>
                                     <td class="py-3 px-4 flex space-x-2">
                                     ${ (r.estado_reserva && String(r.estado_reserva).toLowerCase() !== 'completada') ? `

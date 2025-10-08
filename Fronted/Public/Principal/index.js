@@ -165,10 +165,88 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Variable global para las habitaciones
         let habitacionesData = [];
+        let todasLasReservas = []; // NUEVO: Almacenar todas las reservas del sistema
+
+        // NUEVA FUNCIÓN: Cargar todas las reservas del sistema
+        async function cargarTodasLasReservas() {
+            try {
+                const token = localStorage.getItem('token');
+                const headers = {};
+                if (token) {
+                    headers['Authorization'] = 'Bearer ' + token;
+                }
+                
+                const response = await fetch('/api/admin/reservas', { headers });
+                
+                if (response.ok) {
+                    todasLasReservas = await response.json();
+                    console.log('Reservas del sistema cargadas:', todasLasReservas.length);
+                } else {
+                    todasLasReservas = [];
+                    console.log('No se pudieron cargar las reservas del sistema');
+                }
+            } catch (error) {
+                console.error('Error al cargar reservas del sistema:', error);
+                todasLasReservas = [];
+            }
+        }
+
+        // NUEVA FUNCIÓN: Verificar si una habitación está disponible (considerando 12h limpieza)
+        function habitacionEstaDisponible(habitacionId) {
+            // Si no hay reservas, está disponible
+            if (!todasLasReservas || todasLasReservas.length === 0) {
+                return true;
+            }
+
+            const ahora = new Date();
+
+            // Filtrar reservas de esta habitación que no estén completadas
+            const reservasHabitacion = todasLasReservas.filter(r => 
+                r.id_habitacion === habitacionId && 
+                r.estado_reserva !== 'completada' &&
+                r.estado_reserva !== 'cancelada'
+            );
+
+            // Si no hay reservas activas para esta habitación, está disponible
+            if (reservasHabitacion.length === 0) {
+                return true;
+            }
+
+            // VALIDACIÓN 1: Verificar si EL USUARIO ACTUAL ya tiene una reserva activa de esta habitación
+            if (usuarioActual && usuarioActual.id) {
+                const clienteTieneReserva = reservasHabitacion.some(r => 
+                    r.id_usuario === usuarioActual.id
+                );
+                
+                if (clienteTieneReserva) {
+                    return false; // El cliente ya tiene una reserva activa de esta habitación
+                }
+            }
+
+            // VALIDACIÓN 2: Verificar si alguna reserva está activa AHORA (considerando 12h de limpieza)
+            for (const reserva of reservasHabitacion) {
+                const checkIn = new Date(reserva.fecha_checkin);
+                const checkOut = new Date(reserva.fecha_checkout);
+                
+                // Agregar 12 horas de limpieza después del checkout
+                const checkOutConLimpieza = new Date(checkOut.getTime() + (12 * 60 * 60 * 1000));
+
+                // Si ahora está entre check-in y checkout+12h, NO está disponible
+                if (ahora >= checkIn && ahora < checkOutConLimpieza) {
+                    return false;
+                }
+            }
+
+            // Si ninguna reserva está activa ahora, está disponible
+            return true;
+        }
 
         // Función mejorada para cargar habitaciones
         async function cargarHabitaciones() {
             try {
+                // PRIMERO: Cargar todas las reservas del sistema
+                await cargarTodasLasReservas();
+
                 const response = await fetch('/api/cliente/habitaciones');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -201,6 +279,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             const fotoSrc = habitacion.fotos && habitacion.fotos.length > 0 
                                 ? (habitacion.fotos[0].startsWith('/') ? habitacion.fotos[0] : '/img/habitaciones/' + habitacion.fotos[0]) 
                                 : 'https://source.unsplash.com/featured/?luxury-hotel-room';
+                            
+                            // VERIFICAR DISPONIBILIDAD REAL
+                            const estaDisponible = habitacionEstaDisponible(habitacion.id_habitacion);
+                            
                             return `
                             <div class="habitacion-card">
                                 <img src="${fotoSrc}" 
@@ -219,14 +301,14 @@ document.addEventListener('DOMContentLoaded', () => {
                                             <li>Late Check-out: +S/15</li>
                                         </ul>
                                     </div>
-                                    <div class="habitacion-disponibilidad ${habitacion.disponible ? 'disponible' : 'no-disponible'}">
-                                        ${habitacion.disponible ? 'Disponible' : 'No disponible'}
+                                    <div class="habitacion-disponibilidad ${estaDisponible ? 'disponible' : 'no-disponible'}">
+                                        ${estaDisponible ? 'Disponible' : 'No disponible ahora'}
                                     </div>
                                     <button class="btn-reservar" 
                                             data-id="${habitacion.id_habitacion}"
                                             data-nombre="Habitación ${habitacion.numero_habitacion}"
-                                            ${!habitacion.disponible ? 'disabled' : ''}>
-                                        ${habitacion.disponible ? 'Reservar Ahora' : 'No disponible'}
+                                            ${!estaDisponible ? 'disabled' : ''}>
+                                        ${estaDisponible ? 'Reservar Ahora' : 'No disponible'}
                                     </button>
                                 </div>
                             </div>
@@ -272,6 +354,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // VALIDACIÓN CRÍTICA: Verificar si el cliente ya tiene una reserva activa de esta habitación
+            if (todasLasReservas && todasLasReservas.length > 0 && usuarioActual && usuarioActual.id) {
+                const clienteYaTieneReserva = todasLasReservas.some(r => 
+                    r.id_habitacion === habitacionId && 
+                    r.id_usuario === usuarioActual.id &&
+                    r.estado_reserva !== 'completada' &&
+                    r.estado_reserva !== 'cancelada'
+                );
+                
+                if (clienteYaTieneReserva) {
+                    alert('⚠️ Ya tienes una reserva activa de esta habitación.\n\nNo puedes reservar la misma habitación dos veces.\n\nPor favor, completa o cancela tu reserva actual antes de crear una nueva.');
+                    return; // BLOQUEAR acceso al modal
+                }
+            }
+
             currentHabitacionId = habitacionId;
             const habitacion = habitacionesData.find(h => h.id_habitacion === habitacionId);
             if (habitacion) {
@@ -305,6 +402,103 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('reservaMessage').textContent = '';
             checkForm(); // Check if button should be enabled
             openModal('reservaModal');
+        }
+
+        // Función para manejar la reserva
+        async function manejarReserva(e) {
+            e.preventDefault();
+            
+            const checkin = document.getElementById('fechaCheckin').value;
+            const checkout = document.getElementById('fechaCheckout').value;
+            
+            if (!checkin || !checkout) {
+                document.getElementById('reservaMessage').textContent = 'Por favor, selecciona las fechas y horas';
+                return;
+            }
+            
+            // CORRECCIÓN MEJORADA: No usar Date(), enviar el string directamente
+            // El input datetime-local devuelve: "2025-10-09T01:20"
+            // Lo convertimos a formato que PostgreSQL entienda sin zona horaria
+            
+            // Validar formato básico
+            if (!checkin.includes('T') || !checkout.includes('T')) {
+                document.getElementById('reservaMessage').textContent = 'Por favor, selecciona fecha Y hora.';
+                return;
+            }
+            
+            // Crear Date solo para validaciones
+            const checkinDate = new Date(checkin);
+            const checkoutDate = new Date(checkout);
+            
+            if (isNaN(checkinDate.getTime()) || isNaN(checkoutDate.getTime())) {
+                document.getElementById('reservaMessage').textContent = 'Fechas inválidas.';
+                return;
+            }
+            
+            if (checkoutDate <= checkinDate) {
+                document.getElementById('reservaMessage').textContent = 'La fecha de checkout debe ser posterior al checkin';
+                return;
+            }
+            
+            // Verificar que haya al menos 1 hora de diferencia
+            const diffHours = (checkoutDate - checkinDate) / (1000 * 60 * 60);
+            if (diffHours < 1) {
+                document.getElementById('reservaMessage').textContent = 'La reserva debe ser de al menos 1 hora';
+                return;
+            }
+            
+            // Collect upsells
+            const upsells = [];
+            if (document.getElementById('upsell-desayuno')?.checked) upsells.push('desayuno');
+            if (document.getElementById('upsell-romantico')?.checked) upsells.push('romantico');
+            if (document.getElementById('upsell-spa')?.checked) upsells.push('spa');
+            if (document.getElementById('upsell-late-checkout')?.checked) upsells.push('late-checkout');
+            
+            // Calcular monto total
+            const habitacion = habitacionesData.find(h => h.id_habitacion === currentHabitacionId);
+            if (!habitacion) {
+                document.getElementById('reservaMessage').textContent = 'Error: habitación no encontrada';
+                return;
+            }
+            
+            const dias = Math.ceil((checkoutDate - checkinDate) / (1000 * 60 * 60 * 24));
+            let montoTotal = habitacion.precio_por_dia * dias;
+            
+            // Agregar costos de servicios adicionales
+            const costosServicios = {
+                'desayuno': 20,
+                'romantico': 50,
+                'spa': 30,
+                'late-checkout': 15
+            };
+            
+            upsells.forEach(servicio => {
+                if (costosServicios[servicio]) {
+                    montoTotal += costosServicios[servicio] * dias;
+                }
+            });
+            
+            const montoMinimo = (montoTotal * 0.5).toFixed(2);
+            
+            // CLAVE: Enviar el string directamente con :00 para los segundos
+            // Formato: "2025-10-09T01:20:00" sin timezone
+            window.datosReserva = {
+                id_habitacion: currentHabitacionId,
+                fecha_checkin: checkin + ':00',  // Agregar segundos, NO convertir a ISO
+                fecha_checkout: checkout + ':00', // Agregar segundos, NO convertir a ISO
+                servicios_adicionales: upsells,
+                monto_total: montoTotal,
+                monto_minimo: montoMinimo,
+                dias: dias
+            };
+            
+            console.log('✅ Datos de reserva (hora exacta del cliente):', {
+                checkin: checkin + ':00',
+                checkout: checkout + ':00'
+            });
+            
+            // Mostrar modal de pago
+            mostrarModalPago(montoTotal, montoMinimo, dias);
         }
 
         // Función para verificar si el formulario de reserva está completo
@@ -498,74 +692,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('reservaForm').addEventListener('submit', manejarReserva);
 
-        // Función para manejar la reserva
-        async function manejarReserva(e) {
-            e.preventDefault();
-            
-            const checkin = document.getElementById('fechaCheckin').value;
-            const checkout = document.getElementById('fechaCheckout').value;
-            
-            if (!checkin || !checkout) {
-                document.getElementById('reservaMessage').textContent = 'Por favor, selecciona las fechas';
-                return;
-            }
-            
-            const checkinDate = new Date(checkin);
-            const checkoutDate = new Date(checkout);
-            
-            if (checkoutDate <= checkinDate) {
-                document.getElementById('reservaMessage').textContent = 'La fecha de checkout debe ser posterior al checkin';
-                return;
-            }
-            
-            // Collect upsells
-            const upsells = [];
-            if (document.getElementById('upsell-desayuno')?.checked) upsells.push('desayuno');
-            if (document.getElementById('upsell-romantico')?.checked) upsells.push('romantico');
-            if (document.getElementById('upsell-spa')?.checked) upsells.push('spa');
-            if (document.getElementById('upsell-late-checkout')?.checked) upsells.push('late-checkout');
-            
-            // Calcular monto total
-            const habitacion = habitacionesData.find(h => h.id_habitacion === currentHabitacionId);
-            if (!habitacion) {
-                document.getElementById('reservaMessage').textContent = 'Error: habitación no encontrada';
-                return;
-            }
-            
-            const dias = Math.ceil((checkoutDate - checkinDate) / (1000 * 60 * 60 * 24));
-            let montoTotal = habitacion.precio_por_dia * dias;
-            
-            // Agregar costos de servicios adicionales
-            const costosServicios = {
-                'desayuno': 20,
-                'romantico': 50,
-                'spa': 30,
-                'late-checkout': 15
-            };
-            
-            upsells.forEach(servicio => {
-                if (costosServicios[servicio]) {
-                    montoTotal += costosServicios[servicio] * dias;
-                }
-            });
-            
-            const montoMinimo = (montoTotal * 0.5).toFixed(2);
-            
-            // Guardar datos para el pago
-            window.datosReserva = {
-                id_habitacion: currentHabitacionId,
-                fecha_checkin: checkin,
-                fecha_checkout: checkout,
-                servicios_adicionales: upsells,
-                monto_total: montoTotal,
-                monto_minimo: montoMinimo,
-                dias: dias
-            };
-            
-            // Mostrar modal de pago
-            mostrarModalPago(montoTotal, montoMinimo, dias);
-        }
-
         // Función para mostrar el modal de pago
         function mostrarModalPago(montoTotal, montoMinimo, dias) {
             // Redondear a la décima más cercana (sistema peruano)
@@ -728,8 +854,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             const fotoSrc = reserva.fotos && reserva.fotos.length > 0 
                                 ? (reserva.fotos[0].startsWith('/') ? reserva.fotos[0] : '/img/habitaciones/' + reserva.fotos[0]) 
                                 : 'https://source.unsplash.com/featured/?luxury-hotel-room';
-                            const checkin = new Date(reserva.fecha_checkin).toLocaleDateString('es-ES');
-                            const checkout = new Date(reserva.fecha_checkout).toLocaleDateString('es-ES');
+                            // CORREGIDO: Mostrar fecha CON hora
+                            const checkin = new Date(reserva.fecha_checkin).toLocaleString('es-ES', { 
+                                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                            });
+                            const checkout = new Date(reserva.fecha_checkout).toLocaleString('es-ES', { 
+                                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                            });
                             return `
                             <div class="reserva-card">
                                 <img src="${fotoSrc}" 

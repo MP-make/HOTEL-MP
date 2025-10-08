@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Función para verificar disponibilidad
+    // Función para verificar disponibilidad con las 12 horas de limpieza
     function estaDisponible(habitacionId, fechaCheckin, fechaCheckout) {
         const habitacion = habitacionesData.find(h => h.id_habitacion === habitacionId);
         if (!habitacion) return false;
@@ -257,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const checkout = new Date(fechaCheckout);
         
         // Verificar si hay conflictos con reservas existentes
+        // IMPORTANTE: Agregar 12 horas después del checkout para limpieza
         const reservasHabitacion = reservasData.filter(r => 
             r.id_habitacion === habitacionId && 
             r.estado_reserva !== 'cancelada' &&
@@ -267,8 +268,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const resCheckin = new Date(reserva.fecha_checkin);
             const resCheckout = new Date(reserva.fecha_checkout);
             
-            // Hay conflicto si las fechas se solapan
-            if (checkin < resCheckout && checkout > resCheckin) {
+            // Agregar 12 horas de limpieza después del checkout
+            const resCheckoutConLimpieza = new Date(resCheckout.getTime() + (12 * 60 * 60 * 1000));
+            
+            // Hay conflicto si las fechas se solapan (considerando el tiempo de limpieza)
+            if (checkin < resCheckoutConLimpieza && checkout > resCheckin) {
                 return false;
             }
         }
@@ -479,8 +483,21 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
+        // CORRECCIÓN: No usar Date(), enviar el string directamente
+        // Validar formato básico
+        if (!checkin.includes('T') || !checkout.includes('T')) {
+            document.getElementById('reservaMessage').textContent = 'Por favor, selecciona fecha Y hora.';
+            return;
+        }
+        
+        // Crear Date solo para validaciones
         const checkinDate = new Date(checkin);
         const checkoutDate = new Date(checkout);
+        
+        if (isNaN(checkinDate.getTime()) || isNaN(checkoutDate.getTime())) {
+            document.getElementById('reservaMessage').textContent = 'Fechas inválidas.';
+            return;
+        }
         
         if (checkoutDate <= checkinDate) {
             document.getElementById('reservaMessage').textContent = 'La fecha de checkout debe ser posterior al checkin';
@@ -520,16 +537,22 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const montoMinimo = (montoTotal * 0.5).toFixed(2);
         
-        // Guardar datos para el pago
+        // CLAVE: Enviar el string directamente con :00 para los segundos
+        // Formato: "2025-10-09T01:20:00" sin timezone
         window.datosReserva = {
             id_habitacion: currentHabitacionId,
-            fecha_checkin: checkin,
-            fecha_checkout: checkout,
+            fecha_checkin: checkin + ':00',  // Agregar segundos, NO convertir a ISO
+            fecha_checkout: checkout + ':00', // Agregar segundos, NO convertir a ISO
             servicios_adicionales: upsells,
             monto_total: montoTotal,
             monto_minimo: montoMinimo,
             dias: dias
         };
+        
+        console.log('✅ Datos de reserva (hora exacta del cliente):', {
+            checkin: checkin + ':00',
+            checkout: checkout + ':00'
+        });
         
         // Mostrar modal de pago
         mostrarModalPago(montoTotal, montoMinimo, dias);

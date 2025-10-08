@@ -177,42 +177,34 @@ function displayReservas(reservas) {
         return;
     }
 
-    container.innerHTML = `
-        <div class="reservas-grid">
-            ${reservas.map(reserva => {
-                const fotoSrc = reserva.fotos && reserva.fotos.length > 0 
-                    ? (reserva.fotos[0].startsWith('/') ? reserva.fotos[0] : '/img/habitaciones/' + encodeURI(reserva.fotos[0])) 
-                    : 'https://source.unsplash.com/featured/?luxury-hotel-room';
-                const checkin = new Date(reserva.fecha_checkin).toLocaleDateString('es-ES');
-                const checkout = new Date(reserva.fecha_checkout).toLocaleDateString('es-ES');
-                return `
-                <div class="reserva-card">
-                    <img src="${fotoSrc}" 
-                         alt="Habitación ${reserva.numero_habitacion}" 
-                         class="reserva-imagen">
-                    <div class="reserva-info">
-                        <h3 class="reserva-titulo">Reserva #${reserva.id_reserva}</h3>
-                        <p class="reserva-descripcion">Habitación ${reserva.numero_habitacion} - ${reserva.categoria}</p>
-                        <p class="reserva-fechas">Check-in: ${checkin} | Check-out: ${checkout}</p>
-                        <p class="reserva-estado">Estado: ${reserva.estado_reserva}</p>
-                        <button class="btn-detalles" 
-                                data-id="${reserva.id_reserva}"
-                                data-habitacion="${reserva.numero_habitacion}"
-                                data-categoria="${reserva.categoria}"
-                                data-checkin="${reserva.fecha_checkin}"
-                                data-checkout="${reserva.fecha_checkout}"
-                                data-estado="${reserva.estado_reserva}"
-                                data-fecha-creacion="${reserva.fecha_creacion}"
-                                data-id-habitacion="${reserva.id_habitacion}"
-                                data-foto="${fotoSrc}">
-                            Ver Detalles
-                        </button>
-                    </div>
-                </div>
-                `;
-            }).join('')}
-        </div>
-    `;
+    container.innerHTML = '';
+    reservas.forEach(reserva => {
+        const fotoSrc = reserva.fotos && reserva.fotos.length > 0 
+            ? (reserva.fotos[0].startsWith('/') ? reserva.fotos[0] : `/img/habitaciones/${reserva.fotos[0]}`) 
+            : 'https://via.placeholder.com/300x200?text=Sin+Imagen';
+        // CORREGIDO: Mostrar fecha CON hora
+        const checkin = new Date(reserva.fecha_checkin).toLocaleString('es-ES', { 
+            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+        });
+        const checkout = new Date(reserva.fecha_checkout).toLocaleString('es-ES', { 
+            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+        });
+
+        const card = document.createElement('div');
+        card.className = 'reserva-card';
+        card.innerHTML = `
+            <img src="${fotoSrc}" alt="Habitación ${reserva.numero_habitacion}" class="reserva-imagen">
+            <div class="reserva-info">
+                <h3>Reserva #${reserva.id_reserva}</h3>
+                <p><strong>Habitación:</strong> ${reserva.numero_habitacion} - ${reserva.categoria}</p>
+                <p><strong>Check-in:</strong> ${checkin}</p>
+                <p><strong>Check-out:</strong> ${checkout}</p>
+                <p><strong>Estado:</strong> <span class="estado-${reserva.estado_reserva}">${reserva.estado_reserva}</span></p>
+                <button class="btn-detalles" data-id="${reserva.id_reserva}" data-habitacion="${reserva.numero_habitacion}" data-categoria="${reserva.categoria}" data-checkin="${reserva.fecha_checkin}" data-checkout="${reserva.fecha_checkout}" data-estado="${reserva.estado_reserva}" data-foto="${fotoSrc}">Ver Detalles</button>
+            </div>
+        `;
+        container.appendChild(card);
+    });
 
     // Event listeners para ver detalles
     document.querySelectorAll('.btn-detalles').forEach(btn => {
