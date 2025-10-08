@@ -1273,3 +1273,146 @@ Responsivo
         font-size: 18px;
     }
 }
+
+/* ==============================
+Modal de Pago
+============================== */
+.pago-modal-content {
+    max-width: 550px;
+    width: 95%;
+}
+
+.pago-resumen {
+    text-align: left;
+}
+
+.pago-info-card {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 25px;
+    border-left: 4px solid #666666;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pago-info-card h3 {
+    color: #333333;
+    font-size: 1.3rem;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.pago-detalle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    font-size: 1rem;
+}
+
+.pago-detalle:last-child {
+    border-bottom: none;
+}
+
+.pago-detalle span {
+    color: #666;
+}
+
+.pago-detalle strong {
+    color: #333333;
+    font-size: 1.1rem;
+}
+
+.form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: #333333;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+.form-hint {
+    display: block;
+    color: #999;
+    font-size: 0.85rem;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+.pago-simulacion {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 20px 0;
+}
+
+.pago-simulacion p {
+    margin: 0;
+    color: #856404;
+    font-size: 0.9rem;
+}
+
+.pago-simulacion i {
+    margin-right: 8px;
+    color: #ffc107;
+}
+
+.btn-confirmar-pago {
+    width: 100%;
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    font-weight: bold;
+    padding: 15px 20px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    font-size: 1.05rem;
+    margin-top: 10px;
+}
+
+.btn-confirmar-pago:hover {
+    background: linear-gradient(135deg, #20c997, #17a2b8);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
+}
+
+.btn-confirmar-pago:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-confirmar-pago i {
+    margin-right: 8px;
+}
+
+/* Responsivo para modal de pago */
+@media (max-width: 768px) {
+    .pago-modal-content {
+        max-width: 95%;
+        padding: 25px 20px;
+    }
+
+    .pago-info-card {
+        padding: 15px;
+    }
+
+    .pago-detalle {
+        font-size: 0.9rem;
+    }
+
+    .btn-confirmar-pago {
+        padding: 12px 16px;
+        font-size: 1rem;
+    }
+}

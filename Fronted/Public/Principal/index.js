@@ -510,48 +510,181 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            const token = localStorage.getItem('token');
+            const checkinDate = new Date(checkin);
+            const checkoutDate = new Date(checkout);
+            
+            if (checkoutDate <= checkinDate) {
+                document.getElementById('reservaMessage').textContent = 'La fecha de checkout debe ser posterior al checkin';
+                return;
+            }
             
             // Collect upsells
             const upsells = [];
-            if (document.getElementById('upsell-desayuno').checked) upsells.push('desayuno');
-            if (document.getElementById('upsell-romantico').checked) upsells.push('romantico');
-            if (document.getElementById('upsell-spa').checked) upsells.push('spa');
-            if (document.getElementById('upsell-late-checkout').checked) upsells.push('late-checkout');
+            if (document.getElementById('upsell-desayuno')?.checked) upsells.push('desayuno');
+            if (document.getElementById('upsell-romantico')?.checked) upsells.push('romantico');
+            if (document.getElementById('upsell-spa')?.checked) upsells.push('spa');
+            if (document.getElementById('upsell-late-checkout')?.checked) upsells.push('late-checkout');
+            
+            // Calcular monto total
+            const habitacion = habitacionesData.find(h => h.id_habitacion === currentHabitacionId);
+            if (!habitacion) {
+                document.getElementById('reservaMessage').textContent = 'Error: habitación no encontrada';
+                return;
+            }
+            
+            const dias = Math.ceil((checkoutDate - checkinDate) / (1000 * 60 * 60 * 24));
+            let montoTotal = habitacion.precio_por_dia * dias;
+            
+            // Agregar costos de servicios adicionales
+            const costosServicios = {
+                'desayuno': 20,
+                'romantico': 50,
+                'spa': 30,
+                'late-checkout': 15
+            };
+            
+            upsells.forEach(servicio => {
+                if (costosServicios[servicio]) {
+                    montoTotal += costosServicios[servicio] * dias;
+                }
+            });
+            
+            const montoMinimo = (montoTotal * 0.5).toFixed(2);
+            
+            // Guardar datos para el pago
+            window.datosReserva = {
+                id_habitacion: currentHabitacionId,
+                fecha_checkin: checkin,
+                fecha_checkout: checkout,
+                servicios_adicionales: upsells,
+                monto_total: montoTotal,
+                monto_minimo: montoMinimo,
+                dias: dias
+            };
+            
+            // Mostrar modal de pago
+            mostrarModalPago(montoTotal, montoMinimo, dias);
+        }
+
+        // Función para mostrar el modal de pago
+        function mostrarModalPago(montoTotal, montoMinimo, dias) {
+            // Redondear a la décima más cercana (sistema peruano)
+            montoTotal = Math.round(montoTotal * 10) / 10;
+            montoMinimo = Math.round(parseFloat(montoMinimo) * 10) / 10;
+            
+            document.getElementById('pagoMontoTotal').textContent = montoTotal.toFixed(1);
+            document.getElementById('pagoMontoMinimo').textContent = montoMinimo.toFixed(1);
+            document.getElementById('pagoDias').textContent = dias;
+            document.getElementById('pagoMonto').value = montoMinimo.toFixed(1);
+            document.getElementById('pagoMonto').setAttribute('min', montoMinimo.toFixed(1));
+            document.getElementById('pagoMonto').setAttribute('max', montoTotal.toFixed(1));
+            document.getElementById('pagoMessage').textContent = '';
+            
+            closeModal('reservaModal');
+            openModal('pagoModal');
+        }
+
+        // Función para procesar el pago y crear la reserva
+        async function procesarPagoYReserva(e) {
+            e.preventDefault();
+            
+            let monto = parseFloat(document.getElementById('pagoMonto').value);
+            // Redondear a la décima más cercana (sistema peruano)
+            monto = Math.round(monto * 10) / 10;
+            
+            const metodoPago = document.getElementById('pagoMetodo').value;
+            const comprobante = document.getElementById('pagoComprobante').value.trim();
+            
+            if (!metodoPago) {
+                document.getElementById('pagoMessage').textContent = 'Selecciona un método de pago';
+                return;
+            }
+            
+            if (monto < window.datosReserva.monto_minimo) {
+                document.getElementById('pagoMessage').textContent = `El monto mínimo es S/ ${window.datosReserva.monto_minimo.toFixed(1)}`;
+                return;
+            }
+            
+            if (monto > window.datosReserva.monto_total) {
+                document.getElementById('pagoMessage').textContent = `El monto no puede exceder el total: S/ ${window.datosReserva.monto_total.toFixed(1)}`;
+                return;
+            }
+            
+            const token = localStorage.getItem('token');
+            const btnPagar = document.getElementById('btnPagar');
+            btnPagar.disabled = true;
+            btnPagar.textContent = 'Procesando...';
             
             try {
-                const response = await fetch('/api/cliente/reservas', {
+                // 1. Crear la reserva con cálculo automático
+                const responseReserva = await fetch('/api/cliente/reservas/con-calculo', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + token
                     },
                     body: JSON.stringify({
-                        id_habitacion: currentHabitacionId,
-                        fecha_checkin: checkin,
-                        fecha_checkout: checkout,
-                        upsells: upsells
+                        id_habitacion: window.datosReserva.id_habitacion,
+                        fecha_checkin: window.datosReserva.fecha_checkin,
+                        fecha_checkout: window.datosReserva.fecha_checkout,
+                        servicios_adicionales: window.datosReserva.servicios_adicionales
                     })
                 });
                 
-                const data = await response.json();
-                
-                if (response.ok) {
-                    alert('Reserva creada exitosamente');
-                    closeModal('reservaModal');
-                    cargarHabitaciones(); // reload to update availability
-                    
-                    if (usuarioActual && usuarioActual.rol === 'cliente') {
-                        cargarReservasCliente();
-                    }
-                } else {
-                    document.getElementById('reservaMessage').textContent = data.error || 'Error al crear reserva';
+                if (!responseReserva.ok) {
+                    const errorData = await responseReserva.json();
+                    throw new Error(errorData.error || 'Error al crear reserva');
                 }
+                
+                const reservaData = await responseReserva.json();
+                const idReserva = reservaData.id_reserva;
+                
+                // 2. Procesar el pago
+                const tipoPago = monto >= window.datosReserva.monto_total ? 'completo' : 'adelanto';
+                
+                const responsePago = await fetch('/api/pagos/procesar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        id_reserva: idReserva,
+                        monto: monto,
+                        metodo_pago: metodoPago,
+                        tipo_pago: tipoPago,
+                        comprobante: comprobante || null
+                    })
+                });
+                
+                if (!responsePago.ok) {
+                    const errorData = await responsePago.json();
+                    throw new Error(errorData.error || 'Error al procesar pago');
+                }
+                
+                const pagoData = await responsePago.json();
+                
+                // Mostrar mensaje de éxito
+                alert(`¡Reserva confirmada exitosamente!\n\nMonto pagado: S/ ${pagoData.montoPagado.toFixed(2)}\nMonto pendiente: S/ ${pagoData.montoPendiente.toFixed(2)}\nEstado: ${pagoData.estadoReserva}\n\nPuedes ver tus reservas en "Mis Reservas"`);
+                
+                closeModal('pagoModal');
+                await cargarHabitaciones(); // Recargar habitaciones
+                
+                if (usuarioActual && usuarioActual.rol === 'cliente') {
+                    cargarReservasCliente(); // Recargar reservas
+                }
+                
             } catch (error) {
-                console.error('Error en reserva:', error);
-                document.getElementById('reservaMessage').textContent = 'Error de conexión';
+                console.error('Error:', error);
+                document.getElementById('pagoMessage').textContent = error.message || 'Error al procesar. Intenta nuevamente.';
+            } finally {
+                btnPagar.disabled = false;
+                btnPagar.textContent = 'Confirmar Pago';
             }
         }
+
+        document.getElementById('reservaForm').addEventListener('submit', manejarReserva);
+        document.getElementById('pagoForm')?.addEventListener('submit', procesarPagoYReserva);
 
         // Función para cargar reservas del cliente
         async function cargarReservasCliente() {

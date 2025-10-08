@@ -1604,3 +1604,253 @@ app.get("/api/encargado/reservas/stream", authenticateToken, requireEncargado, (
   sseClients.add(res);
   req.on('close', () => sseClients.delete(res));
 });
+
+/**
+ * =========================
+ * RUTAS DEL SISTEMA DE PAGOS
+ * =========================
+ */
+
+// Importar servicio de pagos
+const paymentService = require('./payment_service');
+
+// Iniciar actualizador automático de estados (cada 5 minutos)
+setInterval(() => {
+  paymentService.actualizarEstadosReservas().catch(err => {
+    console.error('Error en actualizador automático:', err);
+  });
+}, 5 * 60 * 1000);
+
+/**
+ * @route POST /api/pagos/procesar
+ * @desc Procesar un pago para una reserva
+ */
+app.post("/api/pagos/procesar", authenticateToken, async (req, res) => {
+  const { id_reserva, monto, metodo_pago, tipo_pago, comprobante } = req.body;
+  
+  try {
+    // Validaciones
+    if (!id_reserva || !monto || !metodo_pago || !tipo_pago) {
+      return res.status(400).json({ 
+        error: "Faltan campos obligatorios: id_reserva, monto, metodo_pago, tipo_pago" 
+      });
+    }
+
+    // Validar método de pago
+    if (!['tarjeta', 'yape', 'plin'].includes(metodo_pago)) {
+      return res.status(400).json({ 
+        error: "Método de pago inválido. Use: tarjeta, yape o plin" 
+      });
+    }
+
+    // Validar tipo de pago
+    if (!['adelanto', 'restante', 'completo'].includes(tipo_pago)) {
+      return res.status(400).json({ 
+        error: "Tipo de pago inválido. Use: adelanto, restante o completo" 
+      });
+    }
+
+    // Validar monto mínimo del 50% si es adelanto
+    if (tipo_pago === 'adelanto') {
+      const reserva = await queryWithRetry(
+        'SELECT monto_total FROM reservas WHERE id_reserva = $1',
+        [id_reserva]
+      );
+      
+      if (reserva.rows.length === 0) {
+        return res.status(404).json({ error: 'Reserva no encontrada' });
+      }
+
+      const montoTotal = parseFloat(reserva.rows[0].monto_total);
+      const porcentaje = (parseFloat(monto) / montoTotal) * 100;
+
+      if (porcentaje < 50) {
+        return res.status(400).json({ 
+          error: `El adelanto debe ser mínimo el 50% del total (${(montoTotal * 0.5).toFixed(2)}). Monto recibido: ${monto}`,
+          montoMinimo: (montoTotal * 0.5).toFixed(2)
+        });
+      }
+    }
+
+    // Procesar el pago
+    const resultado = await paymentService.procesarPago(
+      id_reserva,
+      monto,
+      metodo_pago,
+      tipo_pago,
+      comprobante
+    );
+
+    res.json({
+      message: 'Pago procesado exitosamente',
+      ...resultado
+    });
+
+  } catch (err) {
+    console.error("Error procesando pago:", err);
+    res.status(500).json({ 
+      error: "Error al procesar pago", 
+      detalle: err.message 
+    });
+  }
+});
+
+/**
+ * @route GET /api/pagos/reserva/:id
+ * @desc Obtener historial de pagos de una reserva
+ */
+app.get("/api/pagos/reserva/:id", authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const historial = await paymentService.obtenerHistorialPagos(parseInt(id));
+    res.json(historial);
+  } catch (err) {
+    console.error("Error obteniendo historial de pagos:", err);
+    res.status(500).json({ error: "Error al obtener historial de pagos" });
+  }
+});
+
+/**
+ * @route GET /api/cliente/reservas/con-pagos
+ * @desc Obtener reservas del cliente con información de pagos
+ */
+app.get("/api/cliente/reservas/con-pagos", authenticateToken, async (req, res) => {
+  try {
+    const result = await queryWithRetry(
+      `SELECT r.id_reserva, r.fecha_checkin, r.fecha_checkout, r.estado_reserva, 
+              r.estado_pago, r.monto_total, r.monto_pagado, r.monto_pendiente, 
+              r.porcentaje_pagado, r.fecha_creacion,
+              h.numero_habitacion, h.id_habitacion, h.precio_por_dia,
+              c.nombre AS categoria,
+              COALESCE(ARRAY_AGG(f.ruta_foto) FILTER (WHERE f.ruta_foto IS NOT NULL), '{}') AS fotos
+       FROM public.reservas r
+       JOIN public.habitaciones h ON r.id_habitacion = h.id_habitacion
+       JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria
+       LEFT JOIN public.habitaciones_fotos f ON h.id_habitacion = f.id_habitacion
+       WHERE r.id_usuario = $1
+       GROUP BY r.id_reserva, h.numero_habitacion, h.id_habitacion, h.precio_por_dia, c.nombre
+       ORDER BY r.fecha_creacion DESC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error obteniendo reservas con pagos:", err);
+    res.status(500).json({ error: "Error al obtener reservas" });
+  }
+});
+
+/**
+ * @route GET /api/admin/reservas/con-pagos
+ * @desc Obtener todas las reservas con información de pagos (Admin/Encargado)
+ */
+app.get("/api/admin/reservas/con-pagos", authenticateToken, requireEncargado, async (req, res) => {
+  try {
+    const result = await queryWithRetry(
+      `SELECT r.*, r.estado_pago, r.monto_total, r.monto_pagado, 
+              r.monto_pendiente, r.porcentaje_pagado,
+              h.numero_habitacion, h.precio_por_dia,
+              u.nombre as cliente_nombre, u.email as cliente_email
+       FROM reservas r 
+       JOIN habitaciones h ON r.id_habitacion = h.id_habitacion 
+       JOIN usuarios u ON r.id_usuario = u.id 
+       ORDER BY r.fecha_creacion DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error obteniendo reservas con pagos:", err);
+    res.status(500).json({ error: "Error al obtener reservas" });
+  }
+});
+
+/**
+ * @route POST /api/cliente/reservas/con-calculo
+ * @desc Crear una reserva con cálculo automático del monto total
+ */
+app.post("/api/cliente/reservas/con-calculo", authenticateTokenOptional, async (req, res) => {
+  const { id_usuario: bodyUserId, id_habitacion, fecha_checkin, fecha_checkout, servicios_adicionales } = req.body;
+  
+  try {
+    const id_usuario = req.user ? req.user.id : bodyUserId;
+
+    // Validaciones básicas
+    if (!id_usuario) return res.status(400).json({ error: 'id_usuario es obligatorio' });
+    if (!id_habitacion) return res.status(400).json({ error: 'id_habitacion es obligatorio' });
+    if (!fecha_checkin || !fecha_checkout) return res.status(400).json({ error: 'Fechas obligatorias' });
+
+    const parsedHabId = parseInt(id_habitacion, 10);
+    const checkIn = new Date(fecha_checkin);
+    const checkOut = new Date(fecha_checkout);
+
+    if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
+      return res.status(400).json({ error: 'Fechas inválidas' });
+    }
+    if (checkOut <= checkIn) {
+      return res.status(400).json({ error: 'Check-out debe ser posterior al check-in' });
+    }
+
+    // Obtener precio de la habitación
+    const habRes = await queryWithRetry(
+      'SELECT disponible, precio_por_dia FROM public.habitaciones WHERE id_habitacion = $1',
+      [parsedHabId]
+    );
+    
+    if (habRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Habitación no encontrada' });
+    }
+
+    const precioPorDia = parseFloat(habRes.rows[0].precio_por_dia);
+
+    // Calcular monto total
+    const montoTotal = paymentService.calcularMontoTotal(
+      precioPorDia,
+      checkIn,
+      checkOut,
+      servicios_adicionales || []
+    );
+
+    // Verificar solapamiento
+    const conflictQ = `
+      SELECT 1 FROM public.reservas r
+      WHERE r.id_habitacion = $1
+        AND r.estado_reserva <> 'completada'
+        AND NOT (r.fecha_checkout <= $2 OR r.fecha_checkin >= $3)
+      LIMIT 1
+    `;
+    const conflictRes = await queryWithRetry(conflictQ, [parsedHabId, checkIn.toISOString(), checkOut.toISOString()]);
+    if (conflictRes.rows.length > 0) {
+      return res.status(409).json({ error: 'Habitación no disponible en esas fechas' });
+    }
+
+    // Insertar reserva con monto total calculado
+    const result = await queryWithRetry(
+      `INSERT INTO public.reservas 
+       (id_usuario, id_habitacion, fecha_checkin, fecha_checkout, estado_reserva, 
+        monto_total, monto_pagado, monto_pendiente, porcentaje_pagado, estado_pago, fecha_creacion) 
+       VALUES ($1, $2, $3, $4, 'pendiente', $5, 0, $5, 0, 'pendiente', NOW()) 
+       RETURNING *`,
+      [id_usuario, parsedHabId, checkIn.toISOString(), checkOut.toISOString(), montoTotal]
+    );
+
+    // Marcar habitación como no disponible
+    await queryWithRetry('UPDATE public.habitaciones SET disponible = false WHERE id_habitacion = $1', [parsedHabId]);
+
+    const nuevaReserva = result.rows[0];
+
+    // Notificar via SSE
+    try { 
+      sendSseEvent('nueva_reserva', { reserva: nuevaReserva }); 
+    } catch (sseErr) { 
+      console.error('Error enviando SSE:', sseErr); 
+    }
+
+    res.status(201).json({
+      ...nuevaReserva,
+      montoMinimoPago: (montoTotal * 0.5).toFixed(2)
+    });
+
+  } catch (err) {
+    console.error("Error al crear reserva con cálculo:", err);
+    res.status(500).json({ error: "Error al crear reserva", detalle: err.message });
+  }
+});

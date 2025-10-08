@@ -267,6 +267,68 @@
         </div>
     </div>
 
+    <!-- MODAL PAGO -->
+    <div id="pagoModal" class="modal">
+        <div class="modal-content pago-modal-content">
+            <span class="close-modal" data-modal-close="pagoModal">&times;</span>
+            <h2>💳 Confirmar Pago</h2>
+            <div class="pago-resumen">
+                <div class="pago-info-card">
+                    <h3>📋 Resumen de Reserva</h3>
+                    <div class="pago-detalle">
+                        <span>Total a pagar:</span>
+                        <strong>S/ <span id="pagoMontoTotal">0.00</span></strong>
+                    </div>
+                    <div class="pago-detalle">
+                        <span>Monto mínimo (50%):</span>
+                        <strong>S/ <span id="pagoMontoMinimo">0.00</span></strong>
+                    </div>
+                    <div class="pago-detalle">
+                        <span>Número de días:</span>
+                        <strong><span id="pagoDias">0</span> días</strong>
+                    </div>
+                </div>
+                
+                <form id="pagoForm">
+                    <div class="form-group">
+                        <label for="pagoMonto">💰 Monto a pagar:</label>
+                        <input type="number" id="pagoMonto" step="0.10" required class="form-input" placeholder="Ingrese el monto">
+                        <small class="form-hint">Mínimo 50% del total para confirmar la reserva</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pagoMetodo">🔐 Método de Pago:</label>
+                        <select id="pagoMetodo" required class="form-input">
+                            <option value="">Seleccionar método</option>
+                            <option value="tarjeta">💳 Tarjeta de Crédito/Débito</option>
+                            <option value="yape">📱 Yape</option>
+                            <option value="plin">📲 Plin</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pagoComprobante">📄 Número de Comprobante (opcional):</label>
+                        <input type="text" id="pagoComprobante" class="form-input" placeholder="Ej: YAPE-123456">
+                        <small class="form-hint">Si pagaste por Yape/Plin, ingresa el número de operación</small>
+                    </div>
+
+                    <div class="pago-simulacion">
+                        <p class="text-sm text-gray-600">
+                            <i class="fas fa-info-circle"></i> Este es un sistema de pago simulado. 
+                            En producción se integraría con pasarelas de pago reales.
+                        </p>
+                    </div>
+
+                    <p id="pagoMessage" class="text-red-500 my-2 text-center"></p>
+                    
+                    <button type="submit" id="btnPagar" class="btn-confirmar-pago">
+                        <i class="fas fa-lock"></i> Confirmar Pago
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL DETALLES DE RESERVA -->
     <div id="detallesReservaModal" class="modal">
         <div class="modal-content reserva-modal-content">
