@@ -541,8 +541,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Formato: "2025-10-09T01:20:00" sin timezone
         window.datosReserva = {
             id_habitacion: currentHabitacionId,
-            fecha_checkin: checkin + ':00',  // Agregar segundos, NO convertir a ISO
-            fecha_checkout: checkout + ':00', // Agregar segundos, NO convertir a ISO
+            fecha_checkin: checkin + ':00-05:00',  // Agregar segundos y zona horaria, NO convertir a ISO
+            fecha_checkout: checkout + ':00-05:00', // Agregar segundos y zona horaria, NO convertir a ISO
             servicios_adicionales: upsells,
             monto_total: montoTotal,
             monto_minimo: montoMinimo,
@@ -550,8 +550,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         console.log('✅ Datos de reserva (hora exacta del cliente):', {
-            checkin: checkin + ':00',
-            checkout: checkout + ':00'
+            checkin: checkin + ':00-05:00',
+            checkout: checkout + ':00-05:00'
         });
         
         // Mostrar modal de pago

@@ -484,8 +484,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Formato: "2025-10-09T01:20:00" sin timezone
             window.datosReserva = {
                 id_habitacion: currentHabitacionId,
-                fecha_checkin: checkin + ':00',  // Agregar segundos, NO convertir a ISO
-                fecha_checkout: checkout + ':00', // Agregar segundos, NO convertir a ISO
+                fecha_checkin: checkin + ':00-05:00',  // Agregar segundos y zona horaria, NO convertir a ISO
+                fecha_checkout: checkout + ':00-05:00', // Agregar segundos y zona horaria, NO convertir a ISO
                 servicios_adicionales: upsells,
                 monto_total: montoTotal,
                 monto_minimo: montoMinimo,
@@ -856,10 +856,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                 : 'https://source.unsplash.com/featured/?luxury-hotel-room';
                             // CORREGIDO: Mostrar fecha CON hora
                             const checkin = new Date(reserva.fecha_checkin).toLocaleString('es-ES', { 
-                                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                                timeZone: 'America/Lima', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
                             });
                             const checkout = new Date(reserva.fecha_checkout).toLocaleString('es-ES', { 
-                                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                                timeZone: 'America/Lima', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
                             });
                             return `
                             <div class="reserva-card">
@@ -942,13 +942,13 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Formatear fechas
             const checkin = new Date(reserva.checkin).toLocaleString('es-ES', { 
-                year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                timeZone: 'America/Lima', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
             });
             const checkout = new Date(reserva.checkout).toLocaleString('es-ES', { 
-                year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                timeZone: 'America/Lima', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
             });
             const fechaCreacion = new Date(reserva.fechaCreacion).toLocaleString('es-ES', { 
-                year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                timeZone: 'America/Lima', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
             });
             
             document.getElementById('detalleFechaCheckin').textContent = checkin;

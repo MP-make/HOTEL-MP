@@ -219,8 +219,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             container.innerHTML = '<table class="reservas-table"><thead><tr><th>ID</th><th>Cliente</th><th>Habitación</th><th>Check-in</th><th>Check-out</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>' +
                 reservas.map(r => {
-                    const checkin = new Date(r.fecha_checkin).toLocaleString();
-                    const checkout = new Date(r.fecha_checkout).toLocaleString();
+                    const checkin = new Date(r.fecha_checkin).toLocaleString('es-ES', { timeZone: 'America/Lima', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const checkout = new Date(r.fecha_checkout).toLocaleString('es-ES', { timeZone: 'America/Lima', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
                     return `<tr><td>${r.id_reserva}</td><td>${r.cliente_nombre} ${r.cliente_email? `(${r.cliente_email})`: ''}</td><td>${r.numero_habitacion}</td><td>${checkin}</td><td>${checkout}</td><td><span class="estado-res">${r.estado_reserva}</span></td><td>${r.estado_reserva !== 'completada' ? `<button class="btn" data-action="completar" data-id="${r.id_reserva}">Completar</button>` : ''}</td></tr>`;
                 }).join('') +
                 '</tbody></table>';
@@ -277,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             container.innerHTML = '<table class="reclamos-table"><thead><tr><th>ID</th><th>Habitación</th><th>Reclamo</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody>' +
-                reclamos.map(r => `<tr><td>${r.id_reclamo}</td><td>${r.numero_habitacion}</td><td>${r.descripcion}</td><td>${r.estado}</td><td>${new Date(r.fecha_creacion).toLocaleString()}</td><td>${r.estado === 'pendiente' ? `<button class="btn" data-action="resolver" data-id="${r.id_reclamo}">Resolver</button>` : ''}</td></tr>`).join('') +
+                reclamos.map(r => `<tr><td>${r.id_reclamo}</td><td>${r.numero_habitacion}</td><td>${r.descripcion}</td><td>${r.estado}</td><td>${new Date(r.fecha_creacion).toLocaleString('es-ES', { timeZone: 'America/Lima', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td><td>${r.estado === 'pendiente' ? `<button class="btn" data-action="resolver" data-id="${r.id_reclamo}">Resolver</button>` : ''}</td></tr>`).join('') +
                 '</tbody></table>';
         } catch (err) {
             console.error('Error al cargar reclamos:', err);

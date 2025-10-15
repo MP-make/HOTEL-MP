@@ -1,0 +1,10 @@
+[33m3e14a50[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m antes de solucionar el tema de horarios
+[33m34e51cd[m actualización reservas 2.0
+[33m6fe41ea[m actualización reservas
+[33m897edc2[m Actualización de habitaciones.html y panelcliente.html
+[33m57f4eb4[m Gestión de reclamos en panel admin
+[33m4187818[m Nueva actualziación (admin y encargado)
+[33m938aff1[m Fix: Permitir acceso de encargados a habitaciones, carrusel y reservas en Panel Admin
+[33me4f733d[m Feature: Redirigir encargados y admins al Panel Admin con control de acceso por rol
+[33m674a93a[m Arreglo de imagenes en habitaciones y reservas en el index
+[33m909bdd6[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m antes de

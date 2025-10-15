@@ -466,11 +466,18 @@ try {
     const parsedHabId = parseInt(id_habitacion, 10);
     if (Number.isNaN(parsedHabId)) return res.status(400).json({ error: 'id_habitacion debe ser un número entero válido.' });
 
+    // Parsear fechas y RESTAR 5 HORAS (conversión a UTC-5 / Hora de Perú)
     const checkIn = new Date(fecha_checkin);
     const checkOut = new Date(fecha_checkout);
+    
     if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
       return res.status(400).json({ error: 'Fechas inválidas. Usa un formato ISO/compatible con datetime-local.' });
     }
+    
+    // RESTAR 5 HORAS para convertir a hora de Perú
+    checkIn.setHours(checkIn.getHours() - 5);
+    checkOut.setHours(checkOut.getHours() - 5);
+    
     if (checkOut <= checkIn) {
       return res.status(400).json({ error: 'La fecha de check-out debe ser posterior al check-in.' });
     }
@@ -587,6 +594,103 @@ app.post("/api/cliente/reclamos", authenticateToken, async (req, res) => {
   } catch (err) {
     console.error("Error creando reclamo:", err);
     res.status(500).json({ error: "Error al crear reclamo" });
+  }
+});
+
+/**
+ * @route POST /api/cliente/reservas/con-calculo
+ * @desc Crear una reserva con cálculo automático del monto total
+ */
+app.post("/api/cliente/reservas/con-calculo", authenticateTokenOptional, async (req, res) => {
+  const { id_usuario: bodyUserId, id_habitacion, fecha_checkin, fecha_checkout, servicios_adicionales } = req.body;
+  
+  try {
+    const id_usuario = req.user ? req.user.id : bodyUserId;
+
+    // Validaciones básicas
+    if (!id_usuario) return res.status(400).json({ error: 'id_usuario es obligatorio' });
+    if (!id_habitacion) return res.status(400).json({ error: 'id_habitacion es obligatorio' });
+    if (!fecha_checkin || !fecha_checkout) return res.status(400).json({ error: 'Fechas obligatorias' });
+
+    const parsedHabId = parseInt(id_habitacion, 10);
+    const checkIn = new Date(fecha_checkin);
+    const checkOut = new Date(fecha_checkout);
+
+    if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
+      return res.status(400).json({ error: 'Fechas inválidas' });
+    }
+    
+    // RESTAR 5 HORAS para convertir a hora de Perú
+    checkIn.setHours(checkIn.getHours() - 5);
+    checkOut.setHours(checkOut.getHours() - 5);
+    
+    if (checkOut <= checkIn) {
+      return res.status(400).json({ error: 'Check-out debe ser posterior al check-in' });
+    }
+
+    // Obtener precio de la habitación
+    const habRes = await queryWithRetry(
+      'SELECT disponible, precio_por_dia FROM public.habitaciones WHERE id_habitacion = $1',
+      [parsedHabId]
+    );
+    
+    if (habRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Habitación no encontrada' });
+    }
+
+    const precioPorDia = parseFloat(habRes.rows[0].precio_por_dia);
+
+    // Calcular monto total
+    const montoTotal = paymentService.calcularMontoTotal(
+      precioPorDia,
+      checkIn,
+      checkOut,
+      servicios_adicionales || []
+    );
+
+    // Verificar solapamiento
+    const conflictQ = `
+      SELECT 1 FROM public.reservas r
+      WHERE r.id_habitacion = $1
+        AND r.estado_reserva <> 'completada'
+        AND NOT (r.fecha_checkout <= $2 OR r.fecha_checkin >= $3)
+      LIMIT 1
+    `;
+    const conflictRes = await queryWithRetry(conflictQ, [parsedHabId, checkIn.toISOString(), checkOut.toISOString()]);
+    if (conflictRes.rows.length > 0) {
+      return res.status(409).json({ error: 'Habitación no disponible en esas fechas' });
+    }
+
+    // Insertar reserva con monto total calculado
+    const result = await queryWithRetry(
+      `INSERT INTO public.reservas 
+       (id_usuario, id_habitacion, fecha_checkin, fecha_checkout, estado_reserva, 
+        monto_total, monto_pagado, monto_pendiente, porcentaje_pagado, estado_pago, fecha_creacion) 
+       VALUES ($1, $2, $3, $4, 'pendiente', $5, 0, $5, 0, 'pendiente', NOW()) 
+       RETURNING *`,
+      [id_usuario, parsedHabId, checkIn.toISOString(), checkOut.toISOString(), montoTotal]
+    );
+
+    // Marcar habitación como no disponible
+    await queryWithRetry('UPDATE public.habitaciones SET disponible = false WHERE id_habitacion = $1', [parsedHabId]);
+
+    const nuevaReserva = result.rows[0];
+
+    // Notificar via SSE
+    try { 
+      sendSseEvent('nueva_reserva', { reserva: nuevaReserva }); 
+    } catch (sseErr) { 
+      console.error('Error enviando SSE:', sseErr); 
+    }
+
+    res.status(201).json({
+      ...nuevaReserva,
+      montoMinimoPago: (montoTotal * 0.5).toFixed(2)
+    });
+
+  } catch (err) {
+    console.error("Error al crear reserva con cálculo:", err);
+    res.status(500).json({ error: "Error al crear reserva", detalle: err.message });
   }
 });
 
@@ -1760,97 +1864,5 @@ app.get("/api/admin/reservas/con-pagos", authenticateToken, requireEncargado, as
   } catch (err) {
     console.error("Error obteniendo reservas con pagos:", err);
     res.status(500).json({ error: "Error al obtener reservas" });
-  }
-});
-
-/**
- * @route POST /api/cliente/reservas/con-calculo
- * @desc Crear una reserva con cálculo automático del monto total
- */
-app.post("/api/cliente/reservas/con-calculo", authenticateTokenOptional, async (req, res) => {
-  const { id_usuario: bodyUserId, id_habitacion, fecha_checkin, fecha_checkout, servicios_adicionales } = req.body;
-  
-  try {
-    const id_usuario = req.user ? req.user.id : bodyUserId;
-
-    // Validaciones básicas
-    if (!id_usuario) return res.status(400).json({ error: 'id_usuario es obligatorio' });
-    if (!id_habitacion) return res.status(400).json({ error: 'id_habitacion es obligatorio' });
-    if (!fecha_checkin || !fecha_checkout) return res.status(400).json({ error: 'Fechas obligatorias' });
-
-    const parsedHabId = parseInt(id_habitacion, 10);
-    const checkIn = new Date(fecha_checkin);
-    const checkOut = new Date(fecha_checkout);
-
-    if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
-      return res.status(400).json({ error: 'Fechas inválidas' });
-    }
-    if (checkOut <= checkIn) {
-      return res.status(400).json({ error: 'Check-out debe ser posterior al check-in' });
-    }
-
-    // Obtener precio de la habitación
-    const habRes = await queryWithRetry(
-      'SELECT disponible, precio_por_dia FROM public.habitaciones WHERE id_habitacion = $1',
-      [parsedHabId]
-    );
-    
-    if (habRes.rows.length === 0) {
-      return res.status(404).json({ error: 'Habitación no encontrada' });
-    }
-
-    const precioPorDia = parseFloat(habRes.rows[0].precio_por_dia);
-
-    // Calcular monto total
-    const montoTotal = paymentService.calcularMontoTotal(
-      precioPorDia,
-      checkIn,
-      checkOut,
-      servicios_adicionales || []
-    );
-
-    // Verificar solapamiento
-    const conflictQ = `
-      SELECT 1 FROM public.reservas r
-      WHERE r.id_habitacion = $1
-        AND r.estado_reserva <> 'completada'
-        AND NOT (r.fecha_checkout <= $2 OR r.fecha_checkin >= $3)
-      LIMIT 1
-    `;
-    const conflictRes = await queryWithRetry(conflictQ, [parsedHabId, checkIn.toISOString(), checkOut.toISOString()]);
-    if (conflictRes.rows.length > 0) {
-      return res.status(409).json({ error: 'Habitación no disponible en esas fechas' });
-    }
-
-    // Insertar reserva con monto total calculado
-    const result = await queryWithRetry(
-      `INSERT INTO public.reservas 
-       (id_usuario, id_habitacion, fecha_checkin, fecha_checkout, estado_reserva, 
-        monto_total, monto_pagado, monto_pendiente, porcentaje_pagado, estado_pago, fecha_creacion) 
-       VALUES ($1, $2, $3, $4, 'pendiente', $5, 0, $5, 0, 'pendiente', NOW()) 
-       RETURNING *`,
-      [id_usuario, parsedHabId, checkIn.toISOString(), checkOut.toISOString(), montoTotal]
-    );
-
-    // Marcar habitación como no disponible
-    await queryWithRetry('UPDATE public.habitaciones SET disponible = false WHERE id_habitacion = $1', [parsedHabId]);
-
-    const nuevaReserva = result.rows[0];
-
-    // Notificar via SSE
-    try { 
-      sendSseEvent('nueva_reserva', { reserva: nuevaReserva }); 
-    } catch (sseErr) { 
-      console.error('Error enviando SSE:', sseErr); 
-    }
-
-    res.status(201).json({
-      ...nuevaReserva,
-      montoMinimoPago: (montoTotal * 0.5).toFixed(2)
-    });
-
-  } catch (err) {
-    console.error("Error al crear reserva con cálculo:", err);
-    res.status(500).json({ error: "Error al crear reserva", detalle: err.message });
   }
 });

@@ -184,10 +184,10 @@ function displayReservas(reservas) {
             : 'https://via.placeholder.com/300x200?text=Sin+Imagen';
         // CORREGIDO: Mostrar fecha CON hora
         const checkin = new Date(reserva.fecha_checkin).toLocaleString('es-ES', { 
-            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+            timeZone: 'America/Lima', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
         });
         const checkout = new Date(reserva.fecha_checkout).toLocaleString('es-ES', { 
-            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+            timeZone: 'America/Lima', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
         });
 
         const card = document.createElement('div');
@@ -234,13 +234,13 @@ function mostrarDetallesReserva(reserva) {
     
     // Formatear fechas
     const checkin = new Date(reserva.checkin).toLocaleString('es-ES', { 
-        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+        timeZone: 'America/Lima', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
     });
     const checkout = new Date(reserva.checkout).toLocaleString('es-ES', { 
-        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+        timeZone: 'America/Lima', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
     });
     const fechaCreacion = new Date(reserva.fechaCreacion).toLocaleString('es-ES', { 
-        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+        timeZone: 'America/Lima', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
     });
     
     document.getElementById('detalleFechaCheckin').textContent = checkin;
