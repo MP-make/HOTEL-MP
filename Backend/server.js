@@ -490,7 +490,23 @@ try {
     const habRes = await queryWithRetry('SELECT disponible FROM public.habitaciones WHERE id_habitacion = $1', [parsedHabId]);
     if (habRes.rows.length === 0) return res.status(404).json({ error: 'Habitación no encontrada.' });
 
-    // Comprobar solapamiento con reservas existentes (solo considerar reservas que no estén completadas)
+    // VALIDACIÓN 1: Verificar si ESTE USUARIO ya tiene una reserva activa en ESTA HABITACIÓN
+    const userRoomReservation = await queryWithRetry(
+      `SELECT id_reserva FROM public.reservas 
+       WHERE id_usuario = $1 
+         AND id_habitacion = $2 
+         AND estado_reserva <> 'completada'
+       LIMIT 1`,
+      [id_usuario, parsedHabId]
+    );
+    
+    if (userRoomReservation.rows.length > 0) {
+      return res.status(409).json({ 
+        error: 'Ya tienes una reserva activa en esta habitación. No puedes reservar la misma habitación nuevamente hasta que tu reserva actual sea completada.' 
+      });
+    }
+
+    // VALIDACIÓN 2: Comprobar solapamiento de fechas con CUALQUIER reserva activa en esta habitación
     const conflictQ = `
       SELECT 1 FROM public.reservas r
       WHERE r.id_habitacion = $1
@@ -509,9 +525,6 @@ try {
     [id_usuario, parsedHabId, checkIn.toISOString(), checkOut.toISOString()]
     );
 
-    // Marcar la habitación como no disponible (regla de negocio: al crear reserva la habitación queda ocupada)
-    await queryWithRetry('UPDATE public.habitaciones SET disponible = false WHERE id_habitacion = $1', [parsedHabId]);
-
     const nuevaReserva = result.rows[0];
 
     // Notificar via SSE a encargados conectados
@@ -520,7 +533,6 @@ try {
     res.status(201).json(nuevaReserva);
 } catch (err) {
     console.error("Error al crear reserva (mejorado, catch):", err);
-    // Responder con detalle para facilitar debugging (no recomendado en producción sin control)
     res.status(500).json({ error: "Error al crear reserva", detalle: err && err.message ? err.message : String(err) });
 }
 });
@@ -648,7 +660,23 @@ app.post("/api/cliente/reservas/con-calculo", authenticateTokenOptional, async (
       servicios_adicionales || []
     );
 
-    // Verificar solapamiento
+    // VALIDACIÓN 1: Verificar si ESTE USUARIO ya tiene una reserva activa en ESTA HABITACIÓN
+    const userRoomReservation = await queryWithRetry(
+      `SELECT id_reserva FROM public.reservas 
+       WHERE id_usuario = $1 
+         AND id_habitacion = $2 
+         AND estado_reserva <> 'completada'
+       LIMIT 1`,
+      [id_usuario, parsedHabId]
+    );
+    
+    if (userRoomReservation.rows.length > 0) {
+      return res.status(409).json({ 
+        error: 'Ya tienes una reserva activa en esta habitación. No puedes reservar la misma habitación nuevamente hasta que tu reserva actual sea completada.' 
+      });
+    }
+
+    // VALIDACIÓN 2: Verificar solapamiento de fechas con CUALQUIER reserva activa
     const conflictQ = `
       SELECT 1 FROM public.reservas r
       WHERE r.id_habitacion = $1
@@ -670,9 +698,6 @@ app.post("/api/cliente/reservas/con-calculo", authenticateTokenOptional, async (
        RETURNING *`,
       [id_usuario, parsedHabId, checkIn.toISOString(), checkOut.toISOString(), montoTotal]
     );
-
-    // Marcar habitación como no disponible
-    await queryWithRetry('UPDATE public.habitaciones SET disponible = false WHERE id_habitacion = $1', [parsedHabId]);
 
     const nuevaReserva = result.rows[0];
 

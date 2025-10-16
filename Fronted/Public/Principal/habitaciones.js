@@ -391,6 +391,22 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // VALIDACIÓN CRÍTICA: Verificar si el cliente ya tiene una reserva activa de esta habitación
+        if (reservasData && reservasData.length > 0 && usuarioActual && usuarioActual.id) {
+            const reservaExistente = reservasData.find(r => 
+                r.id_habitacion === habitacionId && 
+                r.estado_reserva !== 'completada' &&
+                r.estado_reserva !== 'cancelada'
+            );
+            
+            if (reservaExistente) {
+                // MOSTRAR ALERTA informando que ya tiene una reserva de esta habitación
+                alert(`⚠️ Ya tienes una reserva activa de esta habitación.\n\nReserva #${reservaExistente.id_reserva}\nHabitación ${reservaExistente.numero_habitacion}\nEstado: ${reservaExistente.estado_reserva}\n\nNo puedes reservar la misma habitación dos veces.\n\nPuedes ver los detalles en "Mis Reservas"`);
+                return; // NO abrir el modal de reserva
+            }
+        }
+
+        // Si NO tiene reserva activa, continuar con el flujo normal de reserva
         currentHabitacionId = habitacionId;
         const habitacion = habitacionesData.find(h => h.id_habitacion === habitacionId);
         if (habitacion) {

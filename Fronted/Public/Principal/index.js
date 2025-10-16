@@ -165,87 +165,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Variable global para las habitaciones
         let habitacionesData = [];
-        let todasLasReservas = []; // NUEVO: Almacenar todas las reservas del sistema
+        let misReservasActivas = []; // CORREGIDO: Solo las reservas del cliente actual
 
-        // NUEVA FUNCIÓN: Cargar todas las reservas del sistema
-        async function cargarTodasLasReservas() {
+        // FUNCIÓN CORREGIDA: Cargar las reservas del cliente actual
+        async function cargarMisReservas() {
             try {
                 const token = localStorage.getItem('token');
-                const headers = {};
-                if (token) {
-                    headers['Authorization'] = 'Bearer ' + token;
+                if (!token || !usuarioActual) {
+                    misReservasActivas = [];
+                    console.log('No hay usuario logueado, no se cargan reservas');
+                    return;
                 }
                 
-                const response = await fetch('/api/admin/reservas', { headers });
+                const response = await fetch('/api/cliente/reservas', { 
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
                 
                 if (response.ok) {
-                    todasLasReservas = await response.json();
-                    console.log('Reservas del sistema cargadas:', todasLasReservas.length);
+                    misReservasActivas = await response.json();
+                    console.log('Mis reservas cargadas:', misReservasActivas.length);
                 } else {
-                    todasLasReservas = [];
-                    console.log('No se pudieron cargar las reservas del sistema');
+                    misReservasActivas = [];
+                    console.log('No se pudieron cargar las reservas del cliente');
                 }
             } catch (error) {
-                console.error('Error al cargar reservas del sistema:', error);
-                todasLasReservas = [];
+                console.error('Error al cargar reservas del cliente:', error);
+                misReservasActivas = [];
             }
         }
 
-        // NUEVA FUNCIÓN: Verificar si una habitación está disponible (considerando 12h limpieza)
-        function habitacionEstaDisponible(habitacionId) {
-            // Si no hay reservas, está disponible
-            if (!todasLasReservas || todasLasReservas.length === 0) {
-                return true;
+        // FUNCIÓN CORREGIDA: Verificar si el cliente ya tiene una reserva activa de esta habitación
+        function clienteTieneReservaActiva(habitacionId) {
+            if (!misReservasActivas || misReservasActivas.length === 0) {
+                return false;
             }
 
-            const ahora = new Date();
-
-            // Filtrar reservas de esta habitación que no estén completadas
-            const reservasHabitacion = todasLasReservas.filter(r => 
+            // Verificar si el cliente tiene una reserva activa de esta habitación específica
+            return misReservasActivas.some(r => 
                 r.id_habitacion === habitacionId && 
                 r.estado_reserva !== 'completada' &&
                 r.estado_reserva !== 'cancelada'
             );
-
-            // Si no hay reservas activas para esta habitación, está disponible
-            if (reservasHabitacion.length === 0) {
-                return true;
-            }
-
-            // VALIDACIÓN 1: Verificar si EL USUARIO ACTUAL ya tiene una reserva activa de esta habitación
-            if (usuarioActual && usuarioActual.id) {
-                const clienteTieneReserva = reservasHabitacion.some(r => 
-                    r.id_usuario === usuarioActual.id
-                );
-                
-                if (clienteTieneReserva) {
-                    return false; // El cliente ya tiene una reserva activa de esta habitación
-                }
-            }
-
-            // VALIDACIÓN 2: Verificar si alguna reserva está activa AHORA (considerando 12h de limpieza)
-            for (const reserva of reservasHabitacion) {
-                const checkIn = new Date(reserva.fecha_checkin);
-                const checkOut = new Date(reserva.fecha_checkout);
-                
-                // Agregar 12 horas de limpieza después del checkout
-                const checkOutConLimpieza = new Date(checkOut.getTime() + (12 * 60 * 60 * 1000));
-
-                // Si ahora está entre check-in y checkout+12h, NO está disponible
-                if (ahora >= checkIn && ahora < checkOutConLimpieza) {
-                    return false;
-                }
-            }
-
-            // Si ninguna reserva está activa ahora, está disponible
-            return true;
         }
 
         // Función mejorada para cargar habitaciones
         async function cargarHabitaciones() {
             try {
-                // PRIMERO: Cargar todas las reservas del sistema
-                await cargarTodasLasReservas();
+                // PRIMERO: Cargar las reservas del cliente actual
+                await cargarMisReservas();
 
                 const response = await fetch('/api/cliente/habitaciones');
                 if (!response.ok) {
@@ -280,8 +247,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 ? (habitacion.fotos[0].startsWith('/') ? habitacion.fotos[0] : '/img/habitaciones/' + habitacion.fotos[0]) 
                                 : 'https://source.unsplash.com/featured/?luxury-hotel-room';
                             
-                            // VERIFICAR DISPONIBILIDAD REAL
-                            const estaDisponible = habitacionEstaDisponible(habitacion.id_habitacion);
+                            // VERIFICAR si el cliente ya tiene una reserva activa de esta habitación
+                            const yaLaReserve = clienteTieneReservaActiva(habitacion.id_habitacion);
                             
                             return `
                             <div class="habitacion-card">
@@ -301,14 +268,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                             <li>Late Check-out: +S/15</li>
                                         </ul>
                                     </div>
-                                    <div class="habitacion-disponibilidad ${estaDisponible ? 'disponible' : 'no-disponible'}">
-                                        ${estaDisponible ? 'Disponible' : 'No disponible ahora'}
+                                    <div class="habitacion-disponibilidad ${habitacion.disponible ? 'disponible' : 'no-disponible'}">
+                                        ${habitacion.disponible ? 'Disponible' : 'No disponible'}
                                     </div>
                                     <button class="btn-reservar" 
                                             data-id="${habitacion.id_habitacion}"
-                                            data-nombre="Habitación ${habitacion.numero_habitacion}"
-                                            ${!estaDisponible ? 'disabled' : ''}>
-                                        ${estaDisponible ? 'Reservar Ahora' : 'No disponible'}
+                                            data-nombre="Habitación ${habitacion.numero_habitacion}">
+                                        ${yaLaReserve ? 'Ver Mi Reserva' : 'Reservar Ahora'}
                                     </button>
                                 </div>
                             </div>
@@ -355,20 +321,35 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // VALIDACIÓN CRÍTICA: Verificar si el cliente ya tiene una reserva activa de esta habitación
-            if (todasLasReservas && todasLasReservas.length > 0 && usuarioActual && usuarioActual.id) {
-                const clienteYaTieneReserva = todasLasReservas.some(r => 
-                    r.id_habitacion === habitacionId && 
-                    r.id_usuario === usuarioActual.id &&
-                    r.estado_reserva !== 'completada' &&
-                    r.estado_reserva !== 'cancelada'
-                );
+            const reservaExistente = misReservasActivas.find(r => 
+                r.id_habitacion === habitacionId && 
+                r.estado_reserva !== 'completada' &&
+                r.estado_reserva !== 'cancelada'
+            );
+            
+            if (reservaExistente) {
+                // MOSTRAR MODAL CON DETALLES DE LA RESERVA EXISTENTE en lugar del formulario
+                const reservaData = {
+                    id: reservaExistente.id_reserva,
+                    habitacion: reservaExistente.numero_habitacion,
+                    categoria: habitacionesData.find(h => h.id_habitacion === habitacionId)?.categoria || 'N/A',
+                    checkin: reservaExistente.fecha_checkin,
+                    checkout: reservaExistente.fecha_checkout,
+                    estado: reservaExistente.estado_reserva,
+                    fechaCreacion: reservaExistente.fecha_creacion,
+                    idHabitacion: habitacionId,
+                    foto: habitacionesData.find(h => h.id_habitacion === habitacionId)?.fotos?.[0] 
+                        ? (habitacionesData.find(h => h.id_habitacion === habitacionId).fotos[0].startsWith('/') 
+                            ? habitacionesData.find(h => h.id_habitacion === habitacionId).fotos[0] 
+                            : '/img/habitaciones/' + habitacionesData.find(h => h.id_habitacion === habitacionId).fotos[0])
+                        : 'https://source.unsplash.com/featured/?luxury-hotel-room'
+                };
                 
-                if (clienteYaTieneReserva) {
-                    alert('⚠️ Ya tienes una reserva activa de esta habitación.\n\nNo puedes reservar la misma habitación dos veces.\n\nPor favor, completa o cancela tu reserva actual antes de crear una nueva.');
-                    return; // BLOQUEAR acceso al modal
-                }
+                mostrarDetallesReserva(reservaData);
+                return; // NO abrir el modal de reserva
             }
 
+            // Si NO tiene reserva activa, continuar con el flujo normal de reserva
             currentHabitacionId = habitacionId;
             const habitacion = habitacionesData.find(h => h.id_habitacion === habitacionId);
             if (habitacion) {
@@ -378,10 +359,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('reservaHabitacionCapacidad').textContent = `Capacidad: ${habitacion.capacidad} personas`;
                 document.getElementById('reservaHabitacionPrecioDia').textContent = `Precio por día: S/ ${habitacion.precio_por_dia}`;
                 
-                // Handle image display - CORRECCIÓN AQUÍ
+                // Handle image display
                 const imagenElement = document.getElementById('reservaHabitacionImagen');
                 if (imagenElement) {
-                    // Determinar la URL de la imagen
                     let fotoSrc = 'https://source.unsplash.com/featured/?luxury-hotel-room';
                     
                     if (habitacion.fotos && habitacion.fotos.length > 0) {
@@ -392,15 +372,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     imagenElement.alt = nombreHabitacion;
                     imagenElement.style.display = 'block';
                     
-                    // Agregar manejador de error para la imagen
                     imagenElement.onerror = function() {
-                        this.onerror = null; // Evitar loop infinito
+                        this.onerror = null;
                         this.src = 'https://source.unsplash.com/featured/?luxury-hotel-room';
                     };
                 }
             }
             document.getElementById('reservaMessage').textContent = '';
-            checkForm(); // Check if button should be enabled
+            checkForm();
             openModal('reservaModal');
         }
 
@@ -1016,11 +995,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Función para inicializar todo el sistema
         async function inicializarSistema() {
             try {
+                // PRIMERO: Verificar si hay un usuario logueado
+                verificarSesion();
+                
                 await cargarCarruselPrincipal();
                 await cargarHabitaciones();
-                
-                // Verificar si hay un usuario logueado
-                verificarSesion();
                 
                 if (usuarioActual && usuarioActual.rol === 'cliente') {
                     cargarReservasCliente();
