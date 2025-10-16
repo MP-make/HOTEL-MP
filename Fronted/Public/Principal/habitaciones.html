@@ -148,31 +148,41 @@
             <span class="close-modal" data-modal-close="reservaModal">&times;</span>
             <h2>Reservar Habitación</h2>
             <div class="reserva-container">
-                <!-- IMAGEN PRIMERO (izquierda) -->
-                <div class="reserva-imagen">
-                    <img id="reservaHabitacionImagen" src="/img/habitaciones/default-room.jpg" alt="Habitación" class="reserva-img">
-                </div>
-                <!-- DETALLES DESPUÉS (derecha) -->
-                <div class="reserva-detalles">
+                <!-- COLUMNA 1: Datos de la habitación + Fechas -->
+                <div class="reserva-info-column">
                     <p id="reservaHabitacionNombre" class="reserva-nombre"></p>
                     <p id="reservaHabitacionCategoria" class="reserva-info"></p>
                     <p id="reservaHabitacionPiso" class="reserva-info"></p>
                     <p id="reservaHabitacionCapacidad" class="reserva-info"></p>
                     <p id="reservaHabitacionPrecioDia" class="reserva-info reserva-precio"></p>
+                    
+                    <!-- FECHAS DEBAJO DE LOS DATOS -->
+                    <label for="fechaCheckin" style="margin-top: 15px; display: block; color: #333; font-weight: 600; font-size: 0.9rem;">Fecha de Check-in:</label>
+                    <input type="datetime-local" id="fechaCheckin" required class="form-input" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1.5px solid #CCCCCC; border-radius: 8px;">
+                    
+                    <label for="fechaCheckout" style="display: block; color: #333; font-weight: 600; font-size: 0.9rem;">Fecha de Check-out:</label>
+                    <input type="datetime-local" id="fechaCheckout" required class="form-input" style="width: 100%; padding: 10px; border: 1.5px solid #CCCCCC; border-radius: 8px;">
+                </div>
+
+                <!-- COLUMNA 2: Servicios adicionales -->
+                <div class="reserva-form-column">
+                    <h4>Servicios Adicionales (Upselling)</h4>
+                    <label><input type="checkbox" id="upsell-desayuno" value="20"> Desayuno Premium (+S/20)</label><br>
+                    <label><input type="checkbox" id="upsell-romantico" value="50"> Paquete Romántico (+S/50)</label><br>
+                    <label><input type="checkbox" id="upsell-spa" value="30"> Sesión de Spa (+S/30)</label><br>
+                    <label><input type="checkbox" id="upsell-late-checkout" value="15"> Late Check-out (+S/15)</label><br>
+                    
+                    <p id="reservaMessage" class="text-red-500 my-2 text-center"></p>
+                </div>
+
+                <!-- COLUMNA 3: Imagen y botón -->
+                <div class="reserva-imagen-column">
+                    <div class="reserva-imagen">
+                        <img id="reservaHabitacionImagen" src="/img/habitaciones/default-room.jpg" alt="Habitación" class="reserva-img">
+                    </div>
+                    
+                    <!-- BOTÓN DEBAJO DE LA IMAGEN -->
                     <form id="reservaForm">
-                        <label for="fechaCheckin">Fecha de Check-in:</label>
-                        <input type="datetime-local" id="fechaCheckin" required class="form-input">
-                        
-                        <label for="fechaCheckout">Fecha de Check-out:</label>
-                        <input type="datetime-local" id="fechaCheckout" required class="form-input">
-                        
-                        <h4>Servicios Adicionales (Upselling)</h4>
-                        <label><input type="checkbox" id="upsell-desayuno" value="20"> Desayuno Premium (+S/20)</label><br>
-                        <label><input type="checkbox" id="upsell-romantico" value="50"> Paquete Romántico (+S/50 - Champagne y flores)</label><br>
-                        <label><input type="checkbox" id="upsell-spa" value="30"> Sesión de Spa (+S/30)</label><br>
-                        <label><input type="checkbox" id="upsell-late-checkout" value="15"> Late Check-out (+S/15)</label><br>
-                        
-                        <p id="reservaMessage" class="text-red-500 my-2 text-center"></p>
                         <button type="submit" id="btnConfirmarReserva" class="btn-confirmar-reserva" disabled>Confirmar Reserva <i class="fas fa-check"></i></button>
                     </form>
                 </div>
@@ -246,3 +256,4 @@
 </body>
 
 </html>
+``` 

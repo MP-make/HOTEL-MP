@@ -169,14 +169,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // FUNCIÓN CORREGIDA: Cargar las reservas del cliente actual
         async function cargarMisReservas() {
+            // VERIFICAR PRIMERO si hay usuario logueado
+            const token = localStorage.getItem('token');
+            if (!token || !usuarioActual) {
+                misReservasActivas = [];
+                console.log('No hay usuario logueado, no se cargan reservas');
+                return;
+            }
+            
             try {
-                const token = localStorage.getItem('token');
-                if (!token || !usuarioActual) {
-                    misReservasActivas = [];
-                    console.log('No hay usuario logueado, no se cargan reservas');
-                    return;
-                }
-                
                 const response = await fetch('/api/cliente/reservas', { 
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
