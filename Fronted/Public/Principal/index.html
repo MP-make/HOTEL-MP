@@ -7,6 +7,7 @@
     <title>JW Marriott Hotel Lima - Reservas</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="index.css?v=3.0">
+    <link rel="stylesheet" href="modal.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@400;600&display=swap"
         rel="stylesheet">
@@ -351,9 +352,7 @@
                     <img id="detalleHabitacionImagen" src="" alt="Habitación" class="reserva-img">
                 </div>
                 <div class="reserva-detalles-info">
-                    <h3 id="detalleReservaId" class="detalle-titulo"></h3>
                     <div class="detalle-info-group">
-                        <p><strong>Habitación:</strong> <span id="detalleNumeroHabitacion"></span></p>
                         <p><strong>Categoría:</strong> <span id="detalleCategoria"></span></p>
                         <p><strong>Estado:</strong> <span id="detalleEstado" class="badge-estado"></span></p>
                     </div>
@@ -362,9 +361,12 @@
                         <p><strong>Check-out:</strong> <span id="detalleFechaCheckout"></span></p>
                         <p><strong>Fecha de creación:</strong> <span id="detalleFechaCreacion"></span></p>
                     </div>
-                    
-                    <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
-                    
+                    <div class="detalle-info-group">
+                        <p><strong>Pagado:</strong> <span id="detallePagado"></span></p>
+                        <p><strong>Falta pagar:</strong> <span id="detalleFaltaPagar"></span></p>
+                    </div>
+                </div>
+                <div class="reserva-reclamo-column">
                     <h4>Enviar Reclamo sobre esta Reserva</h4>
                     <form id="reclamoReservaForm">
                         <label for="reclamoDescripcion">Descripción del reclamo:</label>
@@ -382,4 +384,3 @@
 </body>
 
 </html>
-``` 

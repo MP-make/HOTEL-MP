@@ -915,8 +915,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Función para mostrar detalles de una reserva
         function mostrarDetallesReserva(reserva) {
             // Llenar los datos del modal
-            document.getElementById('detalleReservaId').textContent = `Reserva #${reserva.id}`;
-            document.getElementById('detalleNumeroHabitacion').textContent = reserva.habitacion;
             document.getElementById('detalleCategoria').textContent = reserva.categoria;
             document.getElementById('detalleEstado').textContent = reserva.estado;
             
@@ -934,6 +932,20 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('detalleFechaCheckin').textContent = checkin;
             document.getElementById('detalleFechaCheckout').textContent = checkout;
             document.getElementById('detalleFechaCreacion').textContent = fechaCreacion;
+            
+            // Obtener datos de pagos
+            obtenerDatosPagos(reserva.id).then(pagos => {
+                const pagado = pagos.totalPagado || 0;
+                const total = pagos.totalReserva || 0;
+                const falta = total - pagado;
+                
+                document.getElementById('detallePagado').textContent = `S/ ${pagado.toFixed(2)}`;
+                document.getElementById('detalleFaltaPagar').textContent = `S/ ${falta.toFixed(2)}`;
+            }).catch(error => {
+                console.error('Error obteniendo datos de pagos:', error);
+                document.getElementById('detallePagado').textContent = 'N/A';
+                document.getElementById('detalleFaltaPagar').textContent = 'N/A';
+            });
             
             // Establecer la imagen
             document.getElementById('detalleHabitacionImagen').src = reserva.foto;
@@ -992,6 +1004,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('reclamoMessage').textContent = 'Error al enviar reclamo.';
             }
         });
+
+        // Función para obtener datos de pagos de una reserva
+        async function obtenerDatosPagos(idReserva) {
+            const token = localStorage.getItem('token');
+            try {
+                // Obtener la reserva para el total
+                const responseReserva = await fetch(`/api/cliente/reservas/${idReserva}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (!responseReserva.ok) {
+                    throw new Error('Error al obtener reserva');
+                }
+                const reserva = await responseReserva.json();
+                const totalReserva = reserva.monto_total || 0;
+
+                // Obtener historial de pagos
+                const responsePagos = await fetch(`/api/pagos/reserva/${idReserva}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (!responsePagos.ok) {
+                    throw new Error('Error al obtener pagos');
+                }
+                const pagos = await responsePagos.json();
+                const totalPagado = pagos.reduce((sum, pago) => sum + parseFloat(pago.monto || 0), 0);
+
+                return { totalPagado, totalReserva };
+            } catch (error) {
+                console.error('Error obteniendo datos de pagos:', error);
+                return { totalPagado: 0, totalReserva: 0 };
+            }
+        }
 
         // Función para inicializar todo el sistema
         async function inicializarSistema() {

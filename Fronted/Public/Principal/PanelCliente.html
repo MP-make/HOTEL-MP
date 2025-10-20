@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="index.css">
     <link rel="stylesheet" href="Cliente.css">
+    <link rel="stylesheet" href="modal.css">
     <style>
         /* Override forzado para Panel Cliente */
         body.bg-principal main {
@@ -39,220 +40,6 @@
         .reservas-grid {
             width: 100% !important;
             max-width: none !important;
-        }
-        
-        /* ESTILOS PARA EL MODAL DE DETALLES */
-        #detallesReservaModal {
-            display: none !important;
-            position: fixed !important;
-            z-index: 9999 !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            background: rgba(0, 0, 0, 0.65) !important;
-            justify-content: center !important;
-            align-items: center !important;
-            backdrop-filter: blur(3px) !important;
-        }
-        
-        #detallesReservaModal.modal {
-            display: none !important;
-        }
-        
-        #detallesReservaModal[style*="flex"] {
-            display: flex !important;
-        }
-        
-        #detallesReservaModal .modal-content {
-            max-width: 900px !important;
-            width: 90% !important;
-            max-height: 90vh !important;
-            overflow-y: auto !important;
-            text-align: left !important;
-            background: #FFFFFF !important;
-            padding: 35px 28px !important;
-            border-radius: 14px !important;
-            position: relative !important;
-            animation: fadeIn 0.4s ease-in-out !important;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
-            margin: auto !important;
-        }
-        
-        #detallesReservaModal .modal-content h2 {
-            color: #333333 !important;
-            font-size: 1.9rem !important;
-            margin-bottom: 1.2rem !important;
-            text-align: center !important;
-        }
-        
-        #detallesReservaModal .reserva-container {
-            display: flex !important;
-            gap: 30px !important;
-            align-items: flex-start !important;
-            flex-direction: row !important;
-        }
-        
-        #detallesReservaModal .reserva-imagen-detalle {
-            flex: 1 !important;
-            max-width: 400px !important;
-            min-width: 300px !important;
-        }
-        
-        #detallesReservaModal .reserva-img {
-            width: 100% !important;
-            height: auto !important;
-            border-radius: 10px !important;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1) !important;
-            display: block !important;
-        }
-        
-        #detallesReservaModal .reserva-detalles-info {
-            flex: 1 !important;
-            padding: 0 20px !important;
-            text-align: left !important;
-        }
-        
-        #detallesReservaModal .detalle-titulo {
-            color: #333333 !important;
-            font-size: 24px !important;
-            font-weight: bold !important;
-            margin: 0 0 20px 0 !important;
-            text-align: left !important;
-            font-family: 'Playfair Display', serif !important;
-        }
-        
-        #detallesReservaModal .detalle-info-group {
-            margin-bottom: 20px !important;
-        }
-        
-        #detallesReservaModal .detalle-info-group p {
-            margin: 8px 0 !important;
-            color: #555 !important;
-            font-size: 15px !important;
-            text-align: left !important;
-        }
-        
-        #detallesReservaModal .detalle-info-group strong {
-            color: #333 !important;
-            font-weight: 600 !important;
-        }
-        
-        #detallesReservaModal .badge-estado {
-            display: inline-block !important;
-            padding: 4px 12px !important;
-            border-radius: 12px !important;
-            font-size: 13px !important;
-            font-weight: bold !important;
-            background: #d4edda !important;
-            color: #155724 !important;
-        }
-        
-        #detallesReservaModal h4 {
-            color: #333 !important;
-            font-size: 18px !important;
-            margin: 20px 0 15px 0 !important;
-            font-weight: 600 !important;
-            text-align: left !important;
-        }
-        
-        #detallesReservaModal textarea {
-            width: 100% !important;
-            padding: 12px !important;
-            border: 1.5px solid #ccc !important;
-            border-radius: 8px !important;
-            font-size: 14px !important;
-            font-family: inherit !important;
-            resize: vertical !important;
-            margin-bottom: 10px !important;
-            box-sizing: border-box !important;
-        }
-        
-        #detallesReservaModal textarea:focus {
-            border-color: #666 !important;
-            outline: none !important;
-            box-shadow: 0 0 5px rgba(102, 102, 102, 0.3) !important;
-        }
-        
-        #detallesReservaModal label {
-            display: block !important;
-            margin-bottom: 8px !important;
-            color: #333 !important;
-            font-weight: 600 !important;
-            text-align: left !important;
-        }
-        
-        #detallesReservaModal .btn-submit {
-            width: 100% !important;
-            padding: 12px !important;
-            background: linear-gradient(135deg, #666666, #333333) !important;
-            border: none !important;
-            border-radius: 8px !important;
-            color: #FFFFFF !important;
-            font-weight: 600 !important;
-            font-size: 1rem !important;
-            cursor: pointer !important;
-            transition: all 0.3s ease !important;
-            box-sizing: border-box !important;
-        }
-        
-        #detallesReservaModal .btn-submit:hover {
-            background: linear-gradient(135deg, #CCCCCC, #999999) !important;
-            transform: translateY(-2px) !important;
-        }
-        
-        #detallesReservaModal .close-modal {
-            position: absolute !important;
-            top: 15px !important;
-            right: 20px !important;
-            font-size: 28px !important;
-            color: #999 !important;
-            cursor: pointer !important;
-            transition: color 0.3s ease !important;
-            font-weight: bold !important;
-            line-height: 1 !important;
-            z-index: 10 !important;
-        }
-        
-        #detallesReservaModal .close-modal:hover {
-            color: #333 !important;
-        }
-        
-        #detallesReservaModal hr {
-            margin: 20px 0 !important;
-            border: none !important;
-            border-top: 1px solid #ddd !important;
-        }
-        
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px) scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            #detallesReservaModal .modal-content {
-                max-width: 95% !important;
-                padding: 20px 15px !important;
-            }
-            
-            #detallesReservaModal .reserva-container {
-                flex-direction: column !important;
-            }
-            
-            #detallesReservaModal .reserva-imagen-detalle {
-                max-width: 100% !important;
-            }
-            
-            #detallesReservaModal .reserva-detalles-info {
-                padding: 0 !important;
-            }
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -468,9 +255,7 @@
                     <img id="detalleHabitacionImagen" src="" alt="Habitación" class="reserva-img">
                 </div>
                 <div class="reserva-detalles-info">
-                    <h3 id="detalleReservaId" class="detalle-titulo"></h3>
                     <div class="detalle-info-group">
-                        <p><strong>Habitación:</strong> <span id="detalleNumeroHabitacion"></span></p>
                         <p><strong>Categoría:</strong> <span id="detalleCategoria"></span></p>
                         <p><strong>Estado:</strong> <span id="detalleEstado" class="badge-estado"></span></p>
                     </div>
@@ -479,9 +264,12 @@
                         <p><strong>Check-out:</strong> <span id="detalleFechaCheckout"></span></p>
                         <p><strong>Fecha de creación:</strong> <span id="detalleFechaCreacion"></span></p>
                     </div>
-                    
-                    <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
-                    
+                    <div class="detalle-info-group">
+                        <p><strong>Pagado:</strong> <span id="detallePagado"></span></p>
+                        <p><strong>Falta pagar:</strong> <span id="detalleFaltaPagar"></span></p>
+                    </div>
+                </div>
+                <div class="reserva-reclamo-column">
                     <h4>Enviar Reclamo sobre esta Reserva</h4>
                     <form id="reclamoReservaForm">
                         <label for="reclamoDescripcion">Descripción del reclamo:</label>
@@ -499,4 +287,3 @@
 </body>
 
 </html>
-``` 
