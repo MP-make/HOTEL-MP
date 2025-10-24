@@ -7,7 +7,11 @@
     <title>JW Marriott Hotel Lima - Reservas</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="index.css?v=3.0">
-    <link rel="stylesheet" href="modal.css">
+    <link rel="stylesheet" href="modal.css?v=100">
+    <!-- Cargar CSS con timestamp para evitar caché -->
+    <script>
+        document.write('<link rel="stylesheet" href="reserva-modal.css?v=' + Date.now() + '">');
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@400;600&display=swap"
         rel="stylesheet">
@@ -19,7 +23,7 @@
     <!-- Carrusel responsive (se adapta al ancho y desliza suavemente) -->
     <style>
       /* Carousel base */
-      .carousel { width: 100%; max-width: 1100px; margin: 1.5rem auto; position: relative; overflow: hidden; border-radius: 6px; }
+      .carousel { width: 100vw; position: relative; left: 50%; transform: translateX(-50%); margin: 0 0 2rem 0; overflow: hidden; border-radius: 6px; }
       .carousel-track { display: flex; transition: transform 0.6s cubic-bezier(.22,.98,.36,.99); will-change: transform; }
       .carousel-slide { min-width: 100%; box-sizing: border-box; display:flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.03); }
       .carousel-slide img { width: 100%; height: auto; object-fit: contain; display:block; }
@@ -48,6 +52,17 @@
         .carousel-overlay p { font-size: 0.875rem; }
       }
     </style>
+    <script>
+        // Forzar recarga del CSS sin caché
+        document.addEventListener('DOMContentLoaded', function() {
+            const links = document.querySelectorAll('link[rel="stylesheet"]');
+            links.forEach(link => {
+                if (link.href.includes('reserva-modal')) {
+                    link.href = link.href.split('?')[0] + '?t=' + new Date().getTime();
+                }
+            });
+        });
+    </script>
 </head>
 
 <body class="bg-principal">
@@ -86,11 +101,6 @@
 
     <main>
         <section id="inicio">
-            <h2 class="titulo-seccion">Bienvenido a JW Marriott Hotel Lima</h2>
-            <p class="welcome-text">
-                El JW Marriott Hotel Lima pertenece al sector hotelero y turístico de lujo. Ofrece hospedaje, gastronomía, bienestar y espacios para eventos, dirigido a turistas internacionales, viajeros de negocios y clientes locales que buscan experiencias premium. Además del hospedaje, el hotel complementa su oferta con: - Restaurantes y bares exclusivos. - Salones para convenciones y eventos sociales o corporativos. - Servicios de spa, gimnasio y bienestar. - Experiencias turísticas personalizadas, aprovechando su ubicación frente al mar en Miraflores. Gracias a este posicionamiento, es un referente en la hospitalidad peruana, destacando por la excelencia en el servicio y la adopción de tecnologías que fortalecen su competitividad.
-            </p> <br>
-
             <!-- Carrusel principal mejorado -->
             <div id="heroCarousel" class="carousel">
                 <div class="carousel-track" id="carouselTrack">
@@ -100,6 +110,18 @@
                 <button class="carousel-arrow next">›</button>
                 <div class="carousel-dots" id="carouselIndicators">
                     <!-- Los indicadores se generarán dinámicamente -->
+                </div>
+            </div>
+
+            <div class="welcome-content">
+                <div class="welcome-text-block">
+                    <h2 class="titulo-seccion">Bienvenido a JW Marriott Hotel Lima</h2>
+                    <p class="welcome-text">
+                        El JW Marriott Hotel Lima pertenece al sector hotelero y turístico de lujo. Ofrece hospedaje, gastronomía, bienestar y espacios para eventos, dirigido a turistas internacionales, viajeros de negocios y clientes locales que buscan experiencias premium. Además del hospedaje, el hotel complementa su oferta con: - Restaurantes y bares exclusivos. - Salones para convenciones y eventos sociales o corporativos. - Servicios de spa, gimnasio y bienestar. - Experiencias turísticas personalizadas, aprovechando su ubicación frente al mar en Miraflores. Gracias a este posicionamiento, es un referente en la hospitalidad peruana, destacando por la excelencia en el servicio y la adopción de tecnologías que fortalecen su competitividad.
+                    </p>
+                </div>
+                <div class="welcome-image">
+                    <img src="/img/carousel/1759217839989-3.jpg" alt="Vista del Hotel JW Marriott Lima" class="featured-image">
                 </div>
             </div>
         </section>
@@ -247,11 +269,11 @@
                     <p id="reservaHabitacionPrecioDia" class="reserva-info reserva-precio"></p>
                     
                     <!-- FECHAS DEBAJO DE LOS DATOS -->
-                    <label for="fechaCheckin" style="margin-top: 15px; display: block; color: #333; font-weight: 600; font-size: 0.9rem;">Fecha de Check-in:</label>
-                    <input type="datetime-local" id="fechaCheckin" required class="form-input" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1.5px solid #CCCCCC; border-radius: 8px;">
+                    <label for="fechaCheckin">Fecha de Check-in:</label>
+                    <input type="datetime-local" id="fechaCheckin" required class="form-input">
                     
-                    <label for="fechaCheckout" style="display: block; color: #333; font-weight: 600; font-size: 0.9rem;">Fecha de Check-out:</label>
-                    <input type="datetime-local" id="fechaCheckout" required class="form-input" style="width: 100%; padding: 10px; border: 1.5px solid #CCCCCC; border-radius: 8px;">
+                    <label for="fechaCheckout">Fecha de Check-out:</label>
+                    <input type="datetime-local" id="fechaCheckout" required class="form-input">
                 </div>
 
                 <!-- COLUMNA 2: Servicios adicionales -->

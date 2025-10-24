@@ -7,6 +7,8 @@
     <title>Habitaciones - JW Marriott Hotel Lima</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="habitaciones.css">
+    <link rel="stylesheet" href="modal.css">
+    <link rel="stylesheet" href="reserva-modal.css?v=6.0">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@400;600&display=swap"
         rel="stylesheet">
@@ -157,11 +159,11 @@
                     <p id="reservaHabitacionPrecioDia" class="reserva-info reserva-precio"></p>
                     
                     <!-- FECHAS DEBAJO DE LOS DATOS -->
-                    <label for="fechaCheckin" style="margin-top: 15px; display: block; color: #333; font-weight: 600; font-size: 0.9rem;">Fecha de Check-in:</label>
-                    <input type="datetime-local" id="fechaCheckin" required class="form-input" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1.5px solid #CCCCCC; border-radius: 8px;">
+                    <label for="fechaCheckin">Fecha de Check-in:</label>
+                    <input type="datetime-local" id="fechaCheckin" required class="form-input">
                     
-                    <label for="fechaCheckout" style="display: block; color: #333; font-weight: 600; font-size: 0.9rem;">Fecha de Check-out:</label>
-                    <input type="datetime-local" id="fechaCheckout" required class="form-input" style="width: 100%; padding: 10px; border: 1.5px solid #CCCCCC; border-radius: 8px;">
+                    <label for="fechaCheckout">Fecha de Check-out:</label>
+                    <input type="datetime-local" id="fechaCheckout" required class="form-input">
                 </div>
 
                 <!-- COLUMNA 2: Servicios adicionales -->
@@ -256,4 +258,3 @@
 </body>
 
 </html>
-``` 
