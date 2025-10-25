@@ -282,14 +282,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <h3 class="habitacion-titulo">Habitación ${habitacion.numero_habitacion}</h3>
                                     <p class="habitacion-descripcion">${habitacion.categoria} - Piso ${habitacion.piso} - Capacidad ${habitacion.capacidad}</p>
                                     <div class="habitacion-precio">S/ ${habitacion.precio_por_dia} / día</div>
-                                    <div class="packages">
-                                        <h4>Paquetes Disponibles</h4>
-                                        <ul>
-                                            <li>Paquete Romántico: +S/50 (Champagne y flores)</li>
-                                            <li>Upgrade a Suite: +S/100</li>
-                                            <li>Late Check-out: +S/15</li>
-                                        </ul>
-                                    </div>
                                     <div class="habitacion-disponibilidad ${habitacion.disponible ? 'disponible' : 'no-disponible'}">
                                         ${habitacion.disponible ? 'Disponible' : 'No disponible'}
                                     </div>
@@ -870,9 +862,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                      alt="Habitación ${reserva.numero_habitacion}" 
                                      class="reserva-imagen">
                                 <div class="reserva-info">
-                                    <h3 class="reserva-titulo">Reserva #${reserva.id_reserva}</h3>
-                                    <p class="reserva-descripcion">Habitación ${reserva.numero_habitacion} - ${reserva.categoria}</p>
-                                    <p class="reserva-fechas">Check-in: ${checkin} | Check-out: ${checkout}</p>
+                                    <h3 class="reserva-titulo">Habitación ${reserva.numero_habitacion}</h3>
+                                    <p class="reserva-descripcion">${reserva.categoria}</p>
+                                    <p class="reserva-fechas">Check-in: ${checkin}</p>
+                                    <p class="reserva-fechas">Check-out: ${checkout}</p>
                                     <p class="reserva-estado">Estado: ${reserva.estado_reserva}</p>
                                     <button class="btn-detalles" 
                                             data-id="${reserva.id_reserva}"
