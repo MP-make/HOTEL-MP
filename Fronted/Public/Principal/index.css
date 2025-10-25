@@ -1273,3 +1273,7 @@ Modal de Pago
         font-size: 1rem;
     }
 }
+
+#inicio {
+    padding-top: 0;
+}
