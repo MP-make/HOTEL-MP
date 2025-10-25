@@ -429,7 +429,7 @@ Habitaciones
 /* Estilos modernos para habitaciones */
 .habitaciones-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 30px;
     padding: 20px 0;
 }
@@ -506,12 +506,36 @@ Habitaciones
 }
 
 .habitacion-precio {
-    font-size: 2rem;
+    font-size: 2.2rem;
     font-weight: 700;
     color: var(--primary-color);
     text-align: center;
     margin: 12px 0;
     padding-bottom: 20px;
+}
+
+.packages {
+    margin: 15px 0;
+}
+
+.packages h4 {
+    font-size: 1rem;
+    color: var(--primary-color);
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.packages ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    text-align: center;
+}
+
+.packages ul li {
+    font-size: 12px;
+    color: var(--secondary-color);
+    margin: 4px 0;
 }
 
 .habitacion-disponibilidad {
@@ -583,13 +607,104 @@ Habitaciones
 }
 
 /* ==============================
+Barra de Búsqueda Flotante
+============================== */
+.search-overlay {
+    position: relative;
+    z-index: 15;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    max-width: 900px;
+    width: 90%;
+    margin: -50px auto 0 auto;
+}
+
+.search-form {
+    display: flex;
+    gap: 15px;
+    align-items: end;
+    flex-wrap: wrap;
+}
+
+.search-field {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 150px;
+}
+
+.search-field label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: var(--primary-color);
+}
+
+.search-field input, .search-field select {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+.btn-buscar {
+    background: linear-gradient(135deg, var(--accent-color), #a67c52);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.btn-buscar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(139, 90, 60, 0.3);
+}
+
+/* Responsive para barra de búsqueda */
+@media (max-width: 768px) {
+    .search-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-field {
+        min-width: auto;
+    }
+    
+    .btn-buscar {
+        width: 100%;
+        margin-top: 10px;
+    }
+}
+
+/* ==============================
 Reservas
 ============================== */
 .reservas-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 30px;
     padding: 20px 0;
+}
+
+/* Media queries for reservas-grid */
+@media (min-width: 768px) and (max-width: 1199px) {
+    .reservas-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 767px) {
+    .reservas-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .reserva-card {

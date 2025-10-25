@@ -101,6 +101,39 @@
                 </div>
             </div>
 
+            <!-- Barra de búsqueda flotante -->
+            <div class="search-overlay">
+                <form class="search-form">
+                    <div class="search-field">
+                        <label for="search-checkin">Check-in</label>
+                        <input type="date" id="search-checkin" required>
+                    </div>
+                    <div class="search-field">
+                        <label for="search-checkout">Check-out</label>
+                        <input type="date" id="search-checkout" required>
+                    </div>
+                    <div class="search-field">
+                        <label for="search-guests">Huéspedes</label>
+                        <select id="search-guests">
+                            <option value="1">1 Huésped</option>
+                            <option value="2">2 Huéspedes</option>
+                            <option value="3">3 Huéspedes</option>
+                            <option value="4">4 Huéspedes</option>
+                        </select>
+                    </div>
+                    <div class="search-field">
+                        <label for="search-room">Tipo de Habitación</label>
+                        <select id="search-room">
+                            <option value="estandar">Estándar</option>
+                            <option value="matrimonial">Matrimonial</option>
+                            <option value="deluxe">Deluxe</option>
+                            <option value="junior-suite">Junior Suite</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-buscar">Buscar Disponibilidad</button>
+                </form>
+            </div>
+
             <div class="welcome-content">
                 <div class="welcome-text-block">
                     <h2 class="titulo-seccion">Bienvenido a JW Marriott Hotel Lima</h2>
