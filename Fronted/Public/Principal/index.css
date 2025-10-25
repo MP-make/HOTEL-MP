@@ -639,7 +639,7 @@ Barra de Búsqueda Flotante
     font-size: 0.9rem;
     font-weight: 600;
     margin-bottom: 5px;
-    color: var(--primary-color);
+    color: rgba(0, 0, 0, 0.2);
 }
 
 .search-field input, .search-field select {
@@ -664,7 +664,7 @@ Barra de Búsqueda Flotante
 
 .btn-buscar:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(139, 90, 60, 0.3);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
 /* Responsive para barra de búsqueda */
