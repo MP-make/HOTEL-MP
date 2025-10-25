@@ -72,13 +72,13 @@ section:hover {
     font-weight: 400;
     font-size: 17px;
     line-height: 1.7;
-    color: var(--secondary-color);
+    color: var (--secondary-color);
 }
 
 .welcome-content {
     display: grid;
     grid-template-columns: 60% 40%;
-    gap: 60px;
+    gap: 30px;
     align-items: center;
 }
 
@@ -650,7 +650,7 @@ Barra de Búsqueda Flotante
 }
 
 .btn-buscar {
-    background: linear-gradient(135deg, var(--accent-color), #a67c52);
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
     color: white;
     border: none;
     padding: 12px 20px;
@@ -1382,4 +1382,30 @@ Modal de Pago
 
 #inicio {
     padding-top: 0;
+}
+
+#bienvenida {
+    padding: 0;
+}
+
+.welcome-card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(248, 248, 248, 0.9));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: var(--border-radius);
+    box-shadow: 0 15px 35px var(--shadow-light), 0 0 0 1px rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: clamp(40px, 6vw, 60px) clamp(50px, 8vw, 60px);
+    max-width: 1200px;
+    margin: 0 auto;
+    transition: var(--transition);
+}
+
+.welcome-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 45px var(--shadow-medium), 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.welcome-card .titulo-seccion {
+    margin-bottom: 30px;
 }

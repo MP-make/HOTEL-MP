@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 contenedor.innerHTML = `
                     <div class="habitaciones-grid">
-                        ${data.habitaciones.slice(0, 4).map(habitacion => {
+                        ${data.habitaciones.slice(0, 6).map(habitacion => {
                             const fotoSrc = habitacion.fotos && habitacion.fotos.length > 0 
                                 ? (habitacion.fotos[0].startsWith('/') ? habitacion.fotos[0] : '/img/habitaciones/' + habitacion.fotos[0]) 
                                 : 'https://source.unsplash.com/featured/?luxury-hotel-room';
@@ -571,7 +571,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const li = document.createElement('li');
                     li.id = 'mis-reservas-link';
                     li.innerHTML = '<a href="#mis-reservas">Mis reservas</a>';
-                    navLinks.appendChild(li);
+                    // Insert after the first li (Habitaciones)
+                    const firstLi = navLinks.querySelector('li');
+                    navLinks.insertBefore(li, firstLi.nextSibling);
                 }
             } else {
                 document.getElementById('mis-reservas').style.display = 'none';
@@ -848,10 +850,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // Mostrar máximo 4 reservas
+                // Mostrar máximo 6 reservas
                 contenedor.innerHTML = `
                     <div class="reservas-grid">
-                        ${reservas.slice(0, 4).map(reserva => {
+                        ${reservas.slice(0, 6).map(reserva => {
                             const fotoSrc = reserva.fotos && reserva.fotos.length > 0 
                                 ? (reserva.fotos[0].startsWith('/') ? reserva.fotos[0] : '/img/habitaciones/' + reserva.fotos[0]) 
                                 : 'https://source.unsplash.com/featured/?luxury-hotel-room';
