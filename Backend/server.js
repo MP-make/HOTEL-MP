@@ -1023,7 +1023,7 @@ app.get("/api/carrusel", async (req, res) => {
       return res.json({ images: [] });
     }
     const files = fs.readdirSync(carouselDir).filter(file => file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.webp'));
-    const images = files.map(file => ({ url: `/img/carousel/${file}`, descripcion: '' }));
+    const images = files.map((file, index) => ({ url: `/img/carousel/${file}`, descripcion: `Imagen ${file.split('-')[1].split('.')[0]}` }));
     res.json({ images });
   } catch (err) {
     console.error("Error obteniendo carrusel público:", err);

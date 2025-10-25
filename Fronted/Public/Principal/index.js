@@ -84,8 +84,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Error al cargar el carrusel:', error);
                 // Usar imágenes por defecto en caso de error
                 carouselImages = [
-                    { url: '/img/carousel/' + encodeURIComponent('1758185301931-Casa del inka - vista principal.png'), descripcion: 'Vista principal de Casa del Inka' },
-                    { url: '/img/carousel/' + encodeURIComponent('1758185310826-Casa del inka - vista entrada.png'), descripcion: 'Entrada principal del hotel' }
+                    { url: '/img/carousel/1759217839989-3.jpg', descripcion: 'Vista principal del hotel' },
+                    { url: '/img/carousel/1759868840216-6.jpg', descripcion: 'Entrada principal del hotel' },
+                    { url: '/img/carousel/1761353310583-7.png', descripcion: 'Instalaciones del hotel' }
                 ];
                 mostrarCarrusel();
                 iniciarCarruselAutomatico();
@@ -101,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
             carouselTrack.innerHTML = carouselImages.map((image, index) => `
                 <div class="carousel-slide">
                     <img src="${image.url}" alt="${image.descripcion || 'Imagen de Casa del Inka'}" 
-                         onerror="this.src='/img/carousel/${encodeURIComponent('1758185301931-Casa del inka - vista principal.png')}'">
+                         loading="lazy" onerror="this.onerror=null; this.src='/img/carousel/1759217839989-3.jpg'">
                 </div>
             `).join('');
 
@@ -110,14 +111,34 @@ document.addEventListener('DOMContentLoaded', () => {
             `).join('');
 
             // Add event listeners
-            document.querySelector('.carousel-arrow.prev').addEventListener('click', () => cambiarSlide(-1));
-            document.querySelector('.carousel-arrow.next').addEventListener('click', () => cambiarSlide(1));
             document.querySelectorAll('.carousel-dot').forEach(dot => {
                 dot.addEventListener('click', (e) => {
                     const slide = parseInt(e.target.getAttribute('data-slide'));
                     irASlide(slide);
                 });
             });
+
+            // Add touch support for swiping
+            let touchStartX = 0;
+            let touchEndX = 0;
+            carouselTrack.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+            carouselTrack.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            });
+            function handleSwipe() {
+                const swipeThreshold = 50;
+                if (touchEndX < touchStartX - swipeThreshold) {
+                    // Swipe left, next slide
+                    cambiarSlide(1);
+                }
+                if (touchEndX > touchStartX + swipeThreshold) {
+                    // Swipe right, prev slide
+                    cambiarSlide(-1);
+                }
+            }
         }
 
         // Función para cambiar de slide
