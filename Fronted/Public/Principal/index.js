@@ -1068,6 +1068,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 verificarSesion();
                 
                 await cargarCarruselPrincipal();
+                await cargarCategoriasBusqueda(); // Cargar categorías para el filtro de búsqueda
                 await cargarHabitaciones();
                 
                 if (usuarioActual && usuarioActual.rol === 'cliente') {
@@ -1085,5 +1086,54 @@ document.addEventListener('DOMContentLoaded', () => {
             document.addEventListener('DOMContentLoaded', inicializarSistema);
         } else {
             inicializarSistema();
+        }
+
+        // Event listener para el formulario de búsqueda flotante
+        document.getElementById('searchForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const checkin = document.getElementById('search-checkin').value;
+            const checkout = document.getElementById('search-checkout').value;
+            const huespedes = document.getElementById('search-guests').value;
+            const categoria = document.getElementById('search-room').value;
+            
+            // Convertir fechas a formato datetime-local
+            const checkinDT = checkin + 'T00:00';
+            const checkoutDT = checkout + 'T00:00';
+            
+            const params = new URLSearchParams({
+                checkin: checkinDT,
+                checkout: checkoutDT,
+                huespedes: huespedes,
+                categoria: categoria
+            });
+            
+            window.location.href = 'habitaciones.html?' + params.toString();
+        });
+
+        // Función para cargar categorías dinámicamente en el filtro de búsqueda
+        async function cargarCategoriasBusqueda() {
+            try {
+                const response = await fetch('/api/categorias');
+                const data = await response.json();
+                const select = document.getElementById('search-room');
+                select.innerHTML = '<option value="">Todas</option>';
+                data.categorias.forEach(categoria => {
+                    const option = document.createElement('option');
+                    option.value = categoria.nombre;
+                    option.textContent = categoria.nombre;
+                    select.appendChild(option);
+                });
+                console.log('Categorías cargadas para búsqueda:', data.categorias);
+            } catch (error) {
+                console.error('Error cargando categorías para búsqueda:', error);
+                // Mantener opciones por defecto si falla
+                select.innerHTML = `
+                    <option value="">Todas</option>
+                    <option value="estandar">Estándar</option>
+                    <option value="matrimonial">Matrimonial</option>
+                    <option value="deluxe">Deluxe</option>
+                    <option value="junior-suite">Junior Suite</option>
+                `;
+            }
         }
 });

@@ -715,7 +715,24 @@ document.addEventListener('DOMContentLoaded', () => {
         verificarSesion();
         await cargarCategorias();
         await cargarDatos();
-        mostrarHabitaciones(habitacionesData); // Mostrar todas inicialmente
+        
+        // Leer parámetros de URL y aplicar filtros si existen
+        const urlParams = new URLSearchParams(window.location.search);
+        const checkin = urlParams.get('checkin');
+        const checkout = urlParams.get('checkout');
+        const huespedes = urlParams.get('huespedes');
+        const categoria = urlParams.get('categoria');
+        
+        if (checkin) document.getElementById('fechaCheckin').value = checkin;
+        if (checkout) document.getElementById('fechaCheckout').value = checkout;
+        if (huespedes) document.getElementById('capacidad').value = huespedes;
+        if (categoria) document.getElementById('categoria').value = categoria;
+        
+        if (checkin || checkout || huespedes || categoria) {
+            filtrarHabitaciones();
+        } else {
+            mostrarHabitaciones(habitacionesData); // Mostrar todas inicialmente
+        }
     }
 
     inicializar();

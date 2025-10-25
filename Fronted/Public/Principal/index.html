@@ -60,7 +60,7 @@
     <header class="header">
         <nav class="top-nav">
             <picture>
-                <source media="(max-width: 600px)" srcset="https://placehold.co/100x100/8B4513/FDF6E3?text=Logo">
+                <source media="(max-width: 600px)" srcset="https://placehold.co/100x100/000000/FFFFFF?text=Logo">
                 <img src="/img/logo1.jpg"
                     alt="Logo de JW Marriott Hotel Lima" class="logo">
             </picture>
@@ -103,7 +103,7 @@
 
             <!-- Barra de búsqueda flotante -->
             <div class="search-overlay">
-                <form class="search-form">
+                <form class="search-form" id="searchForm">
                     <div class="search-field">
                         <label for="search-checkin">Check-in</label>
                         <input type="date" id="search-checkin" required>
@@ -124,6 +124,7 @@
                     <div class="search-field">
                         <label for="search-room">Tipo de Habitación</label>
                         <select id="search-room">
+                            <option value="">Todas</option>
                             <option value="estandar">Estándar</option>
                             <option value="matrimonial">Matrimonial</option>
                             <option value="deluxe">Deluxe</option>
