@@ -3,10 +3,10 @@
 ======================= */
 :root {
   --primary-font: 'Lato', sans-serif;
-  --primary-color: #2c3e50;
-  --secondary-color: #34495e;
-  --accent-color: #3498db;
-  --light-bg: #ecf0f1;
+  --primary-color: #1a1a1a;
+  --secondary-color: #333333;
+  --accent-color: #555555;
+  --light-bg: #f8f9fa;
   --white: #ffffff;
   --shadow-light: rgba(0, 0, 0, 0.1);
   --shadow-medium: rgba(0, 0, 0, 0.15);
