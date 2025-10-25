@@ -781,188 +781,73 @@ Modales
     color: #333333;
 }
 
-/* Modal de Reserva - DISEÑO HORIZONTAL EN 3 COLUMNAS */
-.reserva-modal-content {
-    max-width: 1400px;  /* Más ancho para acomodar 3 columnas */
-    width: 95%;
-    max-height: 90vh;
-    overflow-y: auto;
-    padding: 30px;
-}
-
-.reserva-container {
+/* ==============================
+Filtros de Habitaciones
+============================== */
+.filtros-container {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;  /* 3 columnas iguales */
-    gap: 30px;
-    align-items: start;
-}
-
-/* COLUMNA 1: Datos de la habitación */
-.reserva-info-column {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    text-align: left;  /* ALINEACIÓN A LA IZQUIERDA */
-}
-
-.reserva-nombre {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #333333;
-    margin-bottom: 10px;
-    text-align: center;  /* Solo el nombre centrado */
-}
-
-.reserva-info {
-    margin: 2px 0;
-    color: #666;
-    font-size: 0.95rem;
-    line-height: 1.3;
-    text-align: left;  /* ALINEACIÓN A LA IZQUIERDA */
-}
-
-.reserva-precio {
-    color: #666666;
-    font-weight: bold;
-    font-size: 1.2rem;
-    margin: 8px 0;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    text-align: center;
-}
-
-/* COLUMNA 2: Fechas y servicios adicionales */
-.reserva-form-column {
-    display: flex;
-    flex-direction: column;
-}
-
-.reserva-form-column label {
-    display: flex;
-    align-items: center;  /* Alineación vertical */
-    margin: 8px 0;
-    color: #333;
-    font-weight: 400;
-    font-size: 0.9rem;
-    cursor: pointer;
-}
-
-.reserva-form-column .form-input {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 10px;
-    border: 1.5px solid #CCCCCC;
-    border-radius: 8px;
-    font-size: 0.95rem;
-}
-
-.reserva-form-column h4 {
-    color: #333;
-    font-size: 1rem;
-    margin: 15px 0 10px 0;
-    font-weight: 600;
-}
-
-.reserva-form-column label input[type="checkbox"] {
-    margin-right: 10px;  /* Espacio entre checkbox y texto */
-    margin-left: 0;
-    flex-shrink: 0;  /* Evita que el checkbox se encoja */
-    cursor: pointer;
-}
-
-/* COLUMNA 3: Imagen de la habitación */
-.reserva-imagen-column {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.reserva-imagen {
-    width: 100%;
-}
-
-.reserva-img {
-    width: 100%;
-    height: 300px;
-    object-fit: cover;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 20px;
+    padding: 30px;
+    background: #f9f9f9;
     border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 40px;
+    align-items: end;
 }
 
-.reserva-carousel {
-    position: relative;
-    width: 100%;
-    height: 300px;
+.filtro-item {
+    display: flex;
+    flex-direction: column;
 }
 
-.reserva-arrow {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(0, 0, 0, 0.5);
-    color: white;
-    border: none;
-    width: 35px;
-    height: 35px;
-    cursor: pointer;
-    font-size: 18px;
-    border-radius: 50%;
-    z-index: 10;
-}
-
-.reserva-arrow:hover {
-    background: rgba(0, 0, 0, 0.7);
-}
-
-.reserva-arrow.prev {
-    left: 10px;
-}
-
-.reserva-arrow.next {
-    right: 10px;
-}
-
-/* Botón de confirmar - DEBAJO DE LA IMAGEN (columna 3) */
-.btn-confirmar-reserva {
-    width: 100%;
-    background: linear-gradient(135deg, #666666, #333333);
-    color: white;
+.filtro-item label {
     font-weight: bold;
-    padding: 15px 20px;
-    border-radius: 8px;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.filtro-item .form-input {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.filtro-item button {
+    padding: 12px 24px;
     border: none;
+    border-radius: 5px;
+    font-weight: bold;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-    font-size: 1.1rem;
-    margin-top: 20px;  /* Aumentado de 10px a 20px */
+    transition: background 0.3s;
 }
 
-.btn-confirmar-reserva:hover:not(:disabled) {
-    transform: scale(1.02);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+#btnBuscar {
+    background: #333;
+    color: white;
 }
 
-.btn-confirmar-reserva:disabled {
+#btnBuscar:hover {
+    background: #555;
+}
+
+#btnLimpiar {
     background: #ccc;
-    cursor: not-allowed;
-    opacity: 0.6;
+    color: #333;
 }
 
-.btn-confirmar-reserva i {
-    margin-left: 8px;
+#btnLimpiar:hover {
+    background: #aaa;
 }
 
-/* Responsive para modales */
-@media (max-width: 1200px) {
-    .reserva-container {
-        grid-template-columns: 1fr;  /* 1 columna en pantallas pequeñas */
-    }
-    
-    .btn-confirmar-reserva {
-        grid-column: 1;
-    }
+/* ==============================
+Grid de Habitaciones
+============================== */
+.habitacion-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 40px;
+    padding: 40px 0;
 }
 
 /* ==============================
@@ -1047,24 +932,6 @@ Responsivo
         height: 40px;
         font-size: 20px;
     }
-
-    /* Responsivo para modal de reserva */
-    .reserva-modal-content {
-        max-width: 90%;
-    }
-
-    .reserva-container {
-        flex-direction: column;
-    }
-
-    .reserva-imagen {
-        flex: none;
-    }
-
-    .reserva-img {
-        height: 200px;
-        object-fit: cover;
-    }
 }
 
 @media (max-width: 480px) {
@@ -1095,232 +962,5 @@ Responsivo
 
     .habitacion-precio {
         font-size: 18px;
-    }
-}
-
-/* ==============================
-Filtros de Habitaciones
-============================== */
-.filtros-container {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 20px;
-    padding: 30px;
-    background: #f9f9f9;
-    border-radius: 10px;
-    margin-bottom: 40px;
-    align-items: end;
-}
-
-.filtro-item {
-    display: flex;
-    flex-direction: column;
-}
-
-.filtro-item label {
-    font-weight: bold;
-    margin-bottom: 5px;
-    color: #333;
-}
-
-.filtro-item .form-input {
-    padding: 12px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 14px;
-}
-
-.filtro-item button {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 5px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.3s;
-}
-
-#btnBuscar {
-    background: #333;
-    color: white;
-}
-
-#btnBuscar:hover {
-    background: #555;
-}
-
-#btnLimpiar {
-    background: #ccc;
-    color: #333;
-}
-
-#btnLimpiar:hover {
-    background: #aaa;
-}
-
-/* ==============================
-Grid de Habitaciones
-============================== */
-.habitacion-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 40px;
-    padding: 40px 0;
-}
-
-/* ==============================
-Modal de Pago
-============================== */
-.pago-modal-content {
-    max-width: 550px;
-    width: 95%;
-}
-
-.pago-resumen {
-    text-align: left;
-}
-
-.pago-info-card {
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 25px;
-    border-left: 4px solid #666666;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.pago-info-card h3 {
-    color: #333333;
-    font-size: 1.3rem;
-    margin-bottom: 15px;
-    font-weight: 600;
-}
-
-.pago-detalle {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-    font-size: 1rem;
-}
-
-.pago-detalle:last-child {
-    border-bottom: none;
-}
-
-.pago-detalle span {
-    color: #666;
-}
-
-.pago-detalle strong {
-    color: #333333;
-    font-size: 1.1rem;
-}
-
-.form-group {
-    margin-bottom: 20px;
-    text-align: left;
-}
-
-.form-group label {
-    display: block;
-    font-weight: 600;
-    color: #333333;
-    margin-bottom: 8px;
-    font-size: 0.95rem;
-}
-
-.form-hint {
-    display: block;
-    color: #999;
-    font-size: 0.85rem;
-    margin-top: 5px;
-    font-style: italic;
-}
-
-.pago-simulacion {
-    background: #fff3cd;
-    border: 1px solid #ffc107;
-    border-radius: 8px;
-    padding: 12px;
-    margin: 20px 0;
-}
-
-.pago-simulacion p {
-    margin: 0;
-    color: #856404;
-    font-size: 0.9rem;
-}
-
-.pago-simulacion i {
-    margin-right: 8px;
-    color: #ffc107;
-}
-
-.btn-confirmar-pago {
-    width: 100%;
-    background: linear-gradient(135deg, #28a745, #20c997);
-    color: white;
-    font-weight: bold;
-    padding: 15px 20px;
-    border-radius: 10px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-    font-size: 1.05rem;
-    margin-top: 10px;
-}
-
-.btn-confirmar-pago:hover {
-    background: linear-gradient(135deg, #20c997, #17a2b8);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
-}
-
-.btn-confirmar-pago:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
-.btn-confirmar-pago i {
-    margin-right: 8px;
-}
-
-.close-modal {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    font-size: 28px;
-    font-weight: bold;
-    color: #999;
-    cursor: pointer;
-    transition: color 0.3s;
-}
-
-.close-modal:hover {
-    color: #333;
-}
-
-/* Responsivo para modal de pago */
-@media (max-width: 768px) {
-    .pago-modal-content {
-        max-width: 95%;
-        padding: 25px 20px;
-    }
-
-    .pago-info-card {
-        padding: 15px;
-    }
-
-    .pago-detalle {
-        font-size: 0.9rem;
-    }
-
-    .btn-confirmar-pago {
-        padding: 12px 16px;
-        font-size: 1rem;
     }
 }
