@@ -721,6 +721,90 @@ app.post("/api/cliente/reservas/con-calculo", authenticateTokenOptional, async (
 
 /**
  * =========================
+ * RUTAS DE PERFIL
+ * =========================
+ */
+
+/**
+ * @route GET /api/perfil
+ * @desc Obtener datos del perfil del usuario autenticado
+ */
+app.get("/api/perfil", authenticateToken, async (req, res) => {
+  try {
+    const result = await queryWithRetry(
+      "SELECT id, nombre, email FROM public.usuarios WHERE id = $1",
+      [req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error obteniendo perfil:", err);
+    res.status(500).json({ error: "Error al obtener perfil" });
+  }
+});
+
+/**
+ * @route PUT /api/perfil
+ * @desc Actualizar perfil del usuario autenticado
+ */
+app.put("/api/perfil", authenticateToken, async (req, res) => {
+  const { nombre, email } = req.body;
+  try {
+    if (!nombre || !email) {
+      return res.status(400).json({ error: "Nombre y email son obligatorios" });
+    }
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: "Email inválido" });
+    }
+
+    // Verificar que el email no esté usado por otro usuario
+    const emailExists = await queryWithRetry(
+      "SELECT id FROM public.usuarios WHERE email = $1 AND id != $2",
+      [email, req.user.id]
+    );
+    if (emailExists.rows.length > 0) {
+      return res.status(409).json({ error: "El email ya está en uso por otro usuario" });
+    }
+
+    const result = await queryWithRetry(
+      "UPDATE public.usuarios SET nombre = $1, email = $2 WHERE id = $3 RETURNING id, nombre, email",
+      [nombre, email, req.user.id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error actualizando perfil:", err);
+    res.status(500).json({ error: "Error al actualizar perfil" });
+  }
+});
+
+/**
+ * @route DELETE /api/perfil
+ * @desc Eliminar cuenta del usuario autenticado
+ */
+app.delete("/api/perfil", authenticateToken, async (req, res) => {
+  try {
+    // Opcional: Verificar si tiene reservas pendientes
+    const reservasPendientes = await queryWithRetry(
+      "SELECT COUNT(*)::int AS count FROM public.reservas WHERE id_usuario = $1 AND estado_reserva = 'pendiente'",
+      [req.user.id]
+    );
+    if (reservasPendientes.rows[0].count > 0) {
+      return res.status(409).json({ error: "No se puede eliminar la cuenta porque tienes reservas pendientes" });
+    }
+
+    // Eliminar usuario
+    await queryWithRetry("DELETE FROM public.usuarios WHERE id = $1", [req.user.id]);
+    res.json({ message: "Cuenta eliminada exitosamente" });
+  } catch (err) {
+    console.error("Error eliminando cuenta:", err);
+    res.status(500).json({ error: "Error al eliminar cuenta" });
+  }
+});
+
+/**
+ * =========================
  * RUTAS DEL ADMIN - CATEGORÍAS (CRUD)
  * =========================
  */

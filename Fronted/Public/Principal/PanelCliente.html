@@ -79,22 +79,49 @@
                 <div class="section-header">
                     <h1>Mi Perfil</h1>
                 </div>
-                <form id="perfilForm" class="perfil-form">
-                    <div class="form-group">
-                        <label for="perfilNombre">Nombre:</label>
-                        <input type="text" id="perfilNombre" name="nombre" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="perfilEmail">Email:</label>
-                        <input type="email" id="perfilEmail" name="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="perfilPassword">Nueva Contraseña (opcional):</label>
-                        <input type="password" id="perfilPassword" name="password">
-                    </div>
-                    <button type="submit" class="btn-primary">Actualizar Perfil</button>
-                    <p id="perfilMessage" class="message"></p>
-                </form>
+                <div class="form-container">
+                    <form id="perfilForm" class="perfil-form">
+                        <div class="form-block">
+                            <h3>Datos Personales y de Contacto</h3>
+                            <div class="form-group">
+                                <label for="perfilNombre">Nombre Completo:</label>
+                                <input type="text" id="perfilNombre" name="nombre" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="perfilEmail">Correo Electrónico:</label>
+                                <input type="email" id="perfilEmail" name="email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="perfilTelefono">Teléfono:</label>
+                                <input type="tel" id="perfilTelefono" name="telefono" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="perfilUbicacion">Ubicación (País/Ciudad):</label>
+                                <input type="text" id="perfilUbicacion" name="ubicacion" required>
+                            </div>
+                        </div>
+                        <div class="form-block">
+                            <h3>Seguridad y Contraseña</h3>
+                            <div class="form-group">
+                                <label for="perfilCurrentPassword">Contraseña Actual:</label>
+                                <input type="password" id="perfilCurrentPassword" name="currentPassword" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="perfilNewPassword">Nueva Contraseña:</label>
+                                <input type="password" id="perfilNewPassword" name="newPassword">
+                            </div>
+                            <div class="form-group">
+                                <label for="perfilConfirmPassword">Confirmar Nueva Contraseña:</label>
+                                <input type="password" id="perfilConfirmPassword" name="confirmPassword">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">ACTUALIZAR PERFIL</button>
+                            <button type="button" id="deleteAccountBtn" class="btn-secondary">ELIMINAR CUENTA</button>
+                        </div>
+                        <p id="perfilMessage" class="message"></p>
+                    </form>
+                </div>
             </section>
 
             <!-- Mis Reclamos -->

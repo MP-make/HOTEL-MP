@@ -272,7 +272,11 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             document.getElementById('perfilNombre').value = usuarioActual.nombre;
             document.getElementById('perfilEmail').value = usuarioActual.email;
-            document.getElementById('perfilPassword').value = '';
+            document.getElementById('perfilTelefono').value = usuarioActual.telefono || '';
+            document.getElementById('perfilUbicacion').value = usuarioActual.ubicacion || '';
+            document.getElementById('perfilCurrentPassword').value = '';
+            document.getElementById('perfilNewPassword').value = '';
+            document.getElementById('perfilConfirmPassword').value = '';
         } catch (error) {
             console.error('Error cargando perfil:', error);
         }
@@ -284,10 +288,27 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const nombre = document.getElementById('perfilNombre').value;
         const email = document.getElementById('perfilEmail').value;
-        const password = document.getElementById('perfilPassword').value;
+        const telefono = document.getElementById('perfilTelefono').value;
+        const ubicacion = document.getElementById('perfilUbicacion').value;
+        const currentPassword = document.getElementById('perfilCurrentPassword').value;
+        const newPassword = document.getElementById('perfilNewPassword').value;
+        const confirmPassword = document.getElementById('perfilConfirmPassword').value;
         
         const token = localStorage.getItem('token');
         const messageElement = document.getElementById('perfilMessage');
+        
+        // Validar contraseñas
+        if (newPassword && newPassword !== confirmPassword) {
+            messageElement.textContent = 'Las contraseñas nuevas no coinciden';
+            messageElement.style.color = 'red';
+            return;
+        }
+        
+        if (!currentPassword && (newPassword || confirmPassword)) {
+            messageElement.textContent = 'Debes ingresar la contraseña actual para cambiarla';
+            messageElement.style.color = 'red';
+            return;
+        }
         
         try {
             const response = await fetch('/api/cliente/perfil', {
@@ -296,7 +317,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + token
                 },
-                body: JSON.stringify({ nombre, email, password: password || undefined })
+                body: JSON.stringify({ 
+                    nombre, 
+                    email, 
+                    telefono, 
+                    ubicacion,
+                    currentPassword: currentPassword || undefined,
+                    newPassword: newPassword || undefined
+                })
             });
             
             if (response.ok) {
@@ -305,6 +333,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 usuarioActual = data.user;
                 messageElement.textContent = 'Perfil actualizado exitosamente';
                 messageElement.style.color = 'green';
+                // Limpiar campos de contraseña
+                document.getElementById('perfilCurrentPassword').value = '';
+                document.getElementById('perfilNewPassword').value = '';
+                document.getElementById('perfilConfirmPassword').value = '';
             } else {
                 const error = await response.json();
                 messageElement.textContent = error.error || 'Error al actualizar perfil';
@@ -319,6 +351,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Event listener para formulario de perfil
     document.getElementById('perfilForm').addEventListener('submit', actualizarPerfil);
+
+    // Event listener para eliminar cuenta
+    document.getElementById('deleteAccountBtn').addEventListener('click', async () => {
+        if (confirm('¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.')) {
+            const token = localStorage.getItem('token');
+            try {
+                const response = await fetch('/api/cliente/perfil', {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (response.ok) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    window.location.href = 'index.html';
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Error al eliminar la cuenta');
+                }
+            } catch (error) {
+                console.error('Error eliminando cuenta:', error);
+                alert('Error de conexión');
+            }
+        }
+    });
 
     // Función para cargar reclamos
     async function cargarReclamos() {
