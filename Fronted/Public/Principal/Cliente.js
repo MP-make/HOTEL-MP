@@ -102,36 +102,74 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Notificaciones específicas de reservas
             reservas.forEach(reserva => {
-                const fechaCheckin = new Date(reserva.fecha_checkin).toLocaleDateString('es-ES');
-                const fechaCheckout = new Date(reserva.fecha_checkout).toLocaleDateString('es-ES');
-                if (reserva.estado_reserva === 'confirmada') {
+                const fechaCheckin = new Date(reserva.fecha_checkin);
+                const fechaCheckout = new Date(reserva.fecha_checkout);
+                const ahora = new Date();
+                const tiempoHastaCheckin = fechaCheckin - ahora;
+                const tiempoHastaCheckout = fechaCheckout - ahora;
+                const horasHastaCheckin = tiempoHastaCheckin / (1000 * 60 * 60);
+                const horasHastaCheckout = tiempoHastaCheckout / (1000 * 60 * 60);
+                
+                const fechaCheckinStr = fechaCheckin.toLocaleDateString('es-ES');
+                const fechaCheckoutStr = fechaCheckout.toLocaleDateString('es-ES');
+                
+                if (reserva.estado_reserva === 'pendiente') {
                     notifications.push({
-                        icon: 'fas fa-check-circle',
-                        title: `Reserva Confirmada`,
-                        message: `Su reserva #${reserva.id_reserva} para la Habitación ${reserva.numero_habitacion} está confirmada. Check-in: ${fechaCheckin}, Check-out: ${fechaCheckout}.`
+                        icon: 'fas fa-clock',
+                        title: `Reserva Pendiente (${fechaCheckinStr})`,
+                        message: `Tu reserva para la Habitación ${reserva.numero_habitacion} está pendiente de confirmación. Check-in: ${fechaCheckinStr}, Check-out: ${fechaCheckoutStr}.`
                     });
+                } else if (reserva.estado_reserva === 'confirmada') {
+                    if (horasHastaCheckin <= 24 && horasHastaCheckin > 0) {
+                        notifications.push({
+                            icon: 'fas fa-exclamation-triangle',
+                            title: `Check-in Próximo (${fechaCheckinStr})`,
+                            message: `Tu check-in para la Habitación ${reserva.numero_habitacion} es en menos de 24 horas. Fecha: ${fechaCheckin.toLocaleString('es-ES')}.`
+                        });
+                    } else {
+                        notifications.push({
+                            icon: 'fas fa-check-circle',
+                            title: `Reserva Confirmada (${fechaCheckinStr})`,
+                            message: `Tu reserva para la Habitación ${reserva.numero_habitacion} está confirmada. Check-in: ${fechaCheckinStr}, Check-out: ${fechaCheckoutStr}.`
+                        });
+                    }
                 } else if (reserva.estado_reserva === 'activa') {
+                    if (horasHastaCheckout <= 24 && horasHastaCheckout > 0) {
+                        notifications.push({
+                            icon: 'fas fa-exclamation-triangle',
+                            title: `Check-out Próximo (${fechaCheckoutStr})`,
+                            message: `Tu check-out para la Habitación ${reserva.numero_habitacion} es en menos de 24 horas. Fecha: ${fechaCheckout.toLocaleString('es-ES')}.`
+                        });
+                    } else {
+                        notifications.push({
+                            icon: 'fas fa-calendar-day',
+                            title: `Reserva Activa (${fechaCheckinStr})`,
+                            message: `Estás hospedado en la Habitación ${reserva.numero_habitacion}. Check-out: ${fechaCheckoutStr}.`
+                        });
+                    }
+                } else if (reserva.estado_reserva === 'completada') {
                     notifications.push({
-                        icon: 'fas fa-calendar-day',
-                        title: `Check-in Próximo`,
-                        message: `Su check-in para la Habitación ${reserva.numero_habitacion} es el ${fechaCheckin}.`
+                        icon: 'fas fa-check',
+                        title: `Reserva Completada (${fechaCheckoutStr})`,
+                        message: `Tu estadía en la Habitación ${reserva.numero_habitacion} ha finalizado. ¡Gracias por visitarnos!`
                     });
                 }
             });
             
             // Notificaciones de reclamos
             reclamos.forEach(reclamo => {
+                const fechaReclamo = new Date(reclamo.fecha_creacion).toLocaleDateString('es-ES');
                 if (reclamo.estado === 'resuelto') {
                     notifications.push({
                         icon: 'fas fa-check',
-                        title: `Reclamo Resuelto`,
-                        message: `Su reclamo #${reclamo.id_reclamo} ha sido resuelto.`
+                        title: `Reclamo (${fechaReclamo})`,
+                        message: `Su reclamo ha sido resuelto.`
                     });
                 } else if (reclamo.estado === 'pendiente') {
                     notifications.push({
                         icon: 'fas fa-clock',
-                        title: `Reclamo Pendiente`,
-                        message: `Su reclamo #${reclamo.id_reclamo} está siendo procesado.`
+                        title: `Reclamo (${fechaReclamo})`,
+                        message: `Su reclamo está siendo procesado.`
                     });
                 }
             });
@@ -348,8 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Función para mostrar/ocultar formulario de nuevo reclamo
     document.getElementById('btnNuevoReclamo').addEventListener('click', () => {
-        const form = document.getElementById('nuevoReclamoForm');
-        form.classList.toggle('hidden');
+        document.getElementById('nuevoReclamoModal').style.display = 'block';
     });
 
     // Función para enviar nuevo reclamo
@@ -376,7 +413,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 messageElement.textContent = 'Reclamo enviado exitosamente';
                 messageElement.style.color = 'green';
                 document.getElementById('nuevoReclamoForm').reset();
-                document.getElementById('nuevoReclamoForm').classList.add('hidden');
+                document.getElementById('nuevoReclamoModal').style.display = 'none';
                 cargarReclamos(); // Recargar la lista
             } else {
                 const error = await response.json();
@@ -534,20 +571,21 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 try {
                     const user = await response.json();
-                    document.getElementById('userName').textContent = user.nombre || 'Cliente';
                     document.getElementById('sidebarUserName').textContent = user.nombre || 'Cliente';
-                    // Mostrar el perfil del usuario y ocultar botones de login
-                    document.getElementById('authButtons').classList.add('hidden');
-                    document.getElementById('userProfile').classList.remove('hidden');
                     
                     // Calcular progreso basado en reservas completadas
                     const responseReservas = await fetch('/api/cliente/reservas', { headers: { 'Authorization': 'Bearer ' + token } });
                     if (responseReservas.ok) {
                         const reservas = await responseReservas.json();
+                        console.log('Reservas obtenidas:', reservas); // Agrega esto para ver los datos
                         const completadas = reservas.filter(r => r.estado_reserva === 'completada').length;
                         const total = reservas.length;
+                        console.log('Completadas:', completadas, 'Total:', total); // Agrega esto
                         const progreso = total > 0 ? (completadas / total) * 100 : 0;
+                        console.log('Progreso calculado:', progreso + '%'); // Agrega esto
                         document.getElementById('progressFill').style.width = progreso + '%';
+                    } else {
+                        console.error('Error cargando reservas para progreso:', responseReservas.status);
                     }
                 } catch (error) {
                     console.error('Error parsing user info:', error);

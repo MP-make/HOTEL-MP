@@ -14,31 +14,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="icon" href="/img/loguito.png" type="image/png">
 </head>
-<body class="bg-principal">
+<body class="bg-principal dashboard-body">
 
-    <header class="header">
-        <nav class="top-nav">
-            <picture>
-                <source media="(max-width: 600px)" srcset="https://placehold.co/100x100/000000/FFFFFF?text=Logo">
-                <img src="/img/logo1.jpg"
-                    alt="Logo de JW Marriott Hotel Lima" class="logo">
-            </picture>
-        </nav>
-
-        <nav class="auth-nav">
-            <!-- Botones visibles si no hay sesión iniciada -->
-            <div id="authButtons">
-                <button class="btn-primary" data-modal-target="loginModal">Iniciar Sesión</button>
-                <button class="btn-secondary" data-modal-target="registerModal">Registrarse</button>
-            </div>
-            <!-- Botones visibles si hay sesión iniciada -->
-            <div id="userProfile" class="hidden flex items-center space-x-4">
-                <span id="userName" class="text-white text-lg font-semibold"></span>
-                <button id="logoutBtn" class="btn-secondary">Cerrar Sesión</button>
-            </div>
-        </nav>
-    </header>
-
+    <!-- Dashboard container sin header -->
     <div class="dashboard-container">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -56,15 +34,14 @@
             </div>
             <nav class="sidebar-nav">
                 <ul>
-                    <li><a href="#" class="sidebar-link active" data-section="estado-notificaciones"><i class="fas fa-bell"></i> Estado y Notificaciones</a></li>
-                    <li><a href="#" class="sidebar-link" data-section="mis-reservas"><i class="fas fa-calendar-check"></i> Mis Reservas</a></li>
-                    <li><a href="#" class="sidebar-link" data-section="mi-perfil"><i class="fas fa-user"></i> Mi Perfil</a></li>
-                    <li><a href="#" class="sidebar-link" data-section="mis-reclamos"><i class="fas fa-exclamation-triangle"></i> Mis Reclamos</a></li>
+                    <li><a href="#" class="sidebar-link active" data-section="mi-perfil"><i class="fas fa-user"></i> Mi Perfil</a></li>
+                    <li><a href="#" class="sidebar-link" data-section="estado-notificaciones"><i class="fas fa-bell"></i> Notificaciones</a></li>
+                    <li><a href="#" class="sidebar-link" data-section="mis-reservas"><i class="fas fa-calendar-check"></i> Reservas</a></li>
+                    <li><a href="#" class="sidebar-link" data-section="mis-reclamos"><i class="fas fa-exclamation-triangle"></i> Reclamos</a></li>
+                    <li><button id="backToIndexBtn" class="sidebar-link"><i class="fas fa-home"></i> Inicio</button></li>
+                    <li><button id="logoutBtn" class="sidebar-link"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</button></li>
                 </ul>
             </nav>
-            <div class="sidebar-footer">
-                <button id="backToIndexBtn" class="btn-logout"><i class="fas fa-home"></i> Regresar al Índice</button>
-            </div>
         </aside>
 
         <!-- Main Content -->
@@ -129,21 +106,6 @@
                 <div id="reclamosGrid" class="reclamos-grid">
                     <!-- Reclamos se cargarán dinámicamente -->
                 </div>
-                <form id="nuevoReclamoForm" class="reclamo-form hidden">
-                    <h3>Enviar Nuevo Reclamo</h3>
-                    <div class="form-group">
-                        <label for="reclamoHabitacion">Habitación:</label>
-                        <select id="reclamoHabitacion" name="id_habitacion" required>
-                            <!-- Opciones se cargarán dinámicamente -->
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="reclamoDescripcion">Descripción:</label>
-                        <textarea id="reclamoDescripcion" name="descripcion" required></textarea>
-                    </div>
-                    <button type="submit" class="btn-primary">Enviar Reclamo</button>
-                    <p id="reclamoMessage" class="message"></p>
-                </form>
             </section>
         </main>
     </div>
@@ -170,6 +132,28 @@
                 <div class="form-group">
                     <label for="reclamoDescripcion">Enviar Reclamo:</label>
                     <textarea id="reclamoDescripcion" name="descripcion" placeholder="Describe tu reclamo..."></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Enviar Reclamo</button>
+                <p id="reclamoMessage" class="message"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para nuevo reclamo -->
+    <div id="nuevoReclamoModal" class="modal">
+        <div class="modal-content">
+            <span class="close" data-modal-close="nuevoReclamoModal">&times;</span>
+            <h2>Enviar Nuevo Reclamo</h2>
+            <form id="nuevoReclamoForm" class="reclamo-form">
+                <div class="form-group">
+                    <label for="reclamoHabitacion">Habitación:</label>
+                    <select id="reclamoHabitacion" name="id_habitacion" required>
+                        <!-- Opciones se cargarán dinámicamente -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="reclamoDescripcion">Descripción:</label>
+                    <textarea id="reclamoDescripcion" name="descripcion" required></textarea>
                 </div>
                 <button type="submit" class="btn-primary">Enviar Reclamo</button>
                 <p id="reclamoMessage" class="message"></p>

@@ -587,6 +587,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Event listener para el botón de cerrar sesión
         document.getElementById('logoutBtn').addEventListener('click', cerrarSesion);
 
+        // Event listener para el botón de perfil
+        document.getElementById('profileBtn').addEventListener('click', () => {
+            window.location.href = 'PanelCliente.html';
+        });
+
         // Función para manejar el login
         async function manejarLogin(email, password) {
             try {

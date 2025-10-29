@@ -1,7 +1,27 @@
 /* Dashboard Layout */
+body.dashboard-body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: 100vh;
+    display: block;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: 100vh;
+}
+
 .dashboard-container {
     display: flex;
     min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    width: 100%;
 }
 
 /* Sidebar */
@@ -14,6 +34,9 @@
     height: 100vh;
     overflow-y: auto;
     box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    left: 0;
+    top: 0;
+    z-index: 100;
 }
 
 .sidebar-header {
@@ -44,6 +67,10 @@
     color: white;
     text-decoration: none;
     transition: background 0.3s;
+    width: 100%;
+    border: none;
+    background: none;
+    cursor: pointer;
 }
 
 .sidebar-link:hover, .sidebar-link.active {
@@ -71,6 +98,11 @@
     border-radius: 5px;
     cursor: pointer;
     transition: background 0.3s;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .btn-logout:hover {
@@ -81,8 +113,11 @@
 .main-content {
     flex: 1;
     margin-left: 250px;
-    padding: 15px;
+    padding: 30px;
     background: #e9ecef;
+    min-height: 100vh;
+    width: calc(100% - 250px);
+    box-sizing: border-box;
 }
 
 .content-section {
@@ -113,7 +148,8 @@
 .notification-item {
     display: flex;
     align-items: center;
-    background: white;
+    background: #333;
+    color: white;
     padding: 15px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -121,18 +157,18 @@
 
 .notification-icon {
     margin-right: 15px;
-    color: #667eea;
+    color: #fff;
     font-size: 1.5rem;
 }
 
 .notification-content h4 {
     margin: 0 0 5px 0;
-    color: #333;
+    color: white;
 }
 
 .notification-content p {
     margin: 0;
-    color: #666;
+    color: #ccc;
 }
 
 /* Reservas Grid */
@@ -144,21 +180,18 @@
 
 /* Perfil Form */
 .perfil-form {
-    max-width: 500px;
+    max-width: 600px;
+    width: 100%;
     background: white;
-    padding: 20px;
+    padding: 30px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    min-height: 60vh;
     margin: 0 auto;
 }
 
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 20px;
+    width: 100%;
 }
 
 .form-group label {
@@ -201,33 +234,35 @@
 }
 
 .reclamo-card {
-    background: white;
+    background: #333;
+    color: white;
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     margin-bottom: 15px;
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #555;
 }
 
 .reclamo-card h4 {
     margin: 0 0 10px 0;
-    color: #333;
+    color: white;
     font-size: 1.2rem;
 }
 
 .reclamo-card p {
     margin: 5px 0;
-    color: #666;
+    color: #ccc;
 }
 
 .reclamo-card strong {
-    color: #333;
+    color: white;
     font-weight: 600;
 }
 
 .reclamo-form {
     max-width: 500px;
-    background: white;
+    background: #333;
+    color: white;
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -237,6 +272,9 @@
 .reclamo-form textarea {
     resize: vertical;
     min-height: 100px;
+    background: #555;
+    color: white;
+    border: 1px solid #777;
 }
 
 .hidden {
