@@ -1,289 +1,182 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel del Cliente - JW Marriott Hotel Lima</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="index.css">
     <link rel="stylesheet" href="Cliente.css">
-    <link rel="stylesheet" href="modal.css">
-    <style>
-        /* Override forzado para Panel Cliente */
-        body.bg-principal main {
-            max-width: 90vw !important;
-            padding: 60px 20px !important;
-            margin: 0 auto !important;
-            width: 100% !important;
-        }
-        body.bg-principal section {
-            background-color: #FFFFFF !important;
-            padding: 40px !important;
-            border-radius: 20px !important;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
-            margin-bottom: 80px !important;
-            width: 100% !important;
-        }
-        body.bg-principal {
-            background: linear-gradient(180deg, #F8F8F8 0%, #FFFFFF 100%) !important;
-        }
-        /* Asegurar que los filtros ocupen todo el ancho */
-        #filtros-reservas, #reservas, #reclamos {
-            width: 100% !important;
-            max-width: none !important;
-        }
-        .filtros-container {
-            width: 100% !important;
-            max-width: none !important;
-        }
-        .reservas-grid {
-            width: 100% !important;
-            max-width: none !important;
-        }
-    </style>
+    <link rel="stylesheet" href="index.css?v=3.0">
+    <link rel="stylesheet" href="modal.css?v=100">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@400;600&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:wght@400;700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="icon" href="/img/loguito.png" type="image/png">
 </head>
-
 <body class="bg-principal">
 
     <header class="header">
         <nav class="top-nav">
             <picture>
-                <source media="(max-width: 600px)" srcset="https://placehold.co/100x100/8B4513/FDF6E3?text=Logo">
+                <source media="(max-width: 600px)" srcset="https://placehold.co/100x100/000000/FFFFFF?text=Logo">
                 <img src="/img/logo1.jpg"
                     alt="Logo de JW Marriott Hotel Lima" class="logo">
             </picture>
         </nav>
 
         <nav class="auth-nav">
+            <!-- Botones visibles si no hay sesión iniciada -->
             <div id="authButtons">
                 <button class="btn-primary" data-modal-target="loginModal">Iniciar Sesión</button>
                 <button class="btn-secondary" data-modal-target="registerModal">Registrarse</button>
             </div>
+            <!-- Botones visibles si hay sesión iniciada -->
             <div id="userProfile" class="hidden flex items-center space-x-4">
                 <span id="userName" class="text-white text-lg font-semibold"></span>
                 <button id="logoutBtn" class="btn-secondary">Cerrar Sesión</button>
             </div>
         </nav>
-        <nav class="main-nav">
-            <ul class="nav-links">
-                <li><a href="index.html">Inicio</a></li>
-                <li><a href="#reservas">Mis Reservas</a></li>
-                <li><a href="#reclamos">Reclamos</a></li>
-                <li><a href="#contacto">Contacto</a></li>
-            </ul>
-        </nav>
     </header>
 
-    <main>
-        <section id="filtros-reservas">
-            <h2 class="titulo-seccion">Filtrar Mis Reservas</h2>
-            <div class="filtros-container">
-                <div class="filtro-item">
-                    <label for="filtro-buscar">Buscar por habitación:</label>
-                    <input type="text" id="filtro-buscar" class="form-input" placeholder="Ej: 101, 202...">
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="mini-perfil">
+                    <img src="/img/loguito.png" alt="Avatar" class="avatar">
+                    <div class="user-info">
+                        <p class="user-name" id="sidebarUserName">Cliente</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="filtro-item">
-                    <label for="filtro-categoria">Categoría:</label>
-                    <select id="filtro-categoria" class="form-input">
-                        <option value="">Todas</option>
-                    </select>
-                </div>
-                <div class="filtro-item">
-                    <label for="filtro-estado">Estado:</label>
-                    <select id="filtro-estado" class="form-input">
-                        <option value="">Todos</option>
-                        <option value="pendiente">Pendiente</option>
-                        <option value="completada">Completada</option>
-                        <option value="cancelada">Cancelada</option>
-                    </select>
-                </div>
-                <div class="filtro-item">
-                    <label for="filtro-fecha-desde">Check-in desde:</label>
-                    <input type="date" id="filtro-fecha-desde" class="form-input">
-                </div>
-                <div class="filtro-item">
-                    <label for="filtro-fecha-hasta">Check-in hasta:</label>
-                    <input type="date" id="filtro-fecha-hasta" class="form-input">
-                </div>
-                <div class="filtro-item">
-                    <label for="filtro-orden">Ordenar por:</label>
-                    <select id="filtro-orden" class="form-input">
-                        <option value="ultimas">Últimas creadas</option>
-                        <option value="recientes">Check-in más recientes</option>
-                        <option value="antiguas">Check-in más antiguas</option>
-                    </select>
-                </div>
-                <div class="filtro-item">
-                    <button id="btnFiltrarReservas" class="btn-primary">Filtrar</button>
-                    <button id="btnLimpiarReservas" class="btn-secondary">Limpiar</button>
-                </div>
+                <h2 class="sidebar-title">Panel del Cliente</h2>
             </div>
-        </section>
-
-        <section id="reservas">
-            <h2 class="titulo-seccion">Mis Reservas</h2>
-            <div id="reservasGrid" class="reservas-grid">
-                <!-- Las reservas se renderizarán aquí -->
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="#" class="sidebar-link active" data-section="estado-notificaciones"><i class="fas fa-bell"></i> Estado y Notificaciones</a></li>
+                    <li><a href="#" class="sidebar-link" data-section="mis-reservas"><i class="fas fa-calendar-check"></i> Mis Reservas</a></li>
+                    <li><a href="#" class="sidebar-link" data-section="mi-perfil"><i class="fas fa-user"></i> Mi Perfil</a></li>
+                    <li><a href="#" class="sidebar-link" data-section="mis-reclamos"><i class="fas fa-exclamation-triangle"></i> Mis Reclamos</a></li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="backToIndexBtn" class="btn-logout"><i class="fas fa-home"></i> Regresar al Índice</button>
             </div>
-        </section>
+        </aside>
 
-        <section id="reclamos">
-            <h2 class="titulo-seccion">Mis Reclamos</h2>
-            <div class="card">
-                <form id="reclamo-form">
-                    <label for="reclamo-descripcion">Descripción del reclamo:</label>
-                    <textarea id="reclamo-descripcion" placeholder="Describe tu reclamo..." required></textarea>
-                    <label for="reclamo-habitacion">Habitación relacionada (opcional):</label>
-                    <select id="reclamo-habitacion">
-                        <option value="">Seleccionar habitación</option>
-                    </select>
-                    <button type="submit" class="btn">Enviar Reclamo</button>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Estado y Notificaciones -->
+            <section id="estado-notificaciones" class="content-section active">
+                <div class="section-header">
+                    <h1>Estado y Notificaciones</h1>
+                </div>
+                <div class="notifications-list">
+                    <!-- Notificaciones se cargarán dinámicamente -->
+                    <div class="notification-item">
+                        <div class="notification-icon"><i class="fas fa-info-circle"></i></div>
+                        <div class="notification-content">
+                            <h4>Bienvenido a tu panel</h4>
+                            <p>Revisa tus reservas y mantén tu información actualizada.</p>
+                        </div>
+                    </div>
+                    <!-- Más notificaciones aquí -->
+                </div>
+            </section>
+
+            <!-- Mis Reservas -->
+            <section id="mis-reservas" class="content-section">
+                <div class="section-header">
+                    <h1>Mis Reservas</h1>
+                </div>
+                <div id="reservasGrid" class="reservas-grid">
+                    <!-- Reservas se cargarán dinámicamente -->
+                </div>
+            </section>
+
+            <!-- Mi Perfil -->
+            <section id="mi-perfil" class="content-section">
+                <div class="section-header">
+                    <h1>Mi Perfil</h1>
+                </div>
+                <form id="perfilForm" class="perfil-form">
+                    <div class="form-group">
+                        <label for="perfilNombre">Nombre:</label>
+                        <input type="text" id="perfilNombre" name="nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="perfilEmail">Email:</label>
+                        <input type="email" id="perfilEmail" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="perfilPassword">Nueva Contraseña (opcional):</label>
+                        <input type="password" id="perfilPassword" name="password">
+                    </div>
+                    <button type="submit" class="btn-primary">Actualizar Perfil</button>
+                    <p id="perfilMessage" class="message"></p>
                 </form>
-                <div id="reclamos-list">
-                    <p style="text-align: center;">Cargando reclamos...</p>
+            </section>
+
+            <!-- Mis Reclamos -->
+            <section id="mis-reclamos" class="content-section">
+                <div class="section-header">
+                    <h1>Mis Reclamos</h1>
+                    <button id="btnNuevoReclamo" class="btn-primary">Nuevo Reclamo</button>
                 </div>
-            </div>
-        </section>
-    </main>
-
-    <footer>
-        <p>&copy; 2025 JW Marriott Hotel Lima. Todos los derechos reservados.</p>
-        <p>Av. Malecón de la Reserva 615, Miraflores, Lima, Perú</p>
-    </footer>
-
-    <!-- MODAL LOGIN -->
-    <div id="loginModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" data-modal-close="loginModal">&times;</span>
-            <h2>Iniciar Sesión</h2>
-            <form id="loginForm">
-                <input type="email" id="loginEmail" placeholder="Correo electrónico" required class="form-input">
-                <input type="password" id="loginPassword" placeholder="Contraseña" required class="form-input">
-                <p id="loginMessage" class="text-red-500 my-2 text-center"></p>
-                <button type="submit" class="btn-submit">Ingresar</button>
-            </form>
-            <p class="form-footer">
-                ¿No tienes cuenta?
-                <a href="#" class="switch-modal" data-switch-modal-current="loginModal"
-                    data-switch-modal-next="registerModal">Regístrate aquí</a>.
-            </p>
-        </div>
-    </div>
-
-    <!-- MODAL REGISTRO -->
-    <div id="registerModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" data-modal-close="registerModal">&times;</span>
-            <h2>Crear Cuenta</h2>
-            <form id="registerForm">
-                <input type="text" id="registerName" placeholder="Nombre completo" required class="form-input">
-                <input type="email" id="registerEmail" placeholder="Correo electrónico" required class="form-input">
-                <input type="password" id="registerPassword" placeholder="Contraseña" required class="form-input">
-                <p id="registerMessage" class="text-red-500 my-2 text-center"></p>
-                <button type="submit" class="btn-submit">Crear Cuenta</button>
-            </form>
-            <p class="form-footer">
-                ¿Ya tienes cuenta?
-                <a href="#" class="switch-modal" data-switch-modal-current="registerModal"
-                    data-switch-modal-next="loginModal">Inicia sesión</a>.
-            </p>
-        </div>
-    </div>
-
-    <!-- MODAL RESERVA -->
-    <div id="reservaModal" class="modal">
-        <div class="modal-content reserva-modal-content">
-            <span class="close-modal" data-modal-close="reservaModal">&times;</span>
-            <h2>Reservar Habitación</h2>
-            <div class="reserva-container">
-                <!-- COLUMNA 1: Datos de la habitación + Fechas -->
-                <div class="reserva-info-column">
-                    <p id="reservaHabitacionNombre" class="reserva-nombre"></p>
-                    <p id="reservaHabitacionCategoria" class="reserva-info"></p>
-                    <p id="reservaHabitacionPiso" class="reserva-info"></p>
-                    <p id="reservaHabitacionCapacidad" class="reserva-info"></p>
-                    <p id="reservaHabitacionPrecioDia" class="reserva-info reserva-precio"></p>
-                    
-                    <!-- FECHAS DEBAJO DE LOS DATOS -->
-                    <label for="fechaCheckin" style="margin-top: 15px; display: block; color: #333; font-weight: 600; font-size: 0.9rem;">Fecha de Check-in:</label>
-                    <input type="datetime-local" id="fechaCheckin" required class="form-input" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1.5px solid #CCCCCC; border-radius: 8px;">
-                    
-                    <label for="fechaCheckout" style="display: block; color: #333; font-weight: 600; font-size: 0.9rem;">Fecha de Check-out:</label>
-                    <input type="datetime-local" id="fechaCheckout" required class="form-input" style="width: 100%; padding: 10px; border: 1.5px solid #CCCCCC; border-radius: 8px;">
+                <div id="reclamosGrid" class="reclamos-grid">
+                    <!-- Reclamos se cargarán dinámicamente -->
                 </div>
-
-                <!-- COLUMNA 2: Servicios adicionales -->
-                <div class="reserva-form-column">
-                    <h4>Servicios Adicionales (Upselling)</h4>
-                    <label><input type="checkbox" id="upsell-desayuno" value="20"> Desayuno Premium (+S/20)</label><br>
-                    <label><input type="checkbox" id="upsell-romantico" value="50"> Paquete Romántico (+S/50)</label><br>
-                    <label><input type="checkbox" id="upsell-spa" value="30"> Sesión de Spa (+S/30)</label><br>
-                    <label><input type="checkbox" id="upsell-late-checkout" value="15"> Late Check-out (+S/15)</label><br>
-                    
-                    <p id="reservaMessage" class="text-red-500 my-2 text-center"></p>
-                </div>
-
-                <!-- COLUMNA 3: Imagen y botón -->
-                <div class="reserva-imagen-column">
-                    <div class="reserva-imagen">
-                        <img id="reservaHabitacionImagen" src="/img/habitaciones/default-room.jpg" alt="Habitación" class="reserva-img">
+                <form id="nuevoReclamoForm" class="reclamo-form hidden">
+                    <h3>Enviar Nuevo Reclamo</h3>
+                    <div class="form-group">
+                        <label for="reclamoHabitacion">Habitación:</label>
+                        <select id="reclamoHabitacion" name="id_habitacion" required>
+                            <!-- Opciones se cargarán dinámicamente -->
+                        </select>
                     </div>
-                    
-                    <!-- BOTÓN DEBAJO DE LA IMAGEN -->
-                    <form id="reservaForm">
-                        <button type="submit" id="btnConfirmarReserva" class="btn-confirmar-reserva" disabled>Confirmar Reserva <i class="fas fa-check"></i></button>
-                    </form>
-                </div>
-            </div>
-        </div>
+                    <div class="form-group">
+                        <label for="reclamoDescripcion">Descripción:</label>
+                        <textarea id="reclamoDescripcion" name="descripcion" required></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">Enviar Reclamo</button>
+                    <p id="reclamoMessage" class="message"></p>
+                </form>
+            </section>
+        </main>
     </div>
 
-    <!-- MODAL DETALLES DE RESERVA -->
+    <!-- Modal para detalles de reserva -->
     <div id="detallesReservaModal" class="modal">
-        <div class="modal-content reserva-modal-content">
-            <span class="close-modal" data-modal-close="detallesReservaModal">&times;</span>
+        <div class="modal-content">
+            <span class="close" data-modal-close="detallesReservaModal">&times;</span>
             <h2>Detalles de la Reserva</h2>
-            <div class="reserva-container">
-                <div class="reserva-imagen-detalle">
-                    <img id="detalleHabitacionImagen" src="" alt="Habitación" class="reserva-img">
-                </div>
-                <div class="reserva-detalles-info">
-                    <div class="detalle-info-group">
-                        <p><strong>Categoría:</strong> <span id="detalleCategoria"></span></p>
-                        <p><strong>Estado:</strong> <span id="detalleEstado" class="badge-estado"></span></p>
-                    </div>
-                    <div class="detalle-info-group">
-                        <p><strong>Check-in:</strong> <span id="detalleFechaCheckin"></span></p>
-                        <p><strong>Check-out:</strong> <span id="detalleFechaCheckout"></span></p>
-                        <p><strong>Fecha de creación:</strong> <span id="detalleFechaCreacion"></span></p>
-                    </div>
-                    <div class="detalle-info-group">
-                        <p><strong>Pagado:</strong> <span id="detallePagado"></span></p>
-                        <p><strong>Falta pagar:</strong> <span id="detalleFaltaPagar"></span></p>
-                    </div>
-                </div>
-                <div class="reserva-reclamo-column">
-                    <h4>Enviar Reclamo sobre esta Reserva</h4>
-                    <form id="reclamoReservaForm">
-                        <label for="reclamoDescripcion">Descripción del reclamo:</label>
-                        <textarea id="reclamoDescripcion" class="form-input" rows="4" placeholder="Describe tu reclamo..." required></textarea>
-                        <input type="hidden" id="reclamoHabitacionId" value="">
-                        <p id="reclamoMessage" class="text-red-500 my-2 text-center"></p>
-                        <button type="submit" class="btn-submit">Enviar Reclamo</button>
-                    </form>
+            <div class="detalle-reserva">
+                <img id="detalleHabitacionImagen" src="" alt="Habitación" class="detalle-imagen">
+                <div class="detalle-info">
+                    <p><strong>Categoría:</strong> <span id="detalleCategoria"></span></p>
+                    <p><strong>Estado:</strong> <span id="detalleEstado"></span></p>
+                    <p><strong>Check-in:</strong> <span id="detalleFechaCheckin"></span></p>
+                    <p><strong>Check-out:</strong> <span id="detalleFechaCheckout"></span></p>
+                    <p><strong>Fecha de Creación:</strong> <span id="detalleFechaCreacion"></span></p>
+                    <p><strong>Pagado:</strong> <span id="detallePagado"></span></p>
+                    <p><strong>Falta Pagar:</strong> <span id="detalleFaltaPagar"></span></p>
                 </div>
             </div>
+            <form id="reclamoReservaForm" class="reclamo-form">
+                <input type="hidden" id="reclamoHabitacionId" name="id_habitacion">
+                <div class="form-group">
+                    <label for="reclamoDescripcion">Enviar Reclamo:</label>
+                    <textarea id="reclamoDescripcion" name="descripcion" placeholder="Describe tu reclamo..."></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Enviar Reclamo</button>
+                <p id="reclamoMessage" class="message"></p>
+            </form>
         </div>
     </div>
 
     <script src="Cliente.js"></script>
 </body>
-
 </html>
