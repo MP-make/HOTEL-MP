@@ -70,14 +70,14 @@
         <nav class="auth-nav">
             <!-- Botones visibles si no hay sesión iniciada -->
             <div id="authButtons">
-                <button class="btn-primary" data-modal-target="loginModal">Iniciar Sesión</button>
-                <button class="btn-secondary" data-modal-target="registerModal">Registrarse</button>
+                <button class="auth-link" data-modal-target="loginModal"><i class="fas fa-user-check fa-lg"></i> Iniciar Sesión</button>
+                <button class="auth-link" data-modal-target="registerModal"><i class="fas fa-user-plus fa-lg"></i> Registrarse</button>
             </div>
             <!-- Botones visibles si hay sesión iniciada -->
             <div id="userProfile" class="hidden flex items-center space-x-4">
                 <span id="userName" class="text-white text-lg font-semibold"></span>
-                <button id="profileBtn" class="btn-icon" title="Perfil"><i class="fas fa-user"></i></button>
-                <button id="logoutBtn" class="btn-icon" title="Cerrar Sesión"><i class="fas fa-sign-out-alt"></i></button>
+                <button id="profileBtn" class="auth-link"><i class="fas fa-user fa-lg"></i> Mi Perfil</button>
+                <button id="logoutBtn" class="auth-link"><i class="fas fa-sign-out-alt fa-lg"></i> Cerrar Sesión</button>
             </div>
         </nav>
         <nav class="main-nav">
@@ -442,3 +442,4 @@
 </body>
 
 </html>
+``` 
