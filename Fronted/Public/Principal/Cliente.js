@@ -274,6 +274,9 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('perfilEmail').value = usuarioActual.email;
             document.getElementById('perfilTelefono').value = usuarioActual.telefono || '';
             document.getElementById('perfilUbicacion').value = usuarioActual.ubicacion || '';
+            document.getElementById('perfilTipoHabitacion').value = usuarioActual.tipo_habitacion || '';
+            document.getElementById('perfilPreferenciaPiso').value = usuarioActual.preferencia_piso || '';
+            document.getElementById('perfilNecesidadesEspeciales').value = usuarioActual.necesidades_especiales || '';
             document.getElementById('perfilCurrentPassword').value = '';
             document.getElementById('perfilNewPassword').value = '';
             document.getElementById('perfilConfirmPassword').value = '';
@@ -290,6 +293,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const email = document.getElementById('perfilEmail').value;
         const telefono = document.getElementById('perfilTelefono').value;
         const ubicacion = document.getElementById('perfilUbicacion').value;
+        const tipoHabitacion = document.getElementById('perfilTipoHabitacion').value;
+        const preferenciaPiso = document.getElementById('perfilPreferenciaPiso').value;
+        const necesidadesEspeciales = document.getElementById('perfilNecesidadesEspeciales').value;
         const currentPassword = document.getElementById('perfilCurrentPassword').value;
         const newPassword = document.getElementById('perfilNewPassword').value;
         const confirmPassword = document.getElementById('perfilConfirmPassword').value;
@@ -322,6 +328,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     email, 
                     telefono, 
                     ubicacion,
+                    tipo_habitacion: tipoHabitacion,
+                    preferencia_piso: preferenciaPiso,
+                    necesidades_especiales: necesidadesEspeciales,
                     currentPassword: currentPassword || undefined,
                     newPassword: newPassword || undefined
                 })

@@ -115,6 +115,29 @@
                                 <input type="password" id="perfilConfirmPassword" name="confirmPassword">
                             </div>
                         </div>
+                        <div class="form-block">
+                            <h3>Preferencias de Reserva</h3>
+                            <div class="form-group">
+                                <label for="perfilTipoHabitacion">Tipo de Habitación Favorita:</label>
+                                <select id="perfilTipoHabitacion" name="tipoHabitacion">
+                                    <option value="">Selecciona un tipo</option>
+                                    <option value="King">King</option>
+                                    <option value="Doble">Doble</option>
+                                    <option value="Suite">Suite</option>
+                                    <option value="Deluxe">Deluxe</option>
+                                    <option value="Matrimonial">Matrimonial</option>
+                                    <option value="Estandar">Estándar</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="perfilPreferenciaPiso">Preferencias de Piso:</label>
+                                <input type="text" id="perfilPreferenciaPiso" name="preferenciaPiso" placeholder="Ej. Piso alto, Piso bajo">
+                            </div>
+                            <div class="form-group">
+                                <label for="perfilNecesidadesEspeciales">Necesidades Especiales/Servicio:</label>
+                                <textarea id="perfilNecesidadesEspeciales" name="necesidadesEspeciales" placeholder="Ej. Alergias, cuna, accesibilidad"></textarea>
+                            </div>
+                        </div>
                         <div class="form-actions">
                             <button type="submit" class="btn-primary">ACTUALIZAR PERFIL</button>
                             <button type="button" id="deleteAccountBtn" class="btn-secondary">ELIMINAR CUENTA</button>
