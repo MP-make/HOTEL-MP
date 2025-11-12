@@ -286,7 +286,8 @@ Header y Navegación
     border: none;
     color: white;
     cursor: pointer;
-    font-size: 1.4rem;
+    font-size: 1.125rem; /* CAMBIADO: text-lg de Tailwind = 1.125rem */
+    font-weight: 600; /* CAMBIADO: font-semibold = 600 */
     padding: 10px;
     text-decoration: none;
     display: inline-flex;
