@@ -99,10 +99,39 @@ document.addEventListener('DOMContentLoaded', () => {
             const carouselIndicators = document.getElementById('carouselIndicators');
             if (!carouselTrack || !carouselIndicators) return;
 
+            // Textos para cada slide del carrusel
+            const carouselTexts = [
+                {
+                    title: 'Bienvenidos a JW Marriott',
+                    subtitle: 'Tu hotel ideal en el corazón de Lima',
+                    cta: 'Descubre Más',
+                    link: '#habitaciones'
+                },
+                {
+                    title: 'Experiencia de Lujo',
+                    subtitle: 'Habitaciones diseñadas para tu confort',
+                    cta: 'Ver Habitaciones',
+                    link: '#habitaciones'
+                },
+                {
+                    title: 'Instalaciones Premium',
+                    subtitle: 'Servicios de clase mundial te esperan',
+                    cta: 'Explorar Servicios',
+                    link: '#servicios'
+                }
+            ];
+
             carouselTrack.innerHTML = carouselImages.map((image, index) => `
                 <div class="carousel-slide">
-                    <img src="${image.url}" alt="${image.descripcion || 'Imagen de Casa del Inka'}" 
+                    <img src="${image.url}" alt="${image.descripcion || 'Imagen del hotel'}" 
                          loading="lazy" onerror="this.onerror=null; this.src='/img/carousel/1759217839989-3.jpg'">
+                    <div class="carousel-content">
+                        <h1 class="carousel-title">${carouselTexts[index % carouselTexts.length].title}</h1>
+                        <p class="carousel-subtitle">${carouselTexts[index % carouselTexts.length].subtitle}</p>
+                        <a href="${carouselTexts[index % carouselTexts.length].link}" class="carousel-cta">
+                            ${carouselTexts[index % carouselTexts.length].cta}
+                        </a>
+                    </div>
                 </div>
             `).join('');
 
@@ -110,12 +139,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="carousel-dot ${index === 0 ? 'active' : ''}" data-slide="${index}"></div>
             `).join('');
 
-            // Add event listeners
+            // Add event listeners to dots
             document.querySelectorAll('.carousel-dot').forEach(dot => {
                 dot.addEventListener('click', (e) => {
                     const slide = parseInt(e.target.getAttribute('data-slide'));
                     irASlide(slide);
                 });
+            });
+
+            // Add event listeners to arrow buttons
+            const prevBtn = document.getElementById('prevSlide');
+            const nextBtn = document.getElementById('nextSlide');
+            
+            if (prevBtn) {
+                prevBtn.addEventListener('click', () => cambiarSlide(-1));
+            }
+            
+            if (nextBtn) {
+                nextBtn.addEventListener('click', () => cambiarSlide(1));
+            }
+
+            // Add keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    cambiarSlide(-1);
+                } else if (e.key === 'ArrowRight') {
+                    cambiarSlide(1);
+                }
             });
 
             // Add touch support for swiping
