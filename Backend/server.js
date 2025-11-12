@@ -97,7 +97,9 @@ host: process.env.DB_HOST,
 database: process.env.DB_DATABASE,
 password: process.env.DB_PASSWORD,
 port: process.env.DB_PORT,
-schema: 'public'
+schema: 'public',
+ssl: { rejectUnauthorized: false },
+family: 4
 });
 
 // Helper: small sleep utility
