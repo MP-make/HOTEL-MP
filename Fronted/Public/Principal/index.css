@@ -295,6 +295,14 @@ Header y Navegación
     gap: 8px;
 }
 
+.login-icon {
+    width: 40px;
+    height: 40px;
+    filter: invert(1);
+
+
+}
+
 #profileBtn span, #logoutBtn span {
     display: inline;
 }

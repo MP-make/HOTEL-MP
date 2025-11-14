@@ -28,11 +28,12 @@ body {
   width: 280px;
   background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
   color: var(--white);
-  padding: 28px 16px;
+  padding: 16px 16px;
   display: flex;
   flex-direction: column;
   box-shadow: 4px 0 16px var(--shadow-medium);
-  border-radius: 0 16px 16px 0;
+  border-radius: 0 0px 0px 0;
+  gap: 20px;
 }
 
 .sidebar-admin h2 {
@@ -89,9 +90,9 @@ body {
 .header-admin {
   background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
   color: var(--white);
-  padding: 28px;
+  padding: 34px;
   box-shadow: 0 6px 16px var(--shadow-medium);
-  border-radius: 0 0 16px 16px;
+  border-radius: 0 0 0px 0px;
 }
 
 .header-admin h1 {
