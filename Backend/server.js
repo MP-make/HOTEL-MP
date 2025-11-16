@@ -1987,8 +1987,15 @@ app.get("/api/admin/reservas/con-pagos", authenticateToken, requireEncargado, as
 app.post("/api/chat", authenticateToken, async (req, res) => {
   const { pregunta } = req.body;
 
+  // Paso A: Validar pregunta
   if (!pregunta || typeof pregunta !== 'string' || pregunta.trim().length === 0) {
     return res.status(400).json({ error: 'Pregunta requerida' });
+  }
+
+  // Respuesta rápida para saludos
+  const preguntaLower = pregunta.trim().toLowerCase();
+  if (['hola', 'Hola', 'Holi', 'holi' , 'Hello', 'hello', 'Hi' , 'Buenas tardes','Buenas noches', 'buenas noches', 'buenos días', 'buenas tardes' , 'hi', 'buenos días'].includes(preguntaLower)) {
+    return res.json({ respuesta: "¡Hola! Bienvenido a HotelBot. ¿En qué puedo ayudarte hoy?" });
   }
 
   try {
@@ -2010,7 +2017,7 @@ app.post("/api/chat", authenticateToken, async (req, res) => {
     }
 
     // Paso C: Armar el Súper-Prompt
-    const superPrompt = `Eres un asistente virtual para el Hotel JW Marriott Lima. Responde de manera amable, profesional y útil.
+    const superPrompt = `Eres 'HotelBot', el asistente virtual amigable y profesional del Hotel JW Marriott.
 
 Información del hotel:
 - Ubicación: Av. Malecón de la Reserva 615, Miraflores, Lima, Perú
@@ -2023,7 +2030,7 @@ ${contexto || 'No hay información específica disponible.'}
 
 Pregunta del usuario: "${pregunta.trim()}"
 
-Mantén las respuestas concisas pero informativas. Si no sabes algo específico, sugiere contactar al hotel.`;
+Mantén TODAS tus respuestas breves y concisas. Nunca uses más de 3 frases, a menos que el usuario te pida explícitamente más detalles.`;
 
     // Paso D: Enviar a Ollama
     const ollamaResponse = await axios.post('http://localhost:11434/api/chat', {

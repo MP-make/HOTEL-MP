@@ -678,6 +678,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         window.actualizarVisibilidadChatbot();
                     }
                     
+                    // Mostrar popup de bienvenida después del login
+                    const popup = document.getElementById('chatWelcomePopup');
+                    if (popup) {
+                        popup.style.opacity = '1';
+                        setTimeout(() => {
+                            popup.style.opacity = '0';
+                        }, 5000);
+                    }
+                    
                     if (usuarioActual && usuarioActual.rol === 'cliente') {
                         cargarReservasCliente();
                     }
@@ -1289,6 +1298,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Exponer función para actualizar visibilidad
             window.actualizarVisibilidadChatbot = actualizarVisibilidadChatbot;
+
+            // Mostrar popup de bienvenida si hay usuario logueado
+            if (usuarioActual) {
+                const popup = document.getElementById('chatWelcomePopup');
+                popup.style.opacity = '1';
+                setTimeout(() => {
+                    popup.style.opacity = '0';
+                }, 5000);
+            }
         }
 
         // Inicializar chatbot

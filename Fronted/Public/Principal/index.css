@@ -1511,23 +1511,13 @@ AI Chat Assistant
 }
 
 .chat-bubble {
-    width: 60px;
-    height: 60px;
-    background: linear-gradient(135deg, #333333, #666666);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 70px;
+    height: 70px;
     cursor: pointer;
-    box-shadow: 0 4px 20px rgba(51, 51, 51, 0.4);
     transition: all 0.3s ease;
-    color: white;
-    font-size: 24px;
-}
-
-.chat-bubble:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 25px rgba(51, 51, 51, 0.5);
+    object-fit: cover;
+    border-radius: 0;
+    background: transparent;
 }
 
 .chat-window {
@@ -1565,10 +1555,10 @@ AI Chat Assistant
     align-items: center;
     font-weight: 600;
 }
-.chatwindow.h4 {
+
+.chat-header h4 {
     color: white;
 }
-
 
 .close-chat {
     background: none;
@@ -1689,4 +1679,36 @@ AI Chat Assistant
         height: 400px;
         bottom: 70px;
     }
+}
+
+/* ==============================
+Chat Welcome Popup
+============================== */
+.chat-welcome-popup {
+    position: absolute;
+    bottom: 80px;
+    right: 0;
+    background: white;
+    color: #333;
+    padding: 10px 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    white-space: nowrap;
+    z-index: 1001;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+}
+
+.chat-welcome-popup::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    right: 20px;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid white;
 }
