@@ -7,6 +7,7 @@ const multer = require("multer");
 const path = require('path');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 require("dotenv").config({ path: path.join(__dirname, '.env') });
 
 console.log('Server DB_DATABASE:', process.env.DB_DATABASE);
@@ -127,19 +128,20 @@ async function queryWithRetry(queryText, params = [], retries = 4, delayMs = 500
   }
 }
 
-// Reemplazar la verificación inicial de la BD por una versión con reintentos
-queryWithRetry('SELECT NOW()', [], 6, 500)
+// Verificar conexión a BD de forma no bloqueante
+queryWithRetry('SELECT NOW()', [], 3, 500)
   .then(() => {
     console.log('Conexión a la base de datos verificada correctamente.');
-    // Iniciar el servidor SOLO si la BD está lista
-    app.listen(PORT, () => {
-      console.log(`Servidor corriendo en http://localhost:${PORT}`);
-    });
   })
   .catch(err => {
-    console.error('Error CRÍTICO al conectar a la base de datos (después de reintentos):', err.message);
-    process.exit(1); // Salir si no se puede conectar a la BD
+    console.warn('Advertencia: No se pudo conectar a la base de datos:', err.message);
+    console.warn('El servidor se iniciará de todos modos, pero las funcionalidades que requieren BD no funcionarán.');
   });
+
+// Iniciar el servidor inmediatamente
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+});
 
 // Define la ruta absoluta para guardar las fotos
 // La carpeta de destino será 'Fronted/Public/img/habitaciones' para coincidir con las rutas guardadas en DB
@@ -1975,5 +1977,76 @@ app.get("/api/admin/reservas/con-pagos", authenticateToken, requireEncargado, as
   } catch (err) {
     console.error("Error obteniendo reservas con pagos:", err);
     res.status(500).json({ error: "Error al obtener reservas" });
+  }
+});
+
+/**
+ * @route POST /api/chat
+ * @desc Chat con IA local (Ollama) para usuarios autenticados
+ */
+app.post("/api/chat", authenticateToken, async (req, res) => {
+  const { pregunta } = req.body;
+
+  if (!pregunta || typeof pregunta !== 'string' || pregunta.trim().length === 0) {
+    return res.status(400).json({ error: 'Pregunta requerida' });
+  }
+
+  try {
+    // Paso B: Buscar contexto relevante en faq_hotel
+    const palabrasClave = pregunta.trim().toLowerCase().split(/\s+/);
+    let contexto = '';
+    for (const palabra of palabrasClave) {
+      if (palabra.length > 2) { // Ignorar palabras muy cortas
+        const result = await queryWithRetry(
+          "SELECT respuesta FROM faq_hotel WHERE LOWER(pregunta) ILIKE $1 OR LOWER(respuesta) ILIKE $1 LIMIT 3",
+          [`%${palabra}%`]
+        );
+        for (const row of result.rows) {
+          if (!contexto.includes(row.respuesta)) {
+            contexto += row.respuesta + '\n';
+          }
+        }
+      }
+    }
+
+    // Paso C: Armar el Súper-Prompt
+    const superPrompt = `Eres un asistente virtual para el Hotel JW Marriott Lima. Responde de manera amable, profesional y útil.
+
+Información del hotel:
+- Ubicación: Av. Malecón de la Reserva 615, Miraflores, Lima, Perú
+- Servicios: Wi-Fi de alta velocidad, spa, gimnasio, restaurantes, salones para eventos
+- Categorías de habitaciones: Estándar, Matrimonial, Deluxe, Junior Suite
+- Horario de check-in: 15:00, check-out: 12:00
+
+Contexto relevante de la base de conocimientos:
+${contexto || 'No hay información específica disponible.'}
+
+Pregunta del usuario: "${pregunta.trim()}"
+
+Mantén las respuestas concisas pero informativas. Si no sabes algo específico, sugiere contactar al hotel.`;
+
+    // Paso D: Enviar a Ollama
+    const ollamaResponse = await axios.post('http://localhost:11434/api/chat', {
+      model: 'llama3',
+      messages: [{ role: 'user', content: superPrompt }],
+      stream: false
+    });
+
+    // Paso E: Procesar respuesta
+    const respuesta = ollamaResponse.data?.message?.content?.trim() || 'Lo siento, no pude generar una respuesta.';
+
+    res.json({ respuesta });
+  } catch (error) {
+    console.error('Error en chat con Ollama:', error);
+
+    // Respuestas de fallback en caso de error
+    const fallbacks = [
+      "Lo siento, estoy teniendo dificultades técnicas. Por favor, contacta directamente con el hotel al teléfono (999-999-999) o por email a Teycketan@gmail.com.",
+      "Disculpa, mi sistema de IA no está disponible en este momento. Te recomiendo visitar nuestra sección de contacto para más información.",
+      "Hay un problema con mi conexión. Para asistencia inmediata, puedes llamar al (999-999-999) o escribir a Teycketan@gmail.com."
+    ];
+
+    const respuesta = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+    res.json({ respuesta });
   }
 });

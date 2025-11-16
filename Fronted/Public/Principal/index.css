@@ -45,7 +45,7 @@ main {
     flex: 1;
     padding: 0;
     margin: 0;
-    margin-top: 190px; /* Altura del header fijo para que el carrusel quede justo debajo */
+    margin-top: 150px; /* Altura del header fijo para que el carrusel quede justo debajo */
     width: 100%;
 }   
 
@@ -334,8 +334,8 @@ Header y Navegación
 .header .main-nav {
     background: #333333;
     width: 100%;
-    margin-top: 20px;
-    border-radius: 0 0 10px 10px;
+    margin-top: 22px;
+    border-radius: 0;
 }
 
 .header .nav-links {
@@ -1377,6 +1377,7 @@ Responsivo
 
     .header .main-nav {
         margin-top: 15px;
+
     }
 
     .header .nav-links {
@@ -1496,4 +1497,196 @@ Los estilos ahora están en pago-modal.css
 
 .welcome-card .titulo-seccion {
     margin-bottom: 30px;
+}
+
+/* ==============================
+AI Chat Assistant
+============================== */
+.ai-chat-assistant {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    font-family: 'Inter', sans-serif;
+}
+
+.chat-bubble {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #333333, #666666);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(51, 51, 51, 0.4);
+    transition: all 0.3s ease;
+    color: white;
+    font-size: 24px;
+}
+
+.chat-bubble:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 25px rgba(51, 51, 51, 0.5);
+}
+
+.chat-window {
+    position: absolute;
+    bottom: 20px;
+    right: 0;
+    width: 300px;
+    height: 400px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.chat-header {
+    background: linear-gradient(135deg, #333333, #666666);
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+}
+.chatwindow.h4 {
+    color: white;
+}
+
+
+.close-chat {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.3s ease;
+}
+
+.close-chat:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.chat-content {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background: #f8f9fa;
+}
+
+.chat-message {
+    margin-bottom: 12px;
+    padding: 10px 15px;
+    border-radius: 18px;
+    max-width: 80%;
+    word-wrap: break-word;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.chat-message.user {
+    background: linear-gradient(135deg, #333333, #666666);
+    color: white;
+    margin-left: auto;
+    text-align: right;
+}
+
+.chat-message.bot {
+    background: white;
+    color: #333;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chat-message.typing {
+    font-style: italic;
+    color: #666;
+}
+
+.chat-input-container {
+    padding: 15px;
+    background: white;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    gap: 10px;
+}
+
+.chat-input {
+    flex: 1;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 25px;
+    outline: none;
+    font-size: 14px;
+}
+
+.chat-input:focus {
+    border-color: #333333;
+    box-shadow: 0 0 0 2px rgba(51, 51, 51, 0.2);
+}
+
+.send-chat {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #333333, #666666);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.send-chat:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(51, 51, 51, 0.4);
+}
+
+/* Hidden class */
+.hidden {
+    display: none !important;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .ai-chat-assistant {
+        bottom: 15px;
+        right: 15px;
+    }
+
+    .chat-bubble {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+
+    .chat-window {
+        width: calc(100vw - 30px);
+        height: 400px;
+        bottom: 70px;
+    }
 }

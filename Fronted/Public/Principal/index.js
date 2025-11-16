@@ -628,6 +628,12 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.removeItem('user');
             usuarioActual = null;
             mostrarBotonesLogin();
+            
+            // Actualizar visibilidad del chatbot
+            if (window.actualizarVisibilidadChatbot) {
+                window.actualizarVisibilidadChatbot();
+            }
+            
             // Redireccionar a la página principal si no estamos en ella
             if (window.location.pathname !== '/index.html' && window.location.pathname !== '/') {
                 window.location.href = '/index.html';
@@ -666,6 +672,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // Mostrar usuario logueado
                     mostrarUsuarioLogueado();
+                    
+                    // Actualizar visibilidad del chatbot
+                    if (window.actualizarVisibilidadChatbot) {
+                        window.actualizarVisibilidadChatbot();
+                    }
                     
                     if (usuarioActual && usuarioActual.rol === 'cliente') {
                         cargarReservasCliente();
@@ -1186,4 +1197,100 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }
         }
+
+        // AI Chat Assistant Logic
+        function inicializarChatbot() {
+            const chatBubble = document.getElementById('chatBubble');
+            const chatWindow = document.getElementById('chatWindow');
+            const chatMessages = document.getElementById('chatContent');
+            const chatInput = document.getElementById('chatInput');
+            const sendChat = document.getElementById('sendChat');
+            const minimizeChat = document.getElementById('closeChat');
+
+            // Mostrar/ocultar burbuja basado en sesión
+            function actualizarVisibilidadChatbot() {
+                if (usuarioActual) {
+                    chatBubble.classList.remove('hidden');
+                } else {
+                    chatBubble.classList.add('hidden');
+                    chatWindow.classList.add('hidden');
+                }
+            }
+
+            // Llamar al verificar sesión
+            actualizarVisibilidadChatbot();
+
+            // Event listeners
+            chatBubble.addEventListener('click', () => {
+                chatWindow.classList.remove('hidden');
+                chatBubble.classList.add('hidden');
+            });
+
+            minimizeChat.addEventListener('click', () => {
+                chatWindow.classList.add('hidden');
+                chatBubble.classList.remove('hidden');
+            });
+
+            sendChat.addEventListener('click', enviarMensaje);
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    enviarMensaje();
+                }
+            });
+
+            async function enviarMensaje() {
+                const pregunta = chatInput.value.trim();
+                if (!pregunta) return;
+
+                // Agregar mensaje del usuario
+                agregarMensaje('user', pregunta);
+                chatInput.value = '';
+
+                // Mostrar indicador de escritura
+                const typingIndicator = agregarMensaje('bot', 'Escribiendo...');
+                typingIndicator.classList.add('typing');
+
+                try {
+                    const token = localStorage.getItem('token');
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify({ pregunta })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Remover indicador de escritura
+                        chatMessages.removeChild(typingIndicator);
+                        // Agregar respuesta del bot
+                        agregarMensaje('bot', data.respuesta);
+                    } else {
+                        chatMessages.removeChild(typingIndicator);
+                        agregarMensaje('bot', 'Lo siento, hubo un error al procesar tu pregunta. Inténtalo de nuevo.');
+                    }
+                } catch (error) {
+                    console.error('Error en chat:', error);
+                    chatMessages.removeChild(typingIndicator);
+                    agregarMensaje('bot', 'Error de conexión. Verifica tu internet e intenta de nuevo.');
+                }
+            }
+
+            function agregarMensaje(tipo, texto) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `chat-message ${tipo}`;
+                messageDiv.textContent = texto;
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                return messageDiv;
+            }
+
+            // Exponer función para actualizar visibilidad
+            window.actualizarVisibilidadChatbot = actualizarVisibilidadChatbot;
+        }
+
+        // Inicializar chatbot
+        inicializarChatbot();
 });

@@ -424,6 +424,26 @@
         </div>
     </div>
 
+    <!-- AI Chat Assistant -->
+    <div id="aiChatAssistant" class="ai-chat-assistant">
+        <div id="chatBubble" class="chat-bubble">
+            <i class="fas fa-comments"></i>
+        </div>
+        <div id="chatWindow" class="chat-window hidden">
+            <div class="chat-header">
+                <h4>Asistente Virtual</h4>
+                <button id="closeChat" class="close-chat"><i class="fas fa-minus"></i></button>
+            </div>
+            <div id="chatContent" class="chat-content">
+                <!-- Mensajes del chat se renderizarán aquí -->
+            </div>
+            <div class="chat-input-container">
+                <input type="text" id="chatInput" class="chat-input" placeholder="Escribe un mensaje...">
+                <button id="sendChat" class="send-chat"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
     <script src="index.js"></script>
 </body>
 
