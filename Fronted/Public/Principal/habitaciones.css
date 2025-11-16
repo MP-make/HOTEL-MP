@@ -17,7 +17,7 @@ Estilos Globales
 }
 
 html {
-    scroll-padding-top: 220px; /* Ajusta según la altura del nav */
+    scroll-padding-top: 0; /* Eliminado el padding de scroll ya que el header no es fijo */
     scroll-behavior: smooth;
 }
 
@@ -42,9 +42,10 @@ h1, h2, h3, h4 {
 
 main {
     flex: 1;
-    padding: clamp(40px, 5vw, 60px) clamp(20px, 5vw, 40px);
-    max-width: 90vw;
-    margin: 0 auto;
+    padding: 0;
+    margin: 0;
+    margin-top: 0; /* Altura del header fijo para que el carrusel quede justo debajo */
+    width: 100%;
 }   
 
 section {
@@ -171,15 +172,13 @@ Header y Navegación
 .header {
     background: linear-gradient(90deg, #333333, #666666);
     color: white;
-    padding: 20px 30px;
+    padding: 20px 30px 60px 40px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
+    position: relative;
 }
 
 .header .logo {
@@ -229,7 +228,12 @@ Header y Navegación
     width: 100%;
     margin-top: 20px;
     border-radius: 0 0 10px 10px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
 }
+
 
 .header .nav-links {
     list-style: none;
@@ -784,26 +788,44 @@ Modales
 /* ==============================
 Filtros de Habitaciones
 ============================== */
+
+.filtros{
+    position: relative;
+    z-index: 15;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    max-width: 900px;
+    width: 90%;
+    margin: -50px auto 0 auto;
+}
 .filtros-container {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 20px;
-    padding: 30px;
-    background: #f9f9f9;
-    border-radius: 10px;
-    margin-bottom: 40px;
+    display: flex;
+    gap: 15px;
     align-items: end;
+    flex-wrap: wrap;
 }
 
 .filtro-item {
     display: flex;
     flex-direction: column;
+    flex: 1;
+    min-width: 150px;
 }
 
 .filtro-item label {
-    font-weight: bold;
+    font-size: 0.9rem;
+    font-weight: 600;
     margin-bottom: 5px;
-    color: #333;
+    color: rgba(0, 0, 0, 0.2);
+}
+
+.filtro-item input, .filtro-item select {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
 }
 
 .filtro-item .form-input {
@@ -873,9 +895,12 @@ Responsivo
         text-align: center;
     }
 
-    .header .auth-nav {
-        margin-top: 10px;
-    }
+    .header .auth-nav,
+.header .top-nav {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
 
     .header .main-nav {
         margin-top: 15px;
