@@ -680,7 +680,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // Mostrar popup de bienvenida después del login
                     const popup = document.getElementById('chatWelcomePopup');
-                    if (popup) {
+                    if (popup && usuarioActual && usuarioActual.rol === 'cliente') {
                         popup.style.opacity = '1';
                         setTimeout(() => {
                             popup.style.opacity = '0';
@@ -1299,8 +1299,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Exponer función para actualizar visibilidad
             window.actualizarVisibilidadChatbot = actualizarVisibilidadChatbot;
 
-            // Mostrar popup de bienvenida si hay usuario logueado
-            if (usuarioActual) {
+            // Mostrar popup de bienvenida si hay usuario logueado y es cliente
+            if (usuarioActual && usuarioActual.rol === 'cliente') {
                 const popup = document.getElementById('chatWelcomePopup');
                 popup.style.opacity = '1';
                 setTimeout(() => {
