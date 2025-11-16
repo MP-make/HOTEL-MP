@@ -17,7 +17,7 @@ Estilos Globales
 }
 
 html {
-    scroll-padding-top: 220px; /* Ajusta según la altura del nav */
+    scroll-padding-top: 0; /* Eliminado el padding de scroll ya que el header no es fijo */
     scroll-behavior: smooth;
 }
 
@@ -45,7 +45,7 @@ main {
     flex: 1;
     padding: 0;
     margin: 0;
-    margin-top: 150px; /* Altura del header fijo para que el carrusel quede justo debajo */
+    margin-top: 0; /* Altura del header fijo para que el carrusel quede justo debajo */
     width: 100%;
 }   
 
@@ -226,17 +226,13 @@ Header y Navegación
 .header {
     background: linear-gradient(90deg, #333333, #666666);
     color: white;
-    padding: 20px 30px;
+    padding: 20px 30px 60px 40px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
+    position: relative;
 }
 
 .header .logo {
@@ -336,6 +332,10 @@ Header y Navegación
     width: 100%;
     margin-top: 22px;
     border-radius: 0;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
 }
 
 .header .nav-links {
@@ -366,7 +366,7 @@ main {
     flex: 1;
     padding: 0;
     margin: 0;
-    margin-top: 190px; /* Altura del header fijo para que el carrusel quede justo debajo */
+    margin-top: 0; /* Altura del header fijo para que el carrusel quede justo debajo */
     width: 100%;
 }
 
@@ -823,7 +823,7 @@ Habitaciones
 }
 
 .no-habitaciones p {
-    color: var(--secondary-color);
+    color: var (--secondary-color);
     font-size: 1rem;
     margin-bottom: 25px;
     line-height: 1.8;
@@ -947,7 +947,7 @@ Reservas
 
 .reserva-card:active {
     transform: translateY(-7px);
-    box-shadow: 0 16px 35px var(--shadow-medium);
+    box-shadow: 0 16px 35px var (--shadow-medium);
 }
 
 .reserva-imagen {
