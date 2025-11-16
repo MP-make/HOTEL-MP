@@ -79,24 +79,22 @@ Modales - Diseño Moderno y Elegante
     transform: rotate(90deg) scale(1.1);
 }
 
-/* Inputs modernos con efecto neumorphism */
+/* Inputs modernos con diseño plano y minimalista */
 .form-input {
     width: 100%;
     padding: 1.3rem 1.6rem;
     margin-bottom: 1.3rem;
-    border: none;
-    border-radius: 16px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
     font-size: 1.05rem;
-    background: linear-gradient(145deg, #f8f9fa, #e9ecef);
-    box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.1), inset -6px -6px 12px rgba(255, 255, 255, 0.8);
+    background: white;
     transition: var(--transition);
     outline: none;
 }
 
 .form-input:focus {
-    background: linear-gradient(145deg, #ffffff, #f8f9fa);
-    box-shadow: inset 10px 10px 20px rgba(0, 0, 0, 0.15), inset -10px -10px 20px rgba(255, 255, 255, 0.9), 0 0 0 3px rgba(139, 90, 60, 0.3);
-    transform: translateY(-2px);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(139, 90, 60, 0.1);
 }
 
 /* Botones elegantes con gradientes premium */
@@ -150,7 +148,7 @@ Modales - Diseño Moderno y Elegante
 }
 
 .form-footer a {
-    color: var(--accent-color);
+    color: #f39c12;
     text-decoration: none;
     font-weight: 600;
     transition: var(--transition);
@@ -164,7 +162,7 @@ Modales - Diseño Moderno y Elegante
     left: 0;
     width: 0;
     height: 2px;
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    background: #f39c12;
     transition: width 0.3s ease;
 }
 
