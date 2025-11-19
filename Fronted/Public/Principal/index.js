@@ -1047,6 +1047,9 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('detalleFechaCheckout').textContent = checkout;
             document.getElementById('detalleFechaCreacion').textContent = fechaCreacion;
             
+            // Guardar ID de la reserva para el botón de completar pago
+            document.getElementById('reclamoReservaId').value = reserva.id;
+            
             // NUEVO: Si ya tenemos los datos de pago (reserva recién creada), usarlos directamente
             if (reserva.totalPagado !== undefined && reserva.totalReserva !== undefined) {
                 const pagado = reserva.totalPagado || 0;
@@ -1063,6 +1066,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const progressFill = document.getElementById('pagoProgressFill');
                 if (progressFill) {
                     progressFill.style.width = `${porcentajePagado}%`;
+                }
+                
+                // Mostrar botón de completar pago si hay saldo pendiente
+                const btnCompletarPago = document.getElementById('btnCompletarPago');
+                if (falta > 0) {
+                    btnCompletarPago.style.display = 'block';
+                    btnCompletarPago.onclick = () => completarPago(reserva.id, falta, total, reserva);
+                } else {
+                    btnCompletarPago.style.display = 'none';
                 }
             } else {
                 // Obtener datos de pagos desde la API
@@ -1082,6 +1094,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (progressFill) {
                         progressFill.style.width = `${porcentajePagado}%`;
                     }
+                    
+                    // Mostrar botón de completar pago si hay saldo pendiente
+                    const btnCompletarPago = document.getElementById('btnCompletarPago');
+                    if (falta > 0) {
+                        btnCompletarPago.style.display = 'block';
+                        btnCompletarPago.onclick = () => completarPago(reserva.id, falta, total, reserva);
+                    } else {
+                        btnCompletarPago.style.display = 'none';
+                    }
                 }).catch(error => {
                     console.error('Error obteniendo datos de pagos:', error);
                     document.getElementById('detallePagado').textContent = 'N/A';
@@ -1093,6 +1114,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (progressFill) {
                         progressFill.style.width = '0%';
                     }
+                    
+                    // Ocultar botón de completar pago
+                    document.getElementById('btnCompletarPago').style.display = 'none';
                 });
             }
             
@@ -1108,6 +1132,284 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Abrir el modal
             openModal('detallesReservaModal');
+        }
+        
+        // Función para completar el pago pendiente
+        async function completarPago(idReserva, montoPendiente, montoTotal, reserva) {
+            const confirmar = confirm(`¿Desea completar el pago de S/ ${montoPendiente.toFixed(2)}?`);
+            if (!confirmar) return;
+            
+            const token = localStorage.getItem('token');
+            const btnCompletarPago = document.getElementById('btnCompletarPago');
+            btnCompletarPago.disabled = true;
+            btnCompletarPago.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+            
+            try {
+                // Procesar el pago del saldo pendiente
+                const response = await fetch('/api/pagos/procesar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        id_reserva: idReserva,
+                        monto: montoPendiente,
+                        metodo_pago: 'tarjeta', // Por defecto, puede modificarse
+                        tipo_pago: 'completo',
+                        comprobante: null
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Error al procesar pago');
+                }
+                
+                const pagoData = await response.json();
+                
+                // Actualizar la vista
+                document.getElementById('detallePagado').textContent = `S/ ${montoTotal.toFixed(2)}`;
+                document.getElementById('detalleFaltaPagar').textContent = `S/ 0.00`;
+                
+                // Actualizar barra de progreso al 100%
+                const progressFill = document.getElementById('pagoProgressFill');
+                if (progressFill) {
+                    progressFill.style.width = '100%';
+                }
+                
+                // Ocultar botón de completar pago
+                btnCompletarPago.style.display = 'none';
+                
+                // Generar boleta electrónica
+                await generarBoletaElectronica(idReserva, montoTotal, reserva);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al completar el pago: ' + error.message);
+                btnCompletarPago.disabled = false;
+                btnCompletarPago.innerHTML = '<i class="fas fa-credit-card"></i> Completar Pago';
+            }
+        }
+        
+        // Función para generar boleta electrónica en PDF
+        async function generarBoletaElectronica(idReserva, montoTotal, reserva) {
+            try {
+                const token = localStorage.getItem('token');
+                
+                // Obtener datos completos de la reserva si no los tenemos
+                let datosReserva = reserva;
+                if (!datosReserva.checkin) {
+                    const response = await fetch(`/api/cliente/reservas/${idReserva}`, {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    datosReserva = await response.json();
+                }
+                
+                // Crear documento HTML para la boleta
+                const boletaHTML = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>Boleta Electrónica - JW Marriott Hotel Lima</title>
+                        <style>
+                            body {
+                                font-family: Arial, sans-serif;
+                                margin: 0;
+                                padding: 20px;
+                                background: white;
+                            }
+                            .boleta-container {
+                                max-width: 800px;
+                                margin: 0 auto;
+                                border: 2px solid #333;
+                                padding: 30px;
+                            }
+                            .header {
+                                text-align: center;
+                                border-bottom: 2px solid #333;
+                                padding-bottom: 20px;
+                                margin-bottom: 20px;
+                            }
+                            .logo {
+                                width: 150px;
+                                margin-bottom: 10px;
+                            }
+                            .empresa-info {
+                                font-size: 12px;
+                                color: #666;
+                                margin-top: 10px;
+                            }
+                            .boleta-title {
+                                font-size: 24px;
+                                font-weight: bold;
+                                margin: 10px 0;
+                                color: #333;
+                            }
+                            .boleta-numero {
+                                font-size: 14px;
+                                color: #666;
+                            }
+                            .section {
+                                margin: 20px 0;
+                                padding: 15px;
+                                background: #f8f9fa;
+                                border-radius: 8px;
+                            }
+                            .section-title {
+                                font-weight: bold;
+                                font-size: 16px;
+                                margin-bottom: 10px;
+                                color: #333;
+                            }
+                            .info-row {
+                                display: flex;
+                                justify-content: space-between;
+                                margin: 8px 0;
+                                font-size: 14px;
+                            }
+                            .info-label {
+                                font-weight: bold;
+                                color: #666;
+                            }
+                            .info-value {
+                                color: #333;
+                            }
+                            .total-section {
+                                background: #28a745;
+                                color: white;
+                                padding: 20px;
+                                border-radius: 8px;
+                                margin-top: 20px;
+                            }
+                            .total-label {
+                                font-size: 18px;
+                                font-weight: bold;
+                            }
+                            .total-amount {
+                                font-size: 32px;
+                                font-weight: bold;
+                                text-align: right;
+                            }
+                            .footer {
+                                text-align: center;
+                                margin-top: 30px;
+                                padding-top: 20px;
+                                border-top: 2px solid #333;
+                                font-size: 12px;
+                                color: #666;
+                            }
+                            .stamp {
+                                text-align: center;
+                                margin: 20px 0;
+                                padding: 10px;
+                                border: 2px dashed #28a745;
+                                border-radius: 8px;
+                                color: #28a745;
+                                font-weight: bold;
+                            }
+                            @media print {
+                                body { padding: 0; }
+                                .boleta-container { border: none; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="boleta-container">
+                            <!-- Header con logo -->
+                            <div class="header">
+                                <img src="/img/logooo.png" alt="JW Marriott Hotel Lima" class="logo" onerror="this.style.display='none'">
+                                <div class="boleta-title">BOLETA ELECTRÓNICA</div>
+                                <div class="boleta-numero">N° ${String(idReserva).padStart(8, '0')}</div>
+                                <div class="empresa-info">
+                                    <strong>JW Marriott Hotel Lima</strong><br>
+                                    RUC: 20123456789<br>
+                                    Av. Malecón de la Reserva 615, Miraflores, Lima, Perú<br>
+                                    Teléfono: (01) 217-7000 | Email: info@jwmarriottlima.com
+                                </div>
+                            </div>
+                            
+                            <!-- Información del Cliente -->
+                            <div class="section">
+                                <div class="section-title">DATOS DEL CLIENTE</div>
+                                <div class="info-row">
+                                    <span class="info-label">Nombre:</span>
+                                    <span class="info-value">${usuarioActual?.nombre || 'N/A'}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Email:</span>
+                                    <span class="info-value">${usuarioActual?.email || 'N/A'}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Fecha de Emisión:</span>
+                                    <span class="info-value">${new Date().toLocaleString('es-ES', { timeZone: 'America/Lima' })}</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Detalles de la Reserva -->
+                            <div class="section">
+                                <div class="section-title">DETALLES DE LA RESERVA</div>
+                                <div class="info-row">
+                                    <span class="info-label">Habitación:</span>
+                                    <span class="info-value">${reserva.habitacion || 'N/A'}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Categoría:</span>
+                                    <span class="info-value">${reserva.categoria || 'N/A'}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Check-in:</span>
+                                    <span class="info-value">${new Date(datosReserva.checkin || reserva.checkin).toLocaleString('es-ES', { timeZone: 'America/Lima' })}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Check-out:</span>
+                                    <span class="info-value">${new Date(datosReserva.checkout || reserva.checkout).toLocaleString('es-ES', { timeZone: 'America/Lima' })}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Estado:</span>
+                                    <span class="info-value">${reserva.estado || 'Confirmada'}</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Sello de pago completo -->
+                            <div class="stamp">
+                                ✓ PAGO COMPLETO REALIZADO
+                            </div>
+                            
+                            <!-- Total -->
+                            <div class="total-section">
+                                <div class="total-label">MONTO TOTAL PAGADO</div>
+                                <div class="total-amount">S/ ${montoTotal.toFixed(2)}</div>
+                            </div>
+                            
+                            <!-- Footer -->
+                            <div class="footer">
+                                <p>Este documento constituye un comprobante de pago válido.</p>
+                                <p>Gracias por su preferencia. ¡Esperamos que disfrute su estadía!</p>
+                                <p><strong>JW Marriott Hotel Lima</strong> - Excelencia en Hospitalidad</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `;
+                
+                // Abrir en nueva ventana para imprimir
+                const ventanaBoleta = window.open('', '_blank');
+                ventanaBoleta.document.write(boletaHTML);
+                ventanaBoleta.document.close();
+                
+                // Esperar un momento y mostrar diálogo de impresión
+                setTimeout(() => {
+                    ventanaBoleta.print();
+                }, 500);
+                
+                alert('✓ Pago completado exitosamente. Se ha generado su boleta electrónica.');
+                
+            } catch (error) {
+                console.error('Error generando boleta:', error);
+                alert('Pago completado, pero hubo un error al generar la boleta. Por favor, contacte con recepción.');
+            }
         }
 
         // Manejar el envío del formulario de reclamo desde el modal de detalles

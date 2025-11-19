@@ -392,21 +392,26 @@
             <span class="close-modal" data-modal-close="detallesReservaModal">&times;</span>
             <h2>Detalles de la Reserva</h2>
             <div class="reserva-container">
+                <!-- COLUMNA 1: Imagen de la habitación -->
                 <div class="reserva-imagen-detalle">
                     <img id="detalleHabitacionImagen" src="" alt="Habitación" class="reserva-img">
-                </div>
-                <div class="reserva-detalles-info">
-                    <div class="detalle-info-group">
+                    <!-- Información básica debajo de la imagen -->
+                    <div class="detalle-info-basica">
                         <p><strong>Categoría:</strong> <span id="detalleCategoria"></span></p>
                         <p><strong>Estado:</strong> <span id="detalleEstado" class="badge-estado"></span></p>
                     </div>
+                </div>
+                
+                <!-- COLUMNA 2: Estado de Pago y Botón -->
+                <div class="reserva-detalles-info">
+                    <!-- Fechas de la reserva -->
                     <div class="detalle-info-group">
                         <p><strong>Check-in:</strong> <span id="detalleFechaCheckin"></span></p>
                         <p><strong>Check-out:</strong> <span id="detalleFechaCheckout"></span></p>
                         <p><strong>Fecha de creación:</strong> <span id="detalleFechaCreacion"></span></p>
                     </div>
                     
-                    <!-- NUEVO: Barra de progreso de pago -->
+                    <!-- Barra de progreso de pago -->
                     <div class="detalle-info-group pago-progress-section">
                         <h4>💰 Estado de Pago</h4>
                         <div class="pago-progress-container">
@@ -422,13 +427,23 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Botón para completar el pago -->
+                    <div class="detalle-info-group">
+                        <button id="btnCompletarPago" class="btn-completar-pago" style="display: none;">
+                            <i class="fas fa-credit-card"></i> Completar Pago
+                        </button>
+                    </div>
                 </div>
+                
+                <!-- COLUMNA 3: Formulario de Reclamo -->
                 <div class="reserva-reclamo-column">
                     <h4>Enviar Reclamo sobre esta Reserva</h4>
                     <form id="reclamoReservaForm">
                         <label for="reclamoDescripcion">Descripción del reclamo:</label>
                         <textarea id="reclamoDescripcion" class="form-input" rows="4" placeholder="Describe tu reclamo..." required></textarea>
                         <input type="hidden" id="reclamoHabitacionId" value="">
+                        <input type="hidden" id="reclamoReservaId" value="">
                         <p id="reclamoMessage" class="text-red-500 my-2 text-center"></p>
                         <button type="submit" class="btn-submit">Enviar Reclamo</button>
                     </form>

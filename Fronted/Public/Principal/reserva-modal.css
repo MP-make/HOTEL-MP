@@ -487,3 +487,81 @@ Modal de Reserva - Diseño Horizontal Elegante
     background: linear-gradient(135deg, #d4edda, #c3e6cb);
     color: #155724;
 }
+
+/* Estilos para modal de detalles con nueva estructura */
+.detalle-info-basica {
+    margin-top: 20px !important;
+    padding: 20px !important;
+    background: linear-gradient(145deg, #ffffff, #f8f9fa) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.detalle-info-basica p {
+    margin: 10px 0 !important;
+    font-size: 1.1rem !important;
+    color: #495057 !important;
+    text-align: center !important;
+}
+
+.detalle-info-basica strong {
+    color: #000000 !important;
+    font-weight: 700 !important;
+}
+
+/* Botón Completar Pago */
+.btn-completar-pago {
+    width: 100% !important;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 50%, #28a745 100%) !important;
+    background-size: 200% 200% !important;
+    color: white !important;
+    font-weight: 800 !important;
+    padding: 18px 25px !important;
+    border-radius: 15px !important;
+    border: none !important;
+    cursor: pointer !important;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+    box-shadow: 0 10px 30px rgba(40, 167, 69, 0.4) !important;
+    font-size: 1.2rem !important;
+    margin-top: 20px !important;
+    position: relative !important;
+    overflow: hidden !important;
+    display: block !important;
+}
+
+.btn-completar-pago::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left 0.6s;
+}
+
+.btn-completar-pago:hover::before {
+    left: 100%;
+}
+
+.btn-completar-pago:hover:not(:disabled) {
+    background-position: right center;
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 15px 45px rgba(40, 167, 69, 0.6);
+}
+
+.btn-completar-pago:active {
+    transform: translateY(-2px) scale(1.01);
+}
+
+.btn-completar-pago:disabled {
+    background: linear-gradient(135deg, #6c757d, #5a6268);
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-completar-pago i {
+    margin-right: 10px;
+}
