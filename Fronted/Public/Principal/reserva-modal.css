@@ -352,3 +352,138 @@ Modal de Reserva - Diseño Horizontal Elegante
         height: 250px;
     }
 }
+
+/* Estilos para modal de detalles con barra de progreso */
+.pago-progress-section {
+    margin-top: 25px !important;
+    padding: 20px !important;
+    background: linear-gradient(145deg, #f8f9fa, #e9ecef) !important;
+    border-radius: 15px !important;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+.pago-progress-section h4 {
+    color: #000000 !important;
+    font-size: 1.1rem !important;
+    margin: 0 0 15px 0 !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+}
+
+.pago-progress-container {
+    width: 100% !important;
+}
+
+.pago-progress-bar {
+    width: 100% !important;
+    height: 30px !important;
+    background: linear-gradient(135deg, #e9ecef, #dee2e6) !important;
+    border-radius: 15px !important;
+    overflow: hidden !important;
+    position: relative !important;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+    margin-bottom: 15px !important;
+}
+
+.pago-progress-fill {
+    height: 100% !important;
+    background: linear-gradient(90deg, #28a745, #20c997, #28a745) !important;
+    background-size: 200% 100% !important;
+    border-radius: 15px !important;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 0 15px rgba(40, 167, 69, 0.5) !important;
+    position: relative !important;
+    animation: progressShine 2s infinite !important;
+}
+
+@keyframes progressShine {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.pago-progress-fill::after {
+    content: '';
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent) !important;
+    animation: progressSlide 1.5s infinite !important;
+}
+
+@keyframes progressSlide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.pago-progress-labels {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 10px !important;
+    padding: 0 5px !important;
+}
+
+.pago-label-pagado {
+    color: #28a745 !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+}
+
+.pago-label-pagado strong {
+    color: #1e7e34 !important;
+    font-size: 1.1rem !important;
+}
+
+.pago-label-pendiente {
+    color: #dc3545 !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+}
+
+.pago-label-pendiente strong {
+    color: #bd2130 !important;
+    font-size: 1.1rem !important;
+}
+
+.pago-progress-total {
+    text-align: center !important;
+    margin-top: 10px !important;
+    padding-top: 10px !important;
+    border-top: 2px solid rgba(0, 0, 0, 0.1) !important;
+    color: #495057 !important;
+    font-size: 1rem !important;
+}
+
+.pago-progress-total strong {
+    color: #000000 !important;
+    font-size: 1.2rem !important;
+    font-weight: 700 !important;
+}
+
+.detalle-info-group {
+    margin-bottom: 20px;
+}
+
+.detalle-info-group p {
+    margin: 8px 0;
+    font-size: 1rem;
+    color: #495057;
+}
+
+.detalle-info-group strong {
+    color: #000000;
+    font-weight: 600;
+}
+
+.badge-estado {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    color: #155724;
+}

@@ -860,20 +860,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const pagoData = await responsePago.json();
                 
-                // Mostrar mensaje de éxito
-                alert(`¡Reserva confirmada exitosamente!\n\nMonto pagado: S/ ${pagoData.montoPagado.toFixed(2)}\nMonto pendiente: S/ ${pagoData.montoPendiente.toFixed(2)}\nEstado: ${pagoData.estadoReserva}\n\nPuedes ver tus reservas en "Mis Reservas"`);
-                
+                // CAMBIADO: Cerrar modal de pago primero
                 closeModal('pagoModal');
-                await cargarHabitaciones(); // Recargar habitaciones
+                
+                // NUEVO: Obtener datos completos de la reserva para mostrar en el modal
+                const habitacion = habitacionesData.find(h => h.id_habitacion === window.datosReserva.id_habitacion);
+                const fotoSrc = habitacion?.fotos?.[0] 
+                    ? (habitacion.fotos[0].startsWith('/') ? habitacion.fotos[0] : '/img/habitaciones/' + habitacion.fotos[0])
+                    : 'https://source.unsplash.com/featured/?luxury-hotel-room';
+                
+                const reservaDetalles = {
+                    id: idReserva,
+                    habitacion: habitacion?.numero_habitacion || 'N/A',
+                    categoria: habitacion?.categoria || 'N/A',
+                    checkin: window.datosReserva.fecha_checkin,
+                    checkout: window.datosReserva.fecha_checkout,
+                    estado: pagoData.estadoReserva || 'confirmada',
+                    fechaCreacion: new Date().toISOString(),
+                    idHabitacion: window.datosReserva.id_habitacion,
+                    foto: fotoSrc,
+                    totalPagado: pagoData.montoPagado || monto,
+                    totalReserva: pagoData.montoTotal || window.datosReserva.monto_total,
+                    montoPendiente: pagoData.montoPendiente || (window.datosReserva.monto_total - monto)
+                };
+                
+                // NUEVO: Mostrar el modal de detalles de reserva con los datos de pago
+                mostrarDetallesReserva(reservaDetalles);
+                
+                // Recargar habitaciones y reservas
+                await cargarHabitaciones();
                 
                 if (usuarioActual && usuarioActual.rol === 'cliente') {
-                    cargarReservasCliente(); // Recargar reservas
+                    cargarReservasCliente();
                 }
                 
             } catch (error) {
                 console.error('Error:', error);
                 document.getElementById('pagoMessage').textContent = error.message || 'Error al procesar. Intenta nuevamente.';
-            } finally {
                 btnPagar.disabled = false;
                 btnPagar.textContent = 'Confirmar Pago';
             }
@@ -1024,19 +1047,54 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('detalleFechaCheckout').textContent = checkout;
             document.getElementById('detalleFechaCreacion').textContent = fechaCreacion;
             
-            // Obtener datos de pagos
-            obtenerDatosPagos(reserva.id).then(pagos => {
-                const pagado = pagos.totalPagado || 0;
-                const total = pagos.totalReserva || 0;
-                const falta = total - pagado;
+            // NUEVO: Si ya tenemos los datos de pago (reserva recién creada), usarlos directamente
+            if (reserva.totalPagado !== undefined && reserva.totalReserva !== undefined) {
+                const pagado = reserva.totalPagado || 0;
+                const total = reserva.totalReserva || 0;
+                const falta = reserva.montoPendiente !== undefined ? reserva.montoPendiente : (total - pagado);
                 
+                // Actualizar valores
                 document.getElementById('detallePagado').textContent = `S/ ${pagado.toFixed(2)}`;
                 document.getElementById('detalleFaltaPagar').textContent = `S/ ${falta.toFixed(2)}`;
-            }).catch(error => {
-                console.error('Error obteniendo datos de pagos:', error);
-                document.getElementById('detallePagado').textContent = 'N/A';
-                document.getElementById('detalleFaltaPagar').textContent = 'N/A';
-            });
+                document.getElementById('detalleTotal').textContent = `S/ ${total.toFixed(2)}`;
+                
+                // Actualizar barra de progreso
+                const porcentajePagado = total > 0 ? (pagado / total) * 100 : 0;
+                const progressFill = document.getElementById('pagoProgressFill');
+                if (progressFill) {
+                    progressFill.style.width = `${porcentajePagado}%`;
+                }
+            } else {
+                // Obtener datos de pagos desde la API
+                obtenerDatosPagos(reserva.id).then(pagos => {
+                    const pagado = pagos.totalPagado || 0;
+                    const total = pagos.totalReserva || 0;
+                    const falta = total - pagado;
+                    
+                    // Actualizar valores
+                    document.getElementById('detallePagado').textContent = `S/ ${pagado.toFixed(2)}`;
+                    document.getElementById('detalleFaltaPagar').textContent = `S/ ${falta.toFixed(2)}`;
+                    document.getElementById('detalleTotal').textContent = `S/ ${total.toFixed(2)}`;
+                    
+                    // Actualizar barra de progreso
+                    const porcentajePagado = total > 0 ? (pagado / total) * 100 : 0;
+                    const progressFill = document.getElementById('pagoProgressFill');
+                    if (progressFill) {
+                        progressFill.style.width = `${porcentajePagado}%`;
+                    }
+                }).catch(error => {
+                    console.error('Error obteniendo datos de pagos:', error);
+                    document.getElementById('detallePagado').textContent = 'N/A';
+                    document.getElementById('detalleFaltaPagar').textContent = 'N/A';
+                    document.getElementById('detalleTotal').textContent = 'N/A';
+                    
+                    // Resetear barra de progreso
+                    const progressFill = document.getElementById('pagoProgressFill');
+                    if (progressFill) {
+                        progressFill.style.width = '0%';
+                    }
+                });
+            }
             
             // Establecer la imagen
             document.getElementById('detalleHabitacionImagen').src = reserva.foto;

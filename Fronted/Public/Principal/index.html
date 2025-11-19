@@ -405,9 +405,22 @@
                         <p><strong>Check-out:</strong> <span id="detalleFechaCheckout"></span></p>
                         <p><strong>Fecha de creación:</strong> <span id="detalleFechaCreacion"></span></p>
                     </div>
-                    <div class="detalle-info-group">
-                        <p><strong>Pagado:</strong> <span id="detallePagado"></span></p>
-                        <p><strong>Falta pagar:</strong> <span id="detalleFaltaPagar"></span></p>
+                    
+                    <!-- NUEVO: Barra de progreso de pago -->
+                    <div class="detalle-info-group pago-progress-section">
+                        <h4>💰 Estado de Pago</h4>
+                        <div class="pago-progress-container">
+                            <div class="pago-progress-bar">
+                                <div id="pagoProgressFill" class="pago-progress-fill"></div>
+                            </div>
+                            <div class="pago-progress-labels">
+                                <span class="pago-label-pagado">Pagado: <strong id="detallePagado">S/ 0.00</strong></span>
+                                <span class="pago-label-pendiente">Pendiente: <strong id="detalleFaltaPagar">S/ 0.00</strong></span>
+                            </div>
+                            <div class="pago-progress-total">
+                                <span>Total de la reserva: <strong id="detalleTotal">S/ 0.00</strong></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="reserva-reclamo-column">
