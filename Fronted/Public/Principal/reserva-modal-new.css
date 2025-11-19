@@ -28,11 +28,6 @@ Modal de Reserva - Diseño Horizontal Elegante
     border: 1px solid rgba(255, 255, 255, 0.4) !important;
 }
 
-.reserva-container {
-    display: flex !important;
-    gap: 45px !important;
-    align-items: start !important;
-}
 
 /* Columnas con efectos sutiles */
 .reserva-info-column, .reserva-form-column, .reserva-imagen-column {
@@ -283,10 +278,6 @@ Modal de Reserva - Diseño Horizontal Elegante
 
 /* Responsive moderno */
 @media (max-width: 1200px) {
-    .reserva-container {
-        flex-direction: column;
-        gap: 25px;
-    }
 
     .reserva-modal-content {
         padding: 30px 20px;

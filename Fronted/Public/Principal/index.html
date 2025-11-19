@@ -6,10 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JW Marriott Hotel Lima - Reservas</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="index.css?v=300.0">
-    <link rel="stylesheet" href="modal.css?v=100">
-    <link rel="stylesheet" href="reserva-modal.css?v=100">
-    <link rel="stylesheet" href="pago-modal.css?v=1.0">
+    <link rel="stylesheet" href="index.css?v=301.0">
+    <link rel="stylesheet" href="modal.css?v=101">
+    <link rel="stylesheet" href="reserva-modal.css?v=103">
+    <link rel="stylesheet" href="pago-modal.css?v=2.0">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@400;600&display=swap"
         rel="stylesheet">
@@ -447,6 +447,44 @@
                         <p id="reclamoMessage" class="text-red-500 my-2 text-center"></p>
                         <button type="submit" class="btn-submit">Enviar Reclamo</button>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CONFIRMAR PAGO COMPLETO -->
+    <div id="confirmarPagoCompletoModal" class="modal">
+        <div class="modal-content pago-completo-modal-content">
+            <span class="close-modal" data-modal-close="confirmarPagoCompletoModal">&times;</span>
+            <div class="pago-completo-container">
+                <div class="pago-completo-icon">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <h2 class="pago-completo-title">Completar Pago</h2>
+                <p class="pago-completo-message">¿Desea completar el pago de <strong id="montoPendienteModal">S/ 0.00</strong>?</p>
+                
+                <div class="pago-completo-info">
+                    <div class="info-item">
+                        <span class="info-label">Total de la reserva:</span>
+                        <span class="info-value" id="totalReservaModal">S/ 0.00</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Ya pagado:</span>
+                        <span class="info-value text-green" id="yaPagadoModal">S/ 0.00</span>
+                    </div>
+                    <div class="info-item highlight">
+                        <span class="info-label">Pendiente a pagar:</span>
+                        <span class="info-value text-red" id="pendientePagarModal">S/ 0.00</span>
+                    </div>
+                </div>
+
+                <div class="pago-completo-buttons">
+                    <button id="btnCancelarPagoCompleto" class="btn-cancelar">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button id="btnConfirmarPagoCompleto" class="btn-confirmar">
+                        <i class="fas fa-check"></i> Confirmar Pago
+                    </button>
                 </div>
             </div>
         </div>

@@ -549,6 +549,7 @@ app.get("/api/cliente/reservas", authenticateToken, async (req, res) => {
   try {
     const result = await queryWithRetry(
       `SELECT r.id_reserva, r.fecha_checkin, r.fecha_checkout, r.estado_reserva, r.fecha_creacion,
+              r.monto_total, r.monto_pagado, r.monto_pendiente, r.estado_pago, r.porcentaje_pagado,
               h.numero_habitacion, h.id_habitacion, c.nombre AS categoria,
               COALESCE(ARRAY_AGG(f.ruta_foto) FILTER (WHERE f.ruta_foto IS NOT NULL), '{}') AS fotos
        FROM public.reservas r

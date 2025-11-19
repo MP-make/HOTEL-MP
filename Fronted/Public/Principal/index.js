@@ -371,6 +371,227 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // Función para mostrar detalles de una reserva
+        function mostrarDetallesReserva(reserva) {
+            // Llenar los datos del modal
+            document.getElementById('detalleCategoria').textContent = reserva.categoria;
+            document.getElementById('detalleEstado').textContent = reserva.estado;
+            
+            // Formatear fechas
+            const checkin = new Date(reserva.checkin).toLocaleString('es-ES', { 
+                timeZone: 'America/Lima', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+            });
+            const checkout = new Date(reserva.checkout).toLocaleString('es-ES', { 
+                timeZone: 'America/Lima', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+            });
+            const fechaCreacion = new Date(reserva.fechaCreacion).toLocaleString('es-ES', { 
+                timeZone: 'America/Lima', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+            });
+            
+            document.getElementById('detalleFechaCheckin').textContent = checkin;
+            document.getElementById('detalleFechaCheckout').textContent = checkout;
+            document.getElementById('detalleFechaCreacion').textContent = fechaCreacion;
+            
+            // Guardar ID de la reserva para el botón de completar pago
+            document.getElementById('reclamoReservaId').value = reserva.id;
+            
+            // NUEVO: Si ya tenemos los datos de pago (reserva recién creada), usarlos directamente
+            if (reserva.totalPagado !== undefined && reserva.totalReserva !== undefined) {
+                const pagado = reserva.totalPagado || 0;
+                const total = reserva.totalReserva || 0;
+                const falta = reserva.montoPendiente !== undefined ? reserva.montoPendiente : (total - pagado);
+                
+                actualizarDatosPago(pagado, total, falta, reserva);
+            } else {
+                // Obtener datos de pagos desde la API
+                obtenerDatosPagos(reserva.id).then(pagos => {
+                    const pagado = pagos.totalPagado || 0;
+                    const total = pagos.totalReserva || 0;
+                    const falta = total - pagado;
+                    
+                    actualizarDatosPago(pagado, total, falta, reserva);
+                }).catch(error => {
+                    console.error('Error obteniendo datos de pagos:', error);
+                    document.getElementById('detallePagado').textContent = 'N/A';
+                    document.getElementById('detalleFaltaPagar').textContent = 'N/A';
+                    document.getElementById('detalleTotal').textContent = 'N/A';
+                    
+                    // Resetear barra de progreso
+                    const progressFill = document.getElementById('pagoProgressFill');
+                    if (progressFill) {
+                        progressFill.style.width = '0%';
+                    }
+                    
+                    // Ocultar botón de completar pago
+                    document.getElementById('btnCompletarPago').style.display = 'none';
+                });
+            }
+            
+            // Establecer la imagen
+            document.getElementById('detalleHabitacionImagen').src = reserva.foto;
+            
+            // Guardar el ID de la habitación para el reclamo
+            document.getElementById('reclamoHabitacionId').value = reserva.idHabitacion;
+            
+            // Limpiar el formulario de reclamo
+            document.getElementById('reclamoReservaForm').reset();
+            document.getElementById('reclamoMessage').textContent = '';
+            
+            // Abrir el modal
+            openModal('detallesReservaModal');
+        }
+        
+        // NUEVA FUNCIÓN: Actualizar datos de pago en el modal
+        function actualizarDatosPago(pagado, total, falta, reserva) {
+            console.log('📊 Actualizando datos de pago:', { pagado, total, falta });
+            
+            // Actualizar valores
+            document.getElementById('detallePagado').textContent = `S/ ${pagado.toFixed(2)}`;
+            document.getElementById('detalleFaltaPagar').textContent = `S/ ${falta.toFixed(2)}`;
+            document.getElementById('detalleTotal').textContent = `S/ ${total.toFixed(2)}`;
+            
+            // Actualizar barra de progreso
+            const porcentajePagado = total > 0 ? (pagado / total) * 100 : 0;
+            console.log('📊 Porcentaje pagado:', porcentajePagado + '%');
+            
+            const progressFill = document.getElementById('pagoProgressFill');
+            if (progressFill) {
+                // Resetear primero
+                progressFill.style.width = '0%';
+                
+                // Usar setTimeout para asegurar que la animación se vea
+                setTimeout(() => {
+                    progressFill.style.width = `${porcentajePagado}%`;
+                    console.log('✅ Barra de progreso actualizada a:', porcentajePagado + '%');
+                }, 100);
+            } else {
+                console.error('❌ No se encontró el elemento pagoProgressFill');
+            }
+            
+            // Mostrar botón de completar pago si hay saldo pendiente
+            const btnCompletarPago = document.getElementById('btnCompletarPago');
+            if (falta > 0.01) { // Usar 0.01 para evitar problemas de redondeo
+                btnCompletarPago.style.display = 'block';
+                // NUEVO: Usar onclick en lugar de asignar directamente
+                btnCompletarPago.onclick = () => mostrarModalConfirmarPago(reserva.id, falta, total, pagado, reserva);
+                console.log('✅ Botón de completar pago mostrado');
+            } else {
+                btnCompletarPago.style.display = 'none';
+                console.log('ℹ️ Botón de completar pago oculto (pago completo)');
+            }
+        }
+        
+        // NUEVA FUNCIÓN: Mostrar modal de confirmación de pago
+        function mostrarModalConfirmarPago(idReserva, montoPendiente, montoTotal, yaPagado, reserva) {
+            // Llenar datos del modal
+            document.getElementById('montoPendienteModal').textContent = `S/ ${montoPendiente.toFixed(2)}`;
+            document.getElementById('totalReservaModal').textContent = `S/ ${montoTotal.toFixed(2)}`;
+            document.getElementById('yaPagadoModal').textContent = `S/ ${yaPagado.toFixed(2)}`;
+            document.getElementById('pendientePagarModal').textContent = `S/ ${montoPendiente.toFixed(2)}`;
+            
+            // Abrir el modal
+            openModal('confirmarPagoCompletoModal');
+            
+            // Event listener para el botón Confirmar
+            const btnConfirmar = document.getElementById('btnConfirmarPagoCompleto');
+            btnConfirmar.onclick = async () => {
+                closeModal('confirmarPagoCompletoModal');
+                await completarPago(idReserva, montoPendiente, montoTotal, reserva);
+            };
+            
+            // Event listener para el botón Cancelar
+            const btnCancelar = document.getElementById('btnCancelarPagoCompleto');
+            btnCancelar.onclick = () => {
+                closeModal('confirmarPagoCompletoModal');
+            };
+        }
+
+        // Función para obtener datos de pagos de una reserva
+        async function obtenerDatosPagos(idReserva) {
+            const token = localStorage.getItem('token');
+            console.log('🔍 Obteniendo datos de pagos para reserva ID:', idReserva);
+            
+            try {
+                // Obtener la reserva para el total
+                const responseReserva = await fetch(`/api/cliente/reservas/${idReserva}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                console.log('📡 Response de reserva:', responseReserva.status, responseReserva.statusText);
+                
+                if (!responseReserva.ok) {
+                    // Si falla, intentar obtener desde el listado general
+                    console.warn('⚠️ No se pudo obtener reserva individual, intentando desde listado general...');
+                    const responseTodasReservas = await fetch('/api/cliente/reservas', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (!responseTodasReservas.ok) {
+                        throw new Error('Error al obtener reservas');
+                    }
+                    
+                    const todasReservas = await responseTodasReservas.json();
+                    const reserva = todasReservas.find(r => r.id_reserva === parseInt(idReserva));
+                    
+                    if (!reserva) {
+                        throw new Error('Reserva no encontrada');
+                    }
+                    
+                    // CONVERTIR a número
+                    const totalReserva = parseFloat(reserva.monto_total) || 0;
+                    console.log('✅ Total de reserva desde listado:', totalReserva);
+                    
+                    // Obtener historial de pagos
+                    const responsePagos = await fetch(`/api/pagos/reserva/${idReserva}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (!responsePagos.ok) {
+                        console.warn('⚠️ No se pudo obtener historial de pagos');
+                        return { totalPagado: 0, totalReserva };
+                    }
+                    
+                    const pagos = await responsePagos.json();
+                    const totalPagado = pagos.reduce((sum, pago) => sum + parseFloat(pago.monto || 0), 0);
+                    
+                    console.log('✅ Datos de pago obtenidos:', { totalPagado, totalReserva });
+                    return { totalPagado, totalReserva };
+                }
+                
+                const reserva = await responseReserva.json();
+                // CONVERTIR a número
+                const totalReserva = parseFloat(reserva.monto_total) || 0;
+                console.log('✅ Total de reserva:', totalReserva);
+
+                // Obtener historial de pagos
+                const responsePagos = await fetch(`/api/pagos/reserva/${idReserva}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!responsePagos.ok) {
+                    console.warn('⚠️ No se pudo obtener historial de pagos');
+                    return { totalPagado: 0, totalReserva };
+                }
+                
+                const pagos = await responsePagos.json();
+                const totalPagado = pagos.reduce((sum, pago) => sum + parseFloat(pago.monto || 0), 0);
+
+                console.log('✅ Datos de pago obtenidos:', { totalPagado, totalReserva });
+                return { totalPagado, totalReserva };
+            } catch (error) {
+                console.error('❌ Error obteniendo datos de pagos:', error);
+                return { totalPagado: 0, totalReserva: 0 };
+            }
+        }
+
         // Función para reservar habitación
         function reservarHabitacion(habitacionId, nombreHabitacion) {
             if (!usuarioActual) {
@@ -1026,114 +1247,50 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Función para mostrar detalles de una reserva
-        function mostrarDetallesReserva(reserva) {
-            // Llenar los datos del modal
-            document.getElementById('detalleCategoria').textContent = reserva.categoria;
-            document.getElementById('detalleEstado').textContent = reserva.estado;
+        // Manejar el envío del formulario de reclamo desde el modal de detalles
+        document.getElementById('reclamoReservaForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
             
-            // Formatear fechas
-            const checkin = new Date(reserva.checkin).toLocaleString('es-ES', { 
-                timeZone: 'America/Lima', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
-            });
-            const checkout = new Date(reserva.checkout).toLocaleString('es-ES', { 
-                timeZone: 'America/Lima', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
-            });
-            const fechaCreacion = new Date(reserva.fechaCreacion).toLocaleString('es-ES', { 
-                timeZone: 'America/Lima', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
-            });
+            const descripcion = document.getElementById('reclamoDescripcion').value.trim();
+            const id_habitacion = document.getElementById('reclamoHabitacionId').value;
             
-            document.getElementById('detalleFechaCheckin').textContent = checkin;
-            document.getElementById('detalleFechaCheckout').textContent = checkout;
-            document.getElementById('detalleFechaCreacion').textContent = fechaCreacion;
-            
-            // Guardar ID de la reserva para el botón de completar pago
-            document.getElementById('reclamoReservaId').value = reserva.id;
-            
-            // NUEVO: Si ya tenemos los datos de pago (reserva recién creada), usarlos directamente
-            if (reserva.totalPagado !== undefined && reserva.totalReserva !== undefined) {
-                const pagado = reserva.totalPagado || 0;
-                const total = reserva.totalReserva || 0;
-                const falta = reserva.montoPendiente !== undefined ? reserva.montoPendiente : (total - pagado);
-                
-                // Actualizar valores
-                document.getElementById('detallePagado').textContent = `S/ ${pagado.toFixed(2)}`;
-                document.getElementById('detalleFaltaPagar').textContent = `S/ ${falta.toFixed(2)}`;
-                document.getElementById('detalleTotal').textContent = `S/ ${total.toFixed(2)}`;
-                
-                // Actualizar barra de progreso
-                const porcentajePagado = total > 0 ? (pagado / total) * 100 : 0;
-                const progressFill = document.getElementById('pagoProgressFill');
-                if (progressFill) {
-                    progressFill.style.width = `${porcentajePagado}%`;
-                }
-                
-                // Mostrar botón de completar pago si hay saldo pendiente
-                const btnCompletarPago = document.getElementById('btnCompletarPago');
-                if (falta > 0) {
-                    btnCompletarPago.style.display = 'block';
-                    btnCompletarPago.onclick = () => completarPago(reserva.id, falta, total, reserva);
-                } else {
-                    btnCompletarPago.style.display = 'none';
-                }
-            } else {
-                // Obtener datos de pagos desde la API
-                obtenerDatosPagos(reserva.id).then(pagos => {
-                    const pagado = pagos.totalPagado || 0;
-                    const total = pagos.totalReserva || 0;
-                    const falta = total - pagado;
-                    
-                    // Actualizar valores
-                    document.getElementById('detallePagado').textContent = `S/ ${pagado.toFixed(2)}`;
-                    document.getElementById('detalleFaltaPagar').textContent = `S/ ${falta.toFixed(2)}`;
-                    document.getElementById('detalleTotal').textContent = `S/ ${total.toFixed(2)}`;
-                    
-                    // Actualizar barra de progreso
-                    const porcentajePagado = total > 0 ? (pagado / total) * 100 : 0;
-                    const progressFill = document.getElementById('pagoProgressFill');
-                    if (progressFill) {
-                        progressFill.style.width = `${porcentajePagado}%`;
-                    }
-                    
-                    // Mostrar botón de completar pago si hay saldo pendiente
-                    const btnCompletarPago = document.getElementById('btnCompletarPago');
-                    if (falta > 0) {
-                        btnCompletarPago.style.display = 'block';
-                        btnCompletarPago.onclick = () => completarPago(reserva.id, falta, total, reserva);
-                    } else {
-                        btnCompletarPago.style.display = 'none';
-                    }
-                }).catch(error => {
-                    console.error('Error obteniendo datos de pagos:', error);
-                    document.getElementById('detallePagado').textContent = 'N/A';
-                    document.getElementById('detalleFaltaPagar').textContent = 'N/A';
-                    document.getElementById('detalleTotal').textContent = 'N/A';
-                    
-                    // Resetear barra de progreso
-                    const progressFill = document.getElementById('pagoProgressFill');
-                    if (progressFill) {
-                        progressFill.style.width = '0%';
-                    }
-                    
-                    // Ocultar botón de completar pago
-                    document.getElementById('btnCompletarPago').style.display = 'none';
-                });
+            if (!descripcion) {
+                document.getElementById('reclamoMessage').textContent = 'Por favor, describe el reclamo.';
+                return;
             }
             
-            // Establecer la imagen
-            document.getElementById('detalleHabitacionImagen').src = reserva.foto;
+            const token = localStorage.getItem('token');
             
-            // Guardar el ID de la habitación para el reclamo
-            document.getElementById('reclamoHabitacionId').value = reserva.idHabitacion;
-            
-            // Limpiar el formulario de reclamo
-            document.getElementById('reclamoReservaForm').reset();
-            document.getElementById('reclamoMessage').textContent = '';
-            
-            // Abrir el modal
-            openModal('detallesReservaModal');
-        }
-        
+            try {
+                const response = await fetch('/api/cliente/reclamos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ descripcion, id_habitacion: parseInt(id_habitacion) })
+                });
+                
+                if (response.status === 401) {
+                    localStorage.removeItem('token');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                if (response.ok) {
+                    alert('Reclamo enviado exitosamente.');
+                    document.getElementById('reclamoReservaForm').reset();
+                    closeModal('detallesReservaModal');
+                } else {
+                    const error = await response.json();
+                    document.getElementById('reclamoMessage').textContent = 'Error al enviar reclamo: ' + (error.error || 'Desconocido');
+                }
+            } catch (error) {
+                console.error('Error enviando reclamo:', error);
+                document.getElementById('reclamoMessage').textContent = 'Error al enviar reclamo.';
+            }
+        });
+
         // Función para completar el pago pendiente
         async function completarPago(idReserva, montoPendiente, montoTotal, reserva) {
             const confirmar = confirm(`¿Desea completar el pago de S/ ${montoPendiente.toFixed(2)}?`);
@@ -1171,6 +1328,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Actualizar la vista
                 document.getElementById('detallePagado').textContent = `S/ ${montoTotal.toFixed(2)}`;
                 document.getElementById('detalleFaltaPagar').textContent = `S/ 0.00`;
+                document.getElementById('detalleTotal').textContent = `S/ ${montoTotal.toFixed(2)}`;
                 
                 // Actualizar barra de progreso al 100%
                 const progressFill = document.getElementById('pagoProgressFill');
@@ -1203,7 +1361,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const response = await fetch(`/api/cliente/reservas/${idReserva}`, {
                         headers: { 'Authorization': 'Bearer ' + token }
                     });
-                    datosReserva = await response.json();
+                    if (response.ok) {
+                        datosReserva = await response.json();
+                    }
                 }
                 
                 // Crear documento HTML para la boleta
@@ -1455,41 +1615,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('reclamoMessage').textContent = 'Error al enviar reclamo.';
             }
         });
-
-        // Función para obtener datos de pagos de una reserva
-        async function obtenerDatosPagos(idReserva) {
-            const token = localStorage.getItem('token');
-            try {
-                // Obtener la reserva para el total
-                const responseReserva = await fetch(`/api/cliente/reservas/${idReserva}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                if (!responseReserva.ok) {
-                    throw new Error('Error al obtener reserva');
-                }
-                const reserva = await responseReserva.json();
-                const totalReserva = reserva.monto_total || 0;
-
-                // Obtener historial de pagos
-                const responsePagos = await fetch(`/api/pagos/reserva/${idReserva}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                if (!responsePagos.ok) {
-                    throw new Error('Error al obtener pagos');
-                }
-                const pagos = await responsePagos.json();
-                const totalPagado = pagos.reduce((sum, pago) => sum + parseFloat(pago.monto || 0), 0);
-
-                return { totalPagado, totalReserva };
-            } catch (error) {
-                console.error('Error obteniendo datos de pagos:', error);
-                return { totalPagado: 0, totalReserva: 0 };
-            }
-        }
 
         // Función para inicializar todo el sistema
         async function inicializarSistema() {

@@ -54,8 +54,9 @@ Modal de Reserva - Diseño Horizontal Elegante
 
 .reserva-container {
     display: flex !important;
-    gap: 45px !important;
-    align-items: start !important;
+    gap: 20px !important;
+    align-items: stretch !important; /* CAMBIADO: stretch para igual altura */
+    justify-content: space-between !important;
 }
 
 /* Columnas con efectos sutiles */
@@ -96,34 +97,43 @@ Modal de Reserva - Diseño Horizontal Elegante
 }
 
 .reserva-imagen-detalle {
-    flex: 1;
-    max-width: 450px;
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.8), rgba(248, 248, 248, 0.6));
-    padding: 25px;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    flex: 1 1 0 !important; /* IGUAL flex-basis para mismo tamaño */
+    min-width: 0 !important;
+    max-width: none !important;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.8), rgba(248, 248, 248, 0.6)) !important;
+    padding: 25px !important;
+    border-radius: 20px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    display: flex !important;
+    flex-direction: column !important;
 }
 
 .reserva-detalles-info {
-    flex: 1;
-    padding: 25px;
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.8), rgba(248, 248, 248, 0.6));
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    flex: 1 1 0 !important; /* IGUAL flex-basis para mismo tamaño */
+    min-width: 0 !important;
+    padding: 25px !important;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.8), rgba(248, 248, 248, 0.6)) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    display: flex !important;
+    flex-direction: column !important;
 }
 
 .reserva-reclamo-column {
-    flex: 1;
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.8), rgba(248, 248, 248, 0.6));
-    padding: 25px;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    flex: 1 1 0 !important; /* IGUAL flex-basis para mismo tamaño */
+    min-width: 0 !important;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.8), rgba(248, 248, 248, 0.6)) !important;
+    padding: 25px !important;
+    border-radius: 20px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    display: flex !important;
+    flex-direction: column !important;
 }
 
 /* Estilos específicos para elementos */
@@ -184,13 +194,6 @@ Modal de Reserva - Diseño Horizontal Elegante
 
 .reserva-info-column .form-input:focus {
     background: linear-gradient(145deg, #ffffff, #f8f9fa) !important;
-    box-shadow: inset 5px 5px 10px rgba(0, 0, 0, 0.15), inset -5px -5px 10px rgba(255, 255, 255, 0.9), 0 0 0 2px rgba(102, 102, 102, 0.3) !important;
-}
-
-.reserva-info-column input[type="datetime-local"] {
-    width: 100% !important;
-    padding: 12px 15px !important;
-    margin-bottom: 10px !important;
     border: 1px solid #ccc !important;
     border-radius: 12px !important;
     font-size: 1rem !important;
@@ -564,4 +567,206 @@ Modal de Reserva - Diseño Horizontal Elegante
 
 .btn-completar-pago i {
     margin-right: 10px;
+}
+
+/* ==============================
+   MODAL CONFIRMAR PAGO COMPLETO - DISEÑO ESTÉTICO
+============================== */
+.pago-completo-modal-content {
+    max-width: 550px !important;
+    width: 90% !important;
+    padding: 0 !important;
+    background: linear-gradient(145deg, #ffffff, #f8f9fa) !important;
+    border-radius: 25px !important;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.3) !important;
+    animation: modalSlideIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+    overflow: hidden !important;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.pago-completo-modal-content .close-modal {
+    position: absolute !important;
+    top: 15px !important;
+    right: 15px !important;
+    font-size: 1.8rem !important;
+    color: #666 !important;
+    cursor: pointer !important;
+    z-index: 1000 !important;
+    background: rgba(255, 255, 255, 0.8) !important;
+    border-radius: 50% !important;
+    width: 35px !important;
+    height: 35px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.3s ease !important;
+}
+
+.pago-completo-modal-content .close-modal:hover {
+    background: #f44336 !important;
+    color: white !important;
+    transform: rotate(90deg) !important;
+}
+
+.pago-completo-container {
+    padding: 40px 35px !important;
+    text-align: center !important;
+}
+
+.pago-completo-icon {
+    width: 80px !important;
+    height: 80px !important;
+    margin: 0 auto 20px !important;
+    background: linear-gradient(135deg, #28a745, #20c997) !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 10px 30px rgba(40, 167, 69, 0.4) !important;
+    animation: iconPulse 2s infinite !important;
+}
+
+@keyframes iconPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 10px 30px rgba(40, 167, 69, 0.4);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 15px 40px rgba(40, 167, 69, 0.6);
+    }
+}
+
+.pago-completo-icon i {
+    font-size: 2.5rem !important;
+    color: white !important;
+}
+
+.pago-completo-title {
+    font-size: 1.8rem !important;
+    font-weight: 700 !important;
+    color: #000000 !important;
+    margin-bottom: 15px !important;
+}
+
+.pago-completo-message {
+    font-size: 1.1rem !important;
+    color: #495057 !important;
+    margin-bottom: 30px !important;
+    line-height: 1.6 !important;
+}
+
+.pago-completo-message strong {
+    color: #28a745 !important;
+    font-size: 1.3rem !important;
+}
+
+.pago-completo-info {
+    background: linear-gradient(145deg, #f8f9fa, #e9ecef) !important;
+    padding: 25px !important;
+    border-radius: 15px !important;
+    margin-bottom: 30px !important;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+.pago-completo-info .info-item {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 12px 0 !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+.pago-completo-info .info-item:last-child {
+    border-bottom: none !important;
+}
+
+.pago-completo-info .info-item.highlight {
+    background: rgba(220, 53, 69, 0.1) !important;
+    padding: 15px !important;
+    margin: 10px -10px 0 !important;
+    border-radius: 10px !important;
+    border: 2px dashed #dc3545 !important;
+}
+
+.pago-completo-info .info-label {
+    font-size: 0.95rem !important;
+    color: #666 !important;
+    font-weight: 600 !important;
+}
+
+.pago-completo-info .info-value {
+    font-size: 1.1rem !important;
+    color: #000000 !important;
+    font-weight: 700 !important;
+}
+
+.pago-completo-info .text-green {
+    color: #28a745 !important;
+}
+
+.pago-completo-info .text-red {
+    color: #dc3545 !important;
+    font-size: 1.3rem !important;
+}
+
+.pago-completo-buttons {
+    display: flex !important;
+    gap: 15px !important;
+    margin-top: 25px !important;
+}
+
+.pago-completo-buttons .btn-cancelar,
+.pago-completo-buttons .btn-confirmar {
+    flex: 1 !important;
+    padding: 15px 25px !important;
+    border: none !important;
+    border-radius: 12px !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+}
+
+.pago-completo-buttons .btn-cancelar {
+    background: linear-gradient(135deg, #6c757d, #5a6268) !important;
+    color: white !important;
+    box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3) !important;
+}
+
+.pago-completo-buttons .btn-cancelar:hover {
+    background: linear-gradient(135deg, #5a6268, #495057) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 20px rgba(108, 117, 125, 0.4) !important;
+}
+
+.pago-completo-buttons .btn-confirmar {
+    background: linear-gradient(135deg, #28a745, #20c997) !important;
+    color: white !important;
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3) !important;
+}
+
+.pago-completo-buttons .btn-confirmar:hover {
+    background: linear-gradient(135deg, #218838, #1aa179) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 20px rgba(40, 167, 69, 0.5) !important;
+}
+
+.pago-completo-buttons .btn-confirmar:active,
+.pago-completo-buttons .btn-cancelar:active {
+    transform: translateY(0) !important;
 }
