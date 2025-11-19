@@ -32,12 +32,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (chatBotButton) {
         chatBotButton.addEventListener('click', () => {
             chatModal.classList.add('active');
+            chatBotButton.style.display = 'none'; // Ocultar la burbuja cuando se abre el chat
             chatInput.focus();
         });
     }
 
     if (closeChatBtn) {
-        closeChatBtn.addEventListener('click', () => chatModal.classList.remove('active'));
+        closeChatBtn.addEventListener('click', () => {
+            chatModal.classList.remove('active');
+            chatBotButton.style.display = 'block'; // Mostrar la burbuja cuando se cierra el chat
+        });
     }
 
     window.addEventListener('click', (e) => {

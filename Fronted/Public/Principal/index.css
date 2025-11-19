@@ -45,7 +45,7 @@ main {
     flex: 1;
     padding: 0;
     margin: 0;
-    margin-top: 190px; /* Altura del header fijo para que el carrusel quede justo debajo */
+    margin-top: 175px; /* CAMBIADO: reducido de 190px a 175px para eliminar espacio */
     width: 100%;
 }   
 
@@ -237,6 +237,116 @@ Header y Navegación
     left: 0;
     right: 0;
     z-index: 1000;
+    width: 100%; /* AGREGADO: Asegurar ancho completo */
+}
+
+.header .logo {
+    height: 80px;
+    width: auto;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.9rem;
+    letter-spacing: 2px;
+    margin: 0;
+    text-transform: uppercase;
+    text-shadow: 0px 3px 6px rgba(0, 0, 0, 0.4);
+    color: #FFFFFF;
+}
+
+#userProfile {
+    margin-right: 30px;
+}
+
+.header .auth-nav,
+.header .top-nav {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header .btn-primary,
+.header .btn-secondary {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #666666, #333333);
+    color: #FFFFFF;
+    border: none;
+}
+
+.header .btn-primary:hover,
+.header .btn-secondary:hover {
+    background: linear-gradient(135deg, #CCCCCC, #999999);
+    color: #333333;
+    transform: translateY(-2px);
+}
+
+.auth-link {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 10px 15px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.auth-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+}
+
+.auth-link i {
+    font-size: 1.1rem;
+}
+
+#profileBtn span, #logoutBtn span {
+    display: inline;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 5px;
+    transition: background 0.3s;
+}
+
+.btn-icon:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-icon-large {
+    font-size: 1.5rem;
+    padding: 15px 25px;
+}
+
+/* ==============================
+Header y Navegación
+============================== */
+.header {
+    background: linear-gradient(90deg, #333333, #666666);
+    color: white;
+    padding: 20px 30px 60px 40px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
 }
 
 .header .logo {
@@ -281,54 +391,17 @@ Header y Navegación
     transform: translateY(-2px);
 }
 
-.auth-link {
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-    font-size: 1.125rem; /* CAMBIADO: text-lg de Tailwind = 1.125rem */
-    font-weight: 600; /* CAMBIADO: font-semibold = 600 */
-    padding: 10px;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-
-#profileBtn span, #logoutBtn span {
-    display: inline;
-}
-
-#profileBtn:hover span, #logoutBtn:hover span {
-    display: inline;
-}
-
-.btn-icon {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1.2rem;
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 5px;
-    transition: background 0.3s;
-}
-
-.btn-icon:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.btn-icon-large {
-    font-size: 1.5rem;
-    padding: 15px 25px;
-}
-
 .header .main-nav {
     background: #333333;
     width: 100%;
     margin-top: 20px;
     border-radius: 0 0 10px 10px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
 }
+
 
 .header .nav-links {
     list-style: none;
@@ -351,6 +424,7 @@ Header y Navegación
     transform: scale(1.05);
 }
 
+
 /* ==============================
 Main - Compensar altura del header fijo
 ============================== */
@@ -358,7 +432,7 @@ main {
     flex: 1;
     padding: 0;
     margin: 0;
-    margin-top: 190px; /* Altura del header fijo para que el carrusel quede justo debajo */
+    margin-top: 0px; /* CAMBIADO: reducido de 190px a 175px para eliminar espacio */
     width: 100%;
 }
 
@@ -379,14 +453,15 @@ Carrusel Principal - ESTILO MODERNO TIPO CASA ANDINA
 ============================== */
 .carousel {
     position: relative;
-    width: 100vw; /* CAMBIADO: ancho completo de la pantalla */
+    width: 100vw; /* Ancho completo de la pantalla */
     height: 600px;
     overflow: hidden;
     border-radius: 0; /* Sin bordes redondeados */
     margin: 0;
     padding: 0;
     box-shadow: none; /* Sin sombra */
-    margin-left: calc(-50vw + 50%); /* AGREGADO: centrar y expandir al ancho completo */
+    margin-left: calc(-50vw + 50%); /* Centrar y expandir al ancho completo */
+    margin-right: calc(-50vw + 50%); /* AGREGADO: Asegurar expansión completa */
 }
 
 .carousel-track {
@@ -520,7 +595,7 @@ Carrusel Principal - ESTILO MODERNO TIPO CASA ANDINA
 /* Indicadores/dots del carrusel */
 .carousel-dots {
     position: absolute;
-    bottom: 80px; /* CAMBIADO: subido desde 40px a 80px */
+    bottom: 60px; /* CAMBIADO: subido desde 40px a 80px */
     left: 50%;
     transform: translateX(-50%);
     display: flex;
@@ -1529,7 +1604,7 @@ Los estilos ahora están en pago-modal.css
 .chat-welcome-popup {
   position: fixed;
   bottom: 110px;
-  right: 110px;
+  right: 10px;
   background: white;
   padding: 15px 20px;
   border-radius: 20px;
@@ -1571,7 +1646,7 @@ Los estilos ahora están en pago-modal.css
 .chat-modal {
   display: none;
   position: fixed;
-  bottom: 110px;
+  bottom: 20px;
   right: 20px;
   width: 400px;
   height: 600px;
@@ -1601,7 +1676,7 @@ Los estilos ahora están en pago-modal.css
 
 /* Header del chat */
 .chat-header {
-  background: linear-gradient(135deg, var(--accent-color) 0%, #a67c52 100%);
+  background: linear-gradient(135deg, #333333 0%, #666666 100%);
   color: white;
   padding: 20px;
   display: flex;
@@ -1682,12 +1757,12 @@ Los estilos ahora están en pago-modal.css
 }
 
 .message.user {
-  background: linear-gradient(135deg, var(--accent-color) 0%, #a67c52 100%);
+  background: linear-gradient(135deg, #333333 0%, #666666 100%);
   color: white;
   margin-left: auto;
   text-align: right;
   border-bottom-right-radius: 4px;
-  box-shadow: 0 4px 10px rgba(139, 90, 60, 0.3);
+  box-shadow: 0 4px 10px rgba(51, 51, 51, 0.3);
 }
 
 .message.bot {
@@ -1741,7 +1816,7 @@ Los estilos ahora están en pago-modal.css
 }
 
 #sendChatBtn {
-  background: linear-gradient(135deg, var(--accent-color) 0%, #a67c52 100%);
+  background: linear-gradient(135deg, #333333 0%, #666666 100%);
   color: white;
   border: none;
   padding: 12px 20px;
@@ -1754,7 +1829,7 @@ Los estilos ahora están en pago-modal.css
   width: 45px;
   height: 45px;
   font-size: 16px;
-  box-shadow: 0 4px 12px rgba(139, 90, 60, 0.3);
+  box-shadow: 0 4px 12px rgba(51, 51, 51, 0.3);
 }
 
 #sendChatBtn:hover {

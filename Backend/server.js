@@ -1998,6 +1998,7 @@ app.post("/api/chat", authenticateToken, async (req, res) => {
     return res.json({ respuesta: "¡Hola! Bienvenido a HotelBot. ¿En qué puedo ayudarte hoy?" });
   }
 
+
   try {
     // Paso B: Buscar contexto relevante en faq_hotel
     const palabrasClave = pregunta.trim().toLowerCase().split(/\s+/);
