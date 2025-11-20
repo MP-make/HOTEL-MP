@@ -1,6 +1,6 @@
 //Wait for the DOM to be fully loaded before running the script
 document.addEventListener('DOMContentLoaded', () => {
-        // Functions to handle the modals
+        // Funciones para manejar los modales
         const openModal = (id) => {
             const modal = document.getElementById(id);
             if (modal) {
@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
             openModal(nextId);
         };
     
-        // Attach event listeners to buttons
+        // Agregar event listeners a los botones
         document.querySelectorAll('[data-modal-target]').forEach(button => {
             button.addEventListener('click', (e) => {
                 const modalId = e.currentTarget.getAttribute('data-modal-target');
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     
-        // Attach event listeners to close buttons
+        // Agregar event listeners a los botones de cerrar
         document.querySelectorAll('[data-modal-close]').forEach(span => {
             span.addEventListener('click', (e) => {
                 const modalId = e.currentTarget.getAttribute('data-modal-close');
@@ -36,17 +36,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     
-        // Attach event listeners to modal switch links
+        // Agregar event listeners a los enlaces de cambio de modal
         document.querySelectorAll('[data-switch-modal-current]').forEach(link => {
             link.addEventListener('click', (e) => {
-                e.preventDefault(); // Prevent default link behavior
+                e.preventDefault(); // Prevenir el comportamiento predeterminado del enlace
                 const currentId = e.currentTarget.getAttribute('data-switch-modal-current');
                 const nextId = e.currentTarget.getAttribute('data-switch-modal-next');
                 switchModal(currentId, nextId);
             });
         });
     
-        // Close modal if user clicks outside the modal content
+        // Cerrar modal si el usuario hace clic fuera del contenido del modal
         window.addEventListener('click', (e) => {
             document.querySelectorAll('.modal').forEach(modal => {
                 if (e.target === modal) {
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="carousel-dot ${index === 0 ? 'active' : ''}" data-slide="${index}"></div>
             `).join('');
 
-            // Add event listeners to dots
+            // Agregar event listeners a los puntos
             document.querySelectorAll('.carousel-dot').forEach(dot => {
                 dot.addEventListener('click', (e) => {
                     const slide = parseInt(e.target.getAttribute('data-slide'));
@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
-            // Add event listeners to arrow buttons
+            // Agregar event listeners a los botones de flecha
             const prevBtn = document.getElementById('prevSlide');
             const nextBtn = document.getElementById('nextSlide');
             
@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 nextBtn.addEventListener('click', () => cambiarSlide(1));
             }
 
-            // Add keyboard navigation
+            // Agregar navegación por teclado
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'ArrowLeft') {
                     cambiarSlide(-1);
@@ -168,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Add touch support for swiping
+            // Agregar soporte táctil para deslizar
             let touchStartX = 0;
             let touchEndX = 0;
             carouselTrack.addEventListener('touchstart', (e) => {
@@ -443,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // NUEVA FUNCIÓN: Actualizar datos de pago en el modal
         function actualizarDatosPago(pagado, total, falta, reserva) {
-            console.log('📊 Actualizando datos de pago:', { pagado, total, falta });
+            console.log('Actualizando datos de pago:', { pagado, total, falta });
             
             // Actualizar valores
             document.getElementById('detallePagado').textContent = `S/ ${pagado.toFixed(2)}`;
@@ -452,7 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Actualizar barra de progreso
             const porcentajePagado = total > 0 ? (pagado / total) * 100 : 0;
-            console.log('📊 Porcentaje pagado:', porcentajePagado + '%');
+            console.log('Porcentaje pagado:', porcentajePagado + '%');
             
             const progressFill = document.getElementById('pagoProgressFill');
             if (progressFill) {
@@ -462,10 +462,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Usar setTimeout para asegurar que la animación se vea
                 setTimeout(() => {
                     progressFill.style.width = `${porcentajePagado}%`;
-                    console.log('✅ Barra de progreso actualizada a:', porcentajePagado + '%');
+                    console.log('Barra de progreso actualizada a:', porcentajePagado + '%');
                 }, 100);
             } else {
-                console.error('❌ No se encontró el elemento pagoProgressFill');
+                console.error('No se encontró el elemento pagoProgressFill');
             }
             
             // Mostrar botón según estado de pago
@@ -476,14 +476,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnPago.className = 'btn-primary'; // Asegurar clase correcta
                 // NUEVO: Usar onclick en lugar de asignar directamente
                 btnPago.onclick = () => mostrarModalConfirmarPago(reserva.id, falta, total, pagado, reserva);
-                console.log('✅ Botón de completar pago mostrado');
+                console.log('Botón de completar pago mostrado');
             } else {
                 btnPago.style.display = 'block';
                 btnPago.textContent = 'Ver Boleta';
                 btnPago.className = 'btn-success'; // Cambiar a clase verde para consistencia
                 // onclick para mostrar boleta
                 btnPago.onclick = () => generarBoletaElectronica(reserva.id, total, reserva);
-                console.log('✅ Botón de ver boleta mostrado (pago completo)');
+                console.log('Botón de ver boleta mostrado (pago completo)');
             }
         }
         
@@ -515,7 +515,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Función para obtener datos de pagos de una reserva
         async function obtenerDatosPagos(idReserva) {
             const token = localStorage.getItem('token');
-            console.log('🔍 Obteniendo datos de pagos para reserva ID:', idReserva);
+            console.log('Obteniendo datos de pagos para reserva ID:', idReserva);
             
             try {
                 // Obtener la reserva para el total
@@ -525,11 +525,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
                 
-                console.log('📡 Response de reserva:', responseReserva.status, responseReserva.statusText);
+                console.log('Response de reserva:', responseReserva.status, responseReserva.statusText);
                 
                 if (!responseReserva.ok) {
                     // Si falla, intentar obtener desde el listado general
-                    console.warn('⚠️ No se pudo obtener reserva individual, intentando desde listado general...');
+                    console.warn('No se pudo obtener reserva individual, intentando desde listado general...');
                     const responseTodasReservas = await fetch('/api/cliente/reservas', {
                         headers: {
                             'Authorization': `Bearer ${token}`
@@ -549,7 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // CONVERTIR a número
                     const totalReserva = parseFloat(reserva.monto_total) || 0;
-                    console.log('✅ Total de reserva desde listado:', totalReserva);
+                    console.log('Total de reserva desde listado:', totalReserva);
                     
                     // Obtener historial de pagos
                     const responsePagos = await fetch(`/api/pagos/reserva/${idReserva}`, {
@@ -559,21 +559,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     
                     if (!responsePagos.ok) {
-                        console.warn('⚠️ No se pudo obtener historial de pagos');
+                        console.warn('No se pudo obtener historial de pagos');
                         return { totalPagado: 0, totalReserva };
                     }
                     
                     const pagos = await responsePagos.json();
                     const totalPagado = pagos.reduce((sum, pago) => sum + parseFloat(pago.monto || 0), 0);
                     
-                    console.log('✅ Datos de pago obtenidos:', { totalPagado, totalReserva });
+                    console.log('Datos de pago obtenidos:', { totalPagado, totalReserva });
                     return { totalPagado, totalReserva };
                 }
                 
                 const reserva = await responseReserva.json();
                 // CONVERTIR a número
                 const totalReserva = parseFloat(reserva.monto_total) || 0;
-                console.log('✅ Total de reserva:', totalReserva);
+                console.log('Total de reserva:', totalReserva);
 
                 // Obtener historial de pagos
                 const responsePagos = await fetch(`/api/pagos/reserva/${idReserva}`, {
@@ -583,17 +583,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 
                 if (!responsePagos.ok) {
-                    console.warn('⚠️ No se pudo obtener historial de pagos');
+                    console.warn('No se pudo obtener historial de pagos');
                     return { totalPagado: 0, totalReserva };
                 }
                 
                 const pagos = await responsePagos.json();
                 const totalPagado = pagos.reduce((sum, pago) => sum + parseFloat(pago.monto || 0), 0);
 
-                console.log('✅ Datos de pago obtenidos:', { totalPagado, totalReserva });
+                console.log('Datos de pago obtenidos:', { totalPagado, totalReserva });
                 return { totalPagado, totalReserva };
             } catch (error) {
-                console.error('❌ Error obteniendo datos de pagos:', error);
+                console.error('Error obteniendo datos de pagos:', error);
                 return { totalPagado: 0, totalReserva: 0 };
             }
         }
@@ -650,7 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('reservaHabitacionCapacidad').textContent = `Capacidad: ${habitacion.capacidad} personas`;
                 document.getElementById('reservaHabitacionPrecioDia').textContent = `Precio por día: S/ ${habitacion.precio_por_dia}`;
                 
-                // Handle image display
+                // Manejar la visualización de imagen
                 const imagenElement = document.getElementById('reservaHabitacionImagen');
                 if (imagenElement) {
                     let fotoSrc = 'https://source.unsplash.com/featured/?luxury-hotel-room';
@@ -720,7 +720,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // Collect upsells
+            // Recopilar upsells
             const upsells = [];
             if (document.getElementById('upsell-desayuno')?.checked) upsells.push('desayuno');
             if (document.getElementById('upsell-romantico')?.checked) upsells.push('romantico');
@@ -765,7 +765,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 dias: dias
             };
             
-            console.log('✅ Datos de reserva (hora exacta del cliente):', {
+            console.log('Datos de reserva (hora exacta del cliente):', {
                 checkin: checkin + ':00',
                 checkout: checkout + ':00'
             });
