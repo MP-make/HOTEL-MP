@@ -468,16 +468,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('❌ No se encontró el elemento pagoProgressFill');
             }
             
-            // Mostrar botón de completar pago si hay saldo pendiente
-            const btnCompletarPago = document.getElementById('btnCompletarPago');
+            // Mostrar botón según estado de pago
+            const btnPago = document.getElementById('btnCompletarPago');
             if (falta > 0.01) { // Usar 0.01 para evitar problemas de redondeo
-                btnCompletarPago.style.display = 'block';
+                btnPago.style.display = 'block';
+                btnPago.textContent = 'Completar Pago';
+                btnPago.className = 'btn-primary'; // Asegurar clase correcta
                 // NUEVO: Usar onclick en lugar de asignar directamente
-                btnCompletarPago.onclick = () => mostrarModalConfirmarPago(reserva.id, falta, total, pagado, reserva);
+                btnPago.onclick = () => mostrarModalConfirmarPago(reserva.id, falta, total, pagado, reserva);
                 console.log('✅ Botón de completar pago mostrado');
             } else {
-                btnCompletarPago.style.display = 'none';
-                console.log('ℹ️ Botón de completar pago oculto (pago completo)');
+                btnPago.style.display = 'block';
+                btnPago.textContent = 'Ver Boleta';
+                btnPago.className = 'btn-success'; // Cambiar a clase verde para consistencia
+                // onclick para mostrar boleta
+                btnPago.onclick = () => generarBoletaElectronica(reserva.id, total, reserva);
+                console.log('✅ Botón de ver boleta mostrado (pago completo)');
             }
         }
         
@@ -1339,8 +1345,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     progressFill.style.width = '100%';
                 }
                 
-                // Ocultar botón de completar pago
-                btnCompletarPago.style.display = 'none';
+                // Cambiar botón a "Ver Boleta" en lugar de ocultarlo
+                btnCompletarPago.textContent = 'Ver Boleta';
+                btnCompletarPago.className = 'btn-success'; // Cambiar a clase secundaria
+                btnCompletarPago.disabled = false;
+                btnCompletarPago.innerHTML = '<i class="fas fa-receipt"></i> Ver Boleta';
+                btnCompletarPago.onclick = () => generarBoletaElectronica(idReserva, montoTotal, reserva);
                 
                 // Generar boleta electrónica
                 await generarBoletaElectronica(idReserva, montoTotal, reserva);
@@ -1369,210 +1379,580 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 
-                // Crear documento HTML para la boleta
+                // Crear contenido HTML para la boleta
                 const boletaHTML = `
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <meta charset="UTF-8">
-                        <title>Boleta Electrónica - JW Marriott Hotel Lima</title>
-                        <style>
-                            body {
-                                font-family: Arial, sans-serif;
-                                margin: 0;
-                                padding: 20px;
-                                background: white;
-                            }
-                            .boleta-container {
-                                max-width: 800px;
-                                margin: 0 auto;
-                                border: 2px solid #333;
-                                padding: 30px;
-                            }
-                            .header {
-                                text-align: center;
-                                border-bottom: 2px solid #333;
-                                padding-bottom: 20px;
-                                margin-bottom: 20px;
-                            }
-                            .logo {
-                                width: 150px;
-                                margin-bottom: 10px;
-                            }
-                            .empresa-info {
-                                font-size: 12px;
-                                color: #666;
-                                margin-top: 10px;
-                            }
-                            .boleta-title {
-                                font-size: 24px;
-                                font-weight: bold;
-                                margin: 10px 0;
-                                color: #333;
-                            }
-                            .boleta-numero {
-                                font-size: 14px;
-                                color: #666;
-                            }
-                            .section {
-                                margin: 20px 0;
-                                padding: 15px;
-                                background: #f8f9fa;
-                                border-radius: 8px;
-                            }
-                            .section-title {
-                                font-weight: bold;
-                                font-size: 16px;
-                                margin-bottom: 10px;
-                                color: #333;
-                            }
-                            .info-row {
-                                display: flex;
-                                justify-content: space-between;
-                                margin: 8px 0;
-                                font-size: 14px;
-                            }
-                            .info-label {
-                                font-weight: bold;
-                                color: #666;
-                            }
-                            .info-value {
-                                color: #333;
-                            }
-                            .total-section {
-                                background: #28a745;
-                                color: white;
-                                padding: 20px;
-                                border-radius: 8px;
-                                margin-top: 20px;
-                            }
-                            .total-label {
-                                font-size: 18px;
-                                font-weight: bold;
-                            }
-                            .total-amount {
-                                font-size: 32px;
-                                font-weight: bold;
-                                text-align: right;
-                            }
-                            .footer {
-                                text-align: center;
-                                margin-top: 30px;
-                                padding-top: 20px;
-                                border-top: 2px solid #333;
-                                font-size: 12px;
-                                color: #666;
-                            }
-                            .stamp {
-                                text-align: center;
-                                margin: 20px 0;
-                                padding: 10px;
-                                border: 2px dashed #28a745;
-                                border-radius: 8px;
-                                color: #28a745;
-                                font-weight: bold;
-                            }
-                            @media print {
-                                body { padding: 0; }
-                                .boleta-container { border: none; }
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="boleta-container">
-                            <!-- Header con logo -->
-                            <div class="header">
-                                <img src="/img/logooo.png" alt="JW Marriott Hotel Lima" class="logo" onerror="this.style.display='none'">
-                                <div class="boleta-title">BOLETA ELECTRÓNICA</div>
-                                <div class="boleta-numero">N° ${String(idReserva).padStart(8, '0')}</div>
-                                <div class="empresa-info">
-                                    <strong>JW Marriott Hotel Lima</strong><br>
-                                    RUC: 20123456789<br>
-                                    Av. Malecón de la Reserva 615, Miraflores, Lima, Perú<br>
-                                    Teléfono: (01) 217-7000 | Email: info@jwmarriottlima.com
-                                </div>
-                            </div>
-                            
-                            <!-- Información del Cliente -->
-                            <div class="section">
-                                <div class="section-title">DATOS DEL CLIENTE</div>
-                                <div class="info-row">
-                                    <span class="info-label">Nombre:</span>
-                                    <span class="info-value">${usuarioActual?.nombre || 'N/A'}</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Email:</span>
-                                    <span class="info-value">${usuarioActual?.email || 'N/A'}</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Fecha de Emisión:</span>
-                                    <span class="info-value">${new Date().toLocaleString('es-ES', { timeZone: 'America/Lima' })}</span>
-                                </div>
-                            </div>
-                            
-                            <!-- Detalles de la Reserva -->
-                            <div class="section">
-                                <div class="section-title">DETALLES DE LA RESERVA</div>
-                                <div class="info-row">
-                                    <span class="info-label">Habitación:</span>
-                                    <span class="info-value">${reserva.habitacion || 'N/A'}</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Categoría:</span>
-                                    <span class="info-value">${reserva.categoria || 'N/A'}</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Check-in:</span>
-                                    <span class="info-value">${new Date(datosReserva.checkin || reserva.checkin).toLocaleString('es-ES', { timeZone: 'America/Lima' })}</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Check-out:</span>
-                                    <span class="info-value">${new Date(datosReserva.checkout || reserva.checkout).toLocaleString('es-ES', { timeZone: 'America/Lima' })}</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Estado:</span>
-                                    <span class="info-value">${reserva.estado || 'Confirmada'}</span>
-                                </div>
-                            </div>
-                            
-                            <!-- Sello de pago completo -->
-                            <div class="stamp">
-                                ✓ PAGO COMPLETO REALIZADO
-                            </div>
-                            
-                            <!-- Total -->
-                            <div class="total-section">
-                                <div class="total-label">MONTO TOTAL PAGADO</div>
-                                <div class="total-amount">S/ ${montoTotal.toFixed(2)}</div>
-                            </div>
-                            
-                            <!-- Footer -->
-                            <div class="footer">
-                                <p>Este documento constituye un comprobante de pago válido.</p>
-                                <p>Gracias por su preferencia. ¡Esperamos que disfrute su estadía!</p>
-                                <p><strong>JW Marriott Hotel Lima</strong> - Excelencia en Hospitalidad</p>
-                            </div>
+                    <div class="boleta-header">
+                        <div class="boleta-title">BOLETA ELECTRÓNICA</div>
+                        <div class="boleta-numero">N° ${String(idReserva).padStart(8, '0')}</div>
+                        <div class="empresa-info">
+                            <strong>JW Marriott Hotel Lima</strong><br>
+                            RUC: 20123456789<br>
+                            Av. Malecón de la Reserva 615, Miraflores, Lima, Perú<br>
+                            Teléfono: (01) 217-7000 | Email: info@jwmarriottlima.com
                         </div>
-                    </body>
-                    </html>
+                    </div>
+                    
+                    <!-- Información del Cliente -->
+                    <div class="boleta-section">
+                        <div class="section-title">DATOS DEL CLIENTE</div>
+                        <div class="info-row">
+                            <span class="info-label">Nombre:</span>
+                            <span class="info-value">${usuarioActual?.nombre || 'N/A'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Email:</span>
+                            <span class="info-value">${usuarioActual?.email || 'N/A'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Fecha de Emisión:</span>
+                            <span class="info-value">${new Date().toLocaleString('es-ES', { timeZone: 'America/Lima' })}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Detalles de la Reserva -->
+                    <div class="boleta-section">
+                        <div class="section-title">DETALLES DE LA RESERVA</div>
+                        <div class="info-row">
+                            <span class="info-label">Habitación:</span>
+                            <span class="info-value">${reserva.habitacion || 'N/A'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Categoría:</span>
+                            <span class="info-value">${reserva.categoria || 'N/A'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Check-in:</span>
+                            <span class="info-value">${new Date(datosReserva.checkin || reserva.checkin).toLocaleString('es-ES', { timeZone: 'America/Lima' })}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Check-out:</span>
+                            <span class="info-value">${new Date(datosReserva.checkout || reserva.checkout).toLocaleString('es-ES', { timeZone: 'America/Lima' })}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Estado:</span>
+                            <span class="info-value">${reserva.estado || 'Confirmada'}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Sello de pago completo -->
+                    <div class="boleta-stamp">
+                        ✓ PAGO COMPLETO REALIZADO
+                    </div>
+                    
+                    <!-- Total -->
+                    <div class="boleta-total">
+                        <div class="total-label">MONTO TOTAL PAGADO</div>
+                        <div class="total-amount">S/ ${montoTotal.toFixed(2)}</div>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div class="boleta-footer">
+                        <p>Este documento constituye un comprobante de pago válido.</p>
+                        <p>Gracias por su preferencia. ¡Esperamos que disfrute su estadía!</p>
+                        <p><strong>JW Marriott Hotel Lima</strong> - Excelencia en Hospitalidad</p>
+                    </div>
                 `;
                 
-                // Abrir en nueva ventana para imprimir
-                const ventanaBoleta = window.open('', '_blank');
-                ventanaBoleta.document.write(boletaHTML);
-                ventanaBoleta.document.close();
+                // Mostrar en el modal
+                const boletaContent = document.getElementById('boletaContent');
+                boletaContent.innerHTML = boletaHTML;
                 
-                // Esperar un momento y mostrar diálogo de impresión
-                setTimeout(() => {
-                    ventanaBoleta.print();
-                }, 500);
+                // Mostrar modal
+                openModal('boletaModal');
                 
-                alert('✓ Pago completado exitosamente. Se ha generado su boleta electrónica.');
+                // Configurar event listeners para los botones
+                configurarBotonesBoleta(idReserva, montoTotal, reserva, datosReserva);
                 
             } catch (error) {
                 console.error('Error generando boleta:', error);
                 alert('Pago completado, pero hubo un error al generar la boleta. Por favor, contacte con recepción.');
             }
+        }
+
+        // Función para configurar los botones del modal de boleta
+        function configurarBotonesBoleta(idReserva, montoTotal, reserva, datosReserva) {
+            const btnFormatoA5 = document.getElementById('btnFormatoA5');
+            const btnFormatoTicket = document.getElementById('btnFormatoTicket');
+            const btnImprimir = document.getElementById('btnImprimirBoleta');
+            const btnCerrar = document.getElementById('btnCerrarBoleta');
+            
+            // Crear objeto datosBoleta
+            const datosBoleta = {
+                hotel: "JW Marriott Hotel Lima",
+                ruc: "20123456789",
+                direccion: "Av. Malecón de la Reserva 615, Miraflores, Lima, Perú",
+                telefono: "(01) 217-7000",
+                email: "info@jwmarriottlima.com",
+                numeroBoleta: String(idReserva).padStart(8, '0'),
+                fechaEmision: new Date().toLocaleString('es-ES', { timeZone: 'America/Lima' }),
+                cliente: {
+                    nombre: usuarioActual?.nombre || 'N/A',
+                    email: usuarioActual?.email || 'N/A'
+                },
+                reserva: {
+                    habitacion: reserva.habitacion,
+                    categoria: reserva.categoria,
+                    checkin: new Date(datosReserva.checkin || reserva.checkin).toLocaleString('es-ES', { timeZone: 'America/Lima' }),
+                    checkout: new Date(datosReserva.checkout || reserva.checkout).toLocaleString('es-ES', { timeZone: 'America/Lima' }),
+                    estado: reserva.estado || 'Confirmada'
+                },
+                total: montoTotal.toFixed(2)
+            };
+            
+            // Mostrar formato A5 inicialmente
+            mostrarBoletaA5(datosBoleta);
+            
+            // Event listeners
+            btnFormatoA5.addEventListener('click', () => {
+                mostrarBoletaA5(datosBoleta);
+            });
+            
+            btnFormatoTicket.addEventListener('click', () => {
+                mostrarBoletaTicket(datosBoleta);
+            });
+            
+            btnImprimir.addEventListener('click', () => {
+                imprimirBoleta(datosBoleta);
+            });
+            
+            btnCerrar.addEventListener('click', () => {
+                closeModal('boletaModal');
+            });
+        }
+
+        // Función para mostrar boleta en formato A5
+        function mostrarBoletaA5(datosBoleta) {
+            const boletaContent = document.getElementById('boletaContent');
+            boletaContent.className = 'boleta-content boleta-a5';
+            
+            const boletaHTML = `
+                <div class="boleta-header">
+                    <div class="boleta-logo">
+                        <img src="/img/logo_2.png" alt="Logo JW Marriott" style="max-width: 120px; height: auto;">
+                    </div>
+                    <div class="boleta-title">BOLETA ELECTRÓNICA</div>
+                    <div class="boleta-numero">N° ${datosBoleta.numeroBoleta}</div>
+                    <div class="empresa-info">
+                        <strong>${datosBoleta.hotel}</strong><br>
+                        RUC: ${datosBoleta.ruc}<br>
+                        ${datosBoleta.direccion}<br>
+                        Teléfono: ${datosBoleta.telefono} | Email: ${datosBoleta.email}
+                    </div>
+                </div>
+                
+                <!-- Información del Cliente -->
+                <div class="boleta-section">
+                    <div class="section-title">DATOS DEL CLIENTE</div>
+                    <div class="info-row">
+                        <span class="info-label">Nombre:</span>
+                        <span class="info-value">${datosBoleta.cliente.nombre}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Email:</span>
+                        <span class="info-value">${datosBoleta.cliente.email}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Fecha de Emisión:</span>
+                        <span class="info-value">${datosBoleta.fechaEmision}</span>
+                    </div>
+                </div>
+                
+                <!-- Detalles de la Reserva -->
+                <div class="boleta-section">
+                    <div class="section-title">DETALLES DE LA RESERVA</div>
+                    <div class="info-row">
+                        <span class="info-label">Habitación:</span>
+                        <span class="info-value">${datosBoleta.reserva.habitacion}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Categoría:</span>
+                        <span class="info-value">${datosBoleta.reserva.categoria}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Check-in:</span>
+                        <span class="info-value">${datosBoleta.reserva.checkin}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Check-out:</span>
+                        <span class="info-value">${datosBoleta.reserva.checkout}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Estado:</span>
+                        <span class="info-value">${datosBoleta.reserva.estado}</span>
+                    </div>
+                </div>
+                
+                <!-- Sello de pago completo -->
+                <div class="boleta-stamp">
+                    ✓ PAGO COMPLETO REALIZADO
+                </div>
+                
+                <!-- Total -->
+                <div class="boleta-total">
+                    <div class="total-label">MONTO TOTAL PAGADO</div>
+                    <div class="total-amount">S/ ${datosBoleta.total}</div>
+                </div>
+                
+                <!-- Footer -->
+                <div class="boleta-footer">
+                    <p>Este documento constituye un comprobante de pago válido.</p>
+                    <p>Gracias por su preferencia. ¡Esperamos que disfrute su estadía!</p>
+                    <p><strong>${datosBoleta.hotel}</strong> - Excelencia en Hospitalidad</p>
+                </div>
+            `;
+            
+            boletaContent.innerHTML = boletaHTML;
+        }
+
+        // Función para mostrar boleta en formato Ticket
+        function mostrarBoletaTicket(datosBoleta) {
+            const boletaContent = document.getElementById('boletaContent');
+            boletaContent.className = 'boleta-content boleta-ticket';
+            
+            const boletaHTML = `
+                <div class="boleta-header">
+                    <div class="boleta-logo">
+                        <img src="/img/logo_2.png" alt="Logo JW Marriott" style="max-width: 80px; height: auto;">
+                    </div>
+                    <div class="boleta-title">BOLETA ELECTRÓNICA</div>
+                    <div class="boleta-numero">N° ${datosBoleta.numeroBoleta}</div>
+                    <div class="empresa-info">
+                        <strong>${datosBoleta.hotel}</strong><br>
+                        RUC: ${datosBoleta.ruc}<br>
+                        ${datosBoleta.direccion}<br>
+                        Tel: ${datosBoleta.telefono}
+                    </div>
+                </div>
+                
+                <!-- Información del Cliente -->
+                <div class="boleta-section">
+                    <div class="section-title">CLIENTE</div>
+                    <div class="info-row">
+                        <span class="info-label">Nombre:</span>
+                        <span class="info-value">${datosBoleta.cliente.nombre}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Email:</span>
+                        <span class="info-value">${datosBoleta.cliente.email}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Fecha:</span>
+                        <span class="info-value">${datosBoleta.fechaEmision}</span>
+                    </div>
+                </div>
+                
+                <!-- Detalles de la Reserva -->
+                <div class="boleta-section">
+                    <div class="section-title">DETALLES</div>
+                    <div class="info-row">
+                        <span class="info-label">Hab:</span>
+                        <span class="info-value">${datosBoleta.reserva.habitacion}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Cat:</span>
+                        <span class="info-value">${datosBoleta.reserva.categoria}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Check-in:</span>
+                        <span class="info-value">${datosBoleta.reserva.checkin}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Check-out:</span>
+                        <span class="info-value">${datosBoleta.reserva.checkout}</span>
+                    </div>
+                </div>
+                
+                <!-- Sello de pago completo -->
+                <div class="boleta-stamp">
+                    ✓ PAGO COMPLETO
+                </div>
+                
+                <!-- Total -->
+                <div class="boleta-total">
+                    <div class="total-label">TOTAL PAGADO</div>
+                    <div class="total-amount">S/ ${datosBoleta.total}</div>
+                </div>
+                
+                <!-- Footer -->
+                <div class="boleta-footer">
+                    <p>Comprobante válido - Gracias por su preferencia</p>
+                    <p><strong>${datosBoleta.hotel}</strong></p>
+                </div>
+            `;
+            
+            boletaContent.innerHTML = boletaHTML;
+        }
+
+        // Función para imprimir la boleta
+        function imprimirBoleta(datosBoleta) {
+            const formato = document.getElementById('boletaContent').classList.contains('boleta-ticket') ? 'ticket' : 'a5';
+            
+            const boletaHTML = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Boleta Electrónica - ${datosBoleta.hotel}</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            margin: 0;
+                            padding: 10px;
+                            background: white;
+                        }
+                        .boleta-container {
+                            ${formato === 'ticket' ? 
+                                'width: 80mm; max-width: 80mm; font-size: 10px;' : 
+                                'width: 148mm; max-width: 148mm; font-size: 12px;'
+                            }
+                            margin: 0 auto;
+                            border: 1px solid #333;
+                            padding: 10px;
+                        }
+                        .boleta-header {
+                            text-align: center;
+                            background: #000;
+                            color: white;
+                            padding: 8px;
+                            margin: -10px -10px 10px -10px;
+                            border-bottom: 2px solid #333;
+                        }
+                        .boleta-title {
+                            font-size: ${formato === 'ticket' ? '14px' : '18px'};
+                            font-weight: bold;
+                            margin: 5px 0;
+                        }
+                        .boleta-numero {
+                            font-size: ${formato === 'ticket' ? '10px' : '12px'};
+                            margin-bottom: 5px;
+                        }
+                        .empresa-info {
+                            font-size: ${formato === 'ticket' ? '8px' : '10px'};
+                            line-height: 1.2;
+                            margin-top: 5px;
+                        }
+                        .boleta-section {
+                            margin: 8px 0;
+                            padding: 5px;
+                            background: #f8f9fa;
+                            border-radius: 4px;
+                        }
+                        .section-title {
+                            font-weight: bold;
+                            font-size: ${formato === 'ticket' ? '10px' : '12px'};
+                            margin-bottom: 5px;
+                            color: #333;
+                        }
+                        .info-row {
+                            display: flex;
+                            justify-content: space-between;
+                            margin: 3px 0;
+                            font-size: ${formato === 'ticket' ? '9px' : '11px'};
+                        }
+                        .info-label {
+                            font-weight: bold;
+                            color: #666;
+                        }
+                        .info-value {
+                            color: #333;
+                        }
+                        .boleta-stamp {
+                            text-align: center;
+                            margin: 8px 0;
+                            padding: 5px;
+                            border: 1px dashed #28a745;
+                            border-radius: 4px;
+                            color: #28a745;
+                            font-weight: bold;
+                            font-size: ${formato === 'ticket' ? '9px' : '11px'};
+                        }
+                        .boleta-total {
+                            background: #28a745;
+                            color: white;
+                            padding: 8px;
+                            border-radius: 4px;
+                            margin: 10px 0;
+                            text-align: center;
+                        }
+                        .total-label {
+                            font-size: ${formato === 'ticket' ? '10px' : '14px'};
+                            font-weight: bold;
+                            margin-bottom: 5px;
+                        }
+                        .total-amount {
+                            font-size: ${formato === 'ticket' ? '16px' : '24px'};
+                            font-weight: bold;
+                        }
+                        .boleta-footer {
+                            text-align: center;
+                            margin-top: 10px;
+                            padding-top: 8px;
+                            border-top: 1px solid #333;
+                            font-size: ${formato === 'ticket' ? '8px' : '10px'};
+                            color: #666;
+                            line-height: 1.2;
+                        }
+                        @media print {
+                            body { padding: 0; margin: 0; }
+                            .boleta-container { border: none; margin: 0; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="boleta-container">
+                        ${formato === 'ticket' ? 
+                            // Formato Ticket
+                            `
+                            <div class="boleta-header">
+                                <div class="boleta-logo">
+                                    <img src="/img/logo_2.png" alt="Logo JW Marriott" style="max-width: 80px; height: auto;">
+                                </div>
+                                <div class="boleta-title">BOLETA ELECTRÓNICA</div>
+                                <div class="boleta-numero">N° ${datosBoleta.numeroBoleta}</div>
+                                <div class="empresa-info">
+                                    <strong>${datosBoleta.hotel}</strong><br>
+                                    RUC: ${datosBoleta.ruc}<br>
+                                    ${datosBoleta.direccion}<br>
+                                    Tel: ${datosBoleta.telefono}
+                                </div>
+                            </div>
+                            
+                            <div class="boleta-section">
+                                <div class="section-title">CLIENTE</div>
+                                <div class="info-row">
+                                    <span class="info-label">Nombre:</span>
+                                    <span class="info-value">${datosBoleta.cliente.nombre}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Email:</span>
+                                    <span class="info-value">${datosBoleta.cliente.email}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Fecha:</span>
+                                    <span class="info-value">${datosBoleta.fechaEmision}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="boleta-section">
+                                <div class="section-title">DETALLES</div>
+                                <div class="info-row">
+                                    <span class="info-label">Hab:</span>
+                                    <span class="info-value">${datosBoleta.reserva.habitacion}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Cat:</span>
+                                    <span class="info-value">${datosBoleta.reserva.categoria}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Check-in:</span>
+                                    <span class="info-value">${datosBoleta.reserva.checkin}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Check-out:</span>
+                                    <span class="info-value">${datosBoleta.reserva.checkout}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="boleta-stamp">
+                                ✓ PAGO COMPLETO
+                            </div>
+                            
+                            <div class="boleta-total">
+                                <div class="total-label">TOTAL PAGADO</div>
+                                <div class="total-amount">S/ ${datosBoleta.total}</div>
+                            </div>
+                            
+                            <div class="boleta-footer">
+                                <p>Comprobante válido - Gracias por su preferencia</p>
+                                <p><strong>${datosBoleta.hotel}</strong></p>
+                            </div>
+                            ` :
+                            // Formato A5
+                            `
+                            <div class="boleta-header">
+                                <div class="boleta-logo">
+                                    <img src="/img/logo_2.png" alt="Logo JW Marriott" style="max-width: 120px; height: auto;">
+                                </div>
+                                <div class="boleta-title">BOLETA ELECTRÓNICA</div>
+                                <div class="boleta-numero">N° ${datosBoleta.numeroBoleta}</div>
+                                <div class="empresa-info">
+                                    <strong>${datosBoleta.hotel}</strong><br>
+                                    RUC: ${datosBoleta.ruc}<br>
+                                    ${datosBoleta.direccion}<br>
+                                    Teléfono: ${datosBoleta.telefono} | Email: ${datosBoleta.email}
+                                </div>
+                            </div>
+                            
+                            <div class="boleta-section">
+                                <div class="section-title">DATOS DEL CLIENTE</div>
+                                <div class="info-row">
+                                    <span class="info-label">Nombre:</span>
+                                    <span class="info-value">${datosBoleta.cliente.nombre}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Email:</span>
+                                    <span class="info-value">${datosBoleta.cliente.email}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Fecha de Emisión:</span>
+                                    <span class="info-value">${datosBoleta.fechaEmision}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="boleta-section">
+                                <div class="section-title">DETALLES DE LA RESERVA</div>
+                                <div class="info-row">
+                                    <span class="info-label">Habitación:</span>
+                                    <span class="info-value">${datosBoleta.reserva.habitacion}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Categoría:</span>
+                                    <span class="info-value">${datosBoleta.reserva.categoria}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Check-in:</span>
+                                    <span class="info-value">${datosBoleta.reserva.checkin}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Check-out:</span>
+                                    <span class="info-value">${datosBoleta.reserva.checkout}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Estado:</span>
+                                    <span class="info-value">${datosBoleta.reserva.estado}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="boleta-stamp">
+                                ✓ PAGO COMPLETO REALIZADO
+                            </div>
+                            
+                            <div class="boleta-total">
+                                <div class="total-label">MONTO TOTAL PAGADO</div>
+                                <div class="total-amount">S/ ${datosBoleta.total}</div>
+                            </div>
+                            
+                            <div class="boleta-footer">
+                                <p>Este documento constituye un comprobante de pago válido.</p>
+                                <p>Gracias por su preferencia. ¡Esperamos que disfrute su estadía!</p>
+                                <p><strong>${datosBoleta.hotel}</strong> - Excelencia en Hospitalidad</p>
+                            </div>
+                            `
+                        }
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            // Abrir en nueva ventana para imprimir
+            const ventanaBoleta = window.open('', '_blank');
+            ventanaBoleta.document.write(boletaHTML);
+            ventanaBoleta.document.close();
+            
+            // Esperar un momento y mostrar diálogo de impresión
+            setTimeout(() => {
+                ventanaBoleta.print();
+            }, 500);
         }
 
         // Manejar el envío del formulario de reclamo desde el modal de detalles
