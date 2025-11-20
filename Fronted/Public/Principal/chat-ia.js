@@ -187,7 +187,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     const btn = document.createElement('button');
                     btn.className = 'btn-check';
-                    btn.innerHTML = '✓';
                     btn.title = 'Seleccionar habitación';
                     btn.onclick = () => {
                         // Cerrar el modal del chat
@@ -251,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p>${habitacion.categoria}</p>
                         <p>S/ ${habitacion.precio_por_dia}/día</p>
                     </div>
-                    <button class="btn-check" onclick="window.location.href='/Fronted/Public/Principal/habitaciones.html?room=${habitacion.id_habitacion}'" title="Seleccionar habitación">✓</button>
+                    <button class="btn-check" onclick="seleccionarHabitacionChat(${habitacion.id_habitacion}, 'Habitación ${habitacion.numero_habitacion}')" title="Seleccionar habitación">✓</button>
                 </div>
             `;
         });
@@ -259,6 +258,22 @@ document.addEventListener('DOMContentLoaded', () => {
         html += '<p style="margin-top: 10px; font-size: 0.9em;">Haz clic en ✓ para seleccionar la habitación y proceder con la reserva.</p>';
         return { html };
     }
+
+    // Función global para manejar la selección de habitación desde el chat
+    window.seleccionarHabitacionChat = function(habitacionId, nombreHabitacion) {
+        // Cerrar el modal del chat
+        const chatModal = document.getElementById('chatModal');
+        const chatBotButton = document.getElementById('chatBotButton');
+        if (chatModal) chatModal.classList.remove('active');
+        if (chatBotButton) chatBotButton.style.display = 'block';
+        
+        // Llamar a la función de reserva que abre el modal
+        if (window.reservarHabitacion) {
+            window.reservarHabitacion(habitacionId, nombreHabitacion);
+        } else {
+            alert('Error: No se pudo abrir el modal de reserva. Por favor, recarga la página.');
+        }
+    };
 
     if (sendChatBtn) sendChatBtn.addEventListener('click', enviarPregunta);
     if (chatInput) {

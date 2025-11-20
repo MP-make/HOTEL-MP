@@ -668,6 +668,9 @@ document.addEventListener('DOMContentLoaded', () => {
             openModal('reservaModal');
         }
 
+        // Hacer la función disponible globalmente para el chat
+        window.reservarHabitacion = reservarHabitacion;
+
         // Función para manejar la reserva
         async function manejarReserva(e) {
             e.preventDefault();
