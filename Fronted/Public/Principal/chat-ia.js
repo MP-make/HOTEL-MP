@@ -9,8 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatMessages = document.getElementById('chatMessages');
 
     let chatState = {
-        step: 'initial', // initial, asking_type, asking_dates, showing_rooms
-        preferences: {}
+        step: 'initial', // initial, asking_type, asking_dates, showing_rooms, confirming_reservation
+        preferences: {},
+        lastOfferedRoom: null // Para recordar la habitación que se ofreció específicamente
     };
 
     function actualizarVisibilidadChatbot() {
@@ -63,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function resetChatState() {
-        chatState = { step: 'initial', preferences: {} };
+        chatState = { step: 'initial', preferences: {}, lastOfferedRoom: null };
     }
 
     function agregarMensaje(texto, tipo) {
@@ -126,6 +127,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleConversation(pregunta, token) {
         const lowerPregunta = pregunta.toLowerCase();
+
+        // Check for reservation confirmation in any state
+        if (lowerPregunta.includes('si') && (lowerPregunta.includes('reservar') || lowerPregunta.includes('quiero') || lowerPregunta.includes('confirmar'))) {
+            // User wants to reserve, proceed to show available rooms
+            chatState.step = 'showing_rooms';
+            // If we don't have preferences, do a general search
+            if (!chatState.preferences.type || !chatState.preferences.dates) {
+                chatState.preferences.type = 'todas'; // Default to all types
+                chatState.preferences.dates = 'hoy'; // Default to today
+            }
+            return await searchAndShowRooms(token);
+        }
 
         // Check if user wants to search for rooms
         if (lowerPregunta.includes('habitacion') || lowerPregunta.includes('reserva') || lowerPregunta.includes('alojamiento') || lowerPregunta.includes('hospedaje')) {
