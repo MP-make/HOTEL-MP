@@ -1999,6 +1999,30 @@ app.post("/api/chat", authenticateToken, async (req, res) => {
     return res.json({ respuesta: "¡Hola! Bienvenido a HotelBot. ¿En qué puedo ayudarte hoy?" });
   }
 
+  // Detectar preguntas sobre habitaciones
+  const keywordsHabitaciones = ['habitación', 'habitaciones', 'reservar', 'disponible', 'disponibles', 'ver habitaciones', 'mostrar habitaciones', 'quiero reservar', 'buscar habitación'];
+  const isAboutHabitaciones = keywordsHabitaciones.some(keyword => preguntaLower.includes(keyword));
+
+  if (isAboutHabitaciones) {
+    try {
+      // Obtener habitaciones disponibles
+      const habitacionesResult = await queryWithRetry(
+        `SELECT h.id_habitacion, h.numero_habitacion, h.piso, h.capacidad, h.precio_por_dia, h.precio_por_hora, h.disponible, c.nombre AS categoria,
+                COALESCE(ARRAY_AGG(f.ruta_foto) FILTER (WHERE f.ruta_foto IS NOT NULL), '{}') AS fotos
+         FROM public.habitaciones h
+         INNER JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria
+         LEFT JOIN public.habitaciones_fotos f ON h.id_habitacion = f.id_habitacion
+         WHERE h.disponible = true
+         GROUP BY h.id_habitacion, c.nombre
+         ORDER BY h.numero_habitacion ASC
+         LIMIT 3`
+      );
+      return res.json({ respuesta: "Aquí tienes las habitaciones disponibles:", habitaciones: habitacionesResult.rows });
+    } catch (err) {
+      console.error('Error obteniendo habitaciones:', err);
+      return res.json({ respuesta: "Lo siento, no pude obtener las habitaciones disponibles en este momento." });
+    }
+  }
 
   try {
     // Paso B: Buscar contexto relevante en faq_hotel

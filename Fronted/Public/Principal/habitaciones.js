@@ -379,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Función para reservar habitación
-    function reservarHabitacion(habitacionId, nombreHabitacion) {
+    window.reservarHabitacion = function reservarHabitacion(habitacionId, nombreHabitacion) {
         if (!usuarioActual) {
             alert('Debe iniciar sesión para realizar una reserva');
             openModal('loginModal');
@@ -722,6 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const checkout = urlParams.get('checkout');
         const huespedes = urlParams.get('huespedes');
         const categoria = urlParams.get('categoria');
+        const roomId = urlParams.get('room');
         
         if (checkin) document.getElementById('fechaCheckin').value = checkin;
         if (checkout) document.getElementById('fechaCheckout').value = checkout;
@@ -732,6 +733,18 @@ document.addEventListener('DOMContentLoaded', () => {
             filtrarHabitaciones();
         } else {
             mostrarHabitaciones(habitacionesData); // Mostrar todas inicialmente
+        }
+
+        // Si hay parámetro 'room', abrir modal de reserva para esa habitación
+        if (roomId) {
+            const habitacionId = parseInt(roomId);
+            const habitacion = habitacionesData.find(h => h.id_habitacion === habitacionId);
+            if (habitacion) {
+                // Esperar un poco para que se carguen los datos
+                setTimeout(() => {
+                    reservarHabitacion(habitacionId, `Habitación ${habitacion.numero_habitacion}`);
+                }, 500);
+            }
         }
     }
 
