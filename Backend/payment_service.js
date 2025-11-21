@@ -42,9 +42,9 @@ async function actualizarEstadosReservas() {
             )
         `);
         
-        console.log('✅ Estados de reservas actualizados automáticamente');
+        console.log('Estados de reservas actualizados automáticamente');
     } catch (error) {
-        console.error('❌ Error actualizando estados:', error);
+        console.error('Error actualizando estados:', error);
     } finally {
         client.release();
     }

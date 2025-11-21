@@ -21,27 +21,27 @@ async function createCategories() {
           'INSERT INTO categorias_habitaciones (nombre) VALUES ($1) RETURNING id_categoria, nombre',
           [categoria.nombre]
         );
-        console.log(`✅ Categoría creada: ${result.rows[0].nombre} (ID: ${result.rows[0].id_categoria})`);
+        console.log(`Categoría creada: ${result.rows[0].nombre} (ID: ${result.rows[0].id_categoria})`);
       } catch (err) {
         if (err.code === '23505') { // duplicate key error
-          console.log(`ℹ️  Categoría '${categoria.nombre}' ya existe, omitiendo...`);
+          console.log(`ℹCategoría '${categoria.nombre}' ya existe, omitiendo...`);
         } else {
-          console.error(`❌ Error creando categoría '${categoria.nombre}':`, err.message);
+          console.error(`Error creando categoría '${categoria.nombre}':`, err.message);
         }
       }
     }
 
     // Verificar categorías existentes
     const { rows } = await pool.query('SELECT * FROM categorias_habitaciones ORDER BY id_categoria');
-    console.log('\n📋 Categorías disponibles:');
+    console.log('\n Categorías disponibles:');
     rows.forEach(cat => {
       console.log(`   - ID ${cat.id_categoria}: ${cat.nombre}`);
     });
 
-    console.log('\n✅ Proceso completado.');
+    console.log('\n Proceso completado.');
 
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error('Error:', error.message);
   } finally {
     await pool.end();
   }

@@ -263,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
             r.estado_reserva !== 'cancelada' &&
             r.estado_reserva !== 'completada'
         );
-        
+        //¡IMPORTANTE! Considerar 12 horas de limpieza después del checkout
         for (const reserva of reservasHabitacion) {
             const resCheckin = new Date(reserva.fecha_checkin);
             const resCheckout = new Date(reserva.fecha_checkout);
@@ -348,9 +348,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return `
                 <div class="habitacion-card">
                     <img src="${imagenSrc}" 
-                         alt="Habitación ${habitacion.numero_habitacion}" 
-                         class="habitacion-imagen"
-                         onerror="this.src='https://images.unsplash.com/photo-1590490360182-c33d57733427?w=400'">
+                        alt="Habitación ${habitacion.numero_habitacion}" 
+                        class="habitacion-imagen"
+                        onerror="this.src='https://images.unsplash.com/photo-1590490360182-c33d57733427?w=400'">
                     <div class="habitacion-info">
                         <h3 class="habitacion-titulo">Habitación ${habitacion.numero_habitacion}</h3>
                         <p class="habitacion-descripcion">${habitacion.categoria || 'Estándar'} - Piso ${habitacion.piso || 'N/A'} - Capacidad ${habitacion.capacidad || 2} personas</p>
@@ -401,7 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (reservaExistente) {
                 // MOSTRAR ALERTA informando que ya tiene una reserva de esta habitación
-                alert(`⚠️ Ya tienes una reserva activa de esta habitación.\n\nReserva #${reservaExistente.id_reserva}\nHabitación ${reservaExistente.numero_habitacion}\nEstado: ${reservaExistente.estado_reserva}\n\nNo puedes reservar la misma habitación dos veces.\n\nPuedes ver los detalles en "Mis Reservas"`);
+                alert(`Ya tienes una reserva activa de esta habitación.\n\nReserva #${reservaExistente.id_reserva}\nHabitación ${reservaExistente.numero_habitacion}\nEstado: ${reservaExistente.estado_reserva}\n\nNo puedes reservar la misma habitación dos veces.\n\nPuedes ver los detalles en "Mis Reservas"`);
                 return; // NO abrir el modal de reserva
             }
         }
@@ -565,7 +565,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dias: dias
         };
         
-        console.log('✅ Datos de reserva (hora exacta del cliente):', {
+        console.log('Datos de reserva (hora exacta del cliente):', {
             checkin: checkin + ':00-05:00',
             checkout: checkout + ':00-05:00'
         });
