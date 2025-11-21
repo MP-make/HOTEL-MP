@@ -1860,11 +1860,12 @@ app.get("/api/encargado/reservas/stream", authenticateToken, requireEncargado, (
 const paymentService = require('./payment_service');
 
 // Iniciar actualizador automático de estados (cada 5 minutos)
-setInterval(() => {
-  paymentService.actualizarEstadosReservas().catch(err => {
-    console.error('Error en actualizador automático:', err);
-  });
-}, 5 * 60 * 1000);
+// DESACTIVADO TEMPORALMENTE: Error de conexión a DB Supabase
+// setInterval(() => {
+//   paymentService.actualizarEstadosReservas().catch(err => {
+//     console.error('Error en actualizador automático:', err);
+//   });
+// }, 5 * 60 * 1000);
 
 /**
  * @route POST /api/pagos/procesar
