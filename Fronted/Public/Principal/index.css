@@ -365,6 +365,10 @@ Header y Navegación
     display: inline;
 }
 
+
+.btnCompletarPago .btn-success{
+    align-items: center;
+}
 .btn-icon {
     background: none;
     border: none;

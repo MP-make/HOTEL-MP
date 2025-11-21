@@ -514,22 +514,59 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('detalleFechaCheckout').textContent = checkout;
         document.getElementById('detalleFechaCreacion').textContent = fechaCreacion;
         
-        // Obtener datos de pagos
-        obtenerDatosPagos(reserva.id_reserva).then(pagos => {
-            document.getElementById('detallePagado').textContent = `S/ ${pagos.totalPagado.toFixed(2)}`;
-            document.getElementById('detalleFaltaPagar').textContent = `S/ ${pagos.faltaPagar.toFixed(2)}`;
-        });
-        
         const fotoSrc = reserva.fotos && reserva.fotos.length > 0 
             ? (reserva.fotos[0].startsWith('/') ? reserva.fotos[0] : '/img/habitaciones/' + encodeURIComponent(reserva.fotos[0])) 
             : 'https://source.unsplash.com/featured/?luxury-hotel-room';
         document.getElementById('detalleHabitacionImagen').src = fotoSrc;
         
         document.getElementById('reclamoHabitacionId').value = reserva.id_habitacion;
+        document.getElementById('reclamoReservaId').value = reserva.id_reserva;
         
         // Limpiar formulario de reclamo
         document.getElementById('reclamoReservaForm').reset();
         document.getElementById('reclamoMessage').textContent = '';
+        
+        // Obtener datos de pagos
+        obtenerDatosPagos(reserva.id_reserva).then(pagos => {
+            const pagado = pagos.totalPagado || 0;
+            const total = pagos.totalReserva || 0;
+            const falta = total - pagado;
+            
+            // Actualizar valores
+            document.getElementById('detallePagado').textContent = `S/ ${pagado.toFixed(2)}`;
+            document.getElementById('detalleFaltaPagar').textContent = `S/ ${falta.toFixed(2)}`;
+            document.getElementById('detalleTotal').textContent = `S/ ${total.toFixed(2)}`;
+            
+            // Actualizar barra de progreso
+            const porcentajePagado = total > 0 ? (pagado / total) * 100 : 0;
+            const progressFill = document.getElementById('pagoProgressFill');
+            if (progressFill) {
+                progressFill.style.width = '0%';
+                setTimeout(() => {
+                    progressFill.style.width = `${porcentajePagado}%`;
+                }, 100);
+            }
+            
+            // CORREGIDO: Asignar onclick correctamente a los botones
+            const btnPago = document.getElementById('btnCompletarPago');
+            if (btnPago) {
+                if (falta > 0.01) {
+                    btnPago.style.display = 'block';
+                    btnPago.textContent = 'Completar Pago';
+                    btnPago.className = 'btn-completar-pago';
+                    // IMPORTANTE: Asignar onclick para abrir modal de confirmación
+                    btnPago.onclick = () => mostrarModalConfirmarPago(reserva.id_reserva, falta, total, pagado, reserva);
+                } else {
+                    btnPago.style.display = 'block';
+                    btnPago.textContent = 'Ver Boleta';
+                    btnPago.className = 'btn-success';
+                    // IMPORTANTE: Asignar onclick para generar boleta
+                    btnPago.onclick = () => generarBoletaElectronica(reserva.id_reserva, total, reserva);
+                }
+            }
+        }).catch(error => {
+            console.error('Error obteniendo datos de pagos:', error);
+        });
         
         // Mostrar modal
         document.getElementById('detallesReservaModal').style.display = 'block';
@@ -539,25 +576,382 @@ document.addEventListener('DOMContentLoaded', () => {
     async function obtenerDatosPagos(idReserva) {
         const token = localStorage.getItem('token');
         try {
-            const responseReserva = await fetch(`/api/cliente/reservas/${idReserva}`, {
+            const responseReserva = await fetch(`/api/cliente/reservas`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (!responseReserva.ok) throw new Error('Error al obtener reserva');
-            const reserva = await responseReserva.json();
-            const totalReserva = reserva.monto_total || 0;
+            
+            if (!responseReserva.ok) {
+                throw new Error('Error al obtener reservas');
+            }
+            
+            const todasReservas = await responseReserva.json();
+            const reserva = todasReservas.find(r => r.id_reserva === parseInt(idReserva));
+            
+            if (!reserva) {
+                throw new Error('Reserva no encontrada');
+            }
+            
+            const totalReserva = parseFloat(reserva.monto_total) || 0;
+            const totalPagado = parseFloat(reserva.monto_pagado) || 0;
 
-            const responsePagos = await fetch(`/api/pagos/reserva/${idReserva}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!responsePagos.ok) throw new Error('Error al obtener pagos');
-            const pagos = await responsePagos.json();
-            const totalPagado = pagos.reduce((sum, pago) => sum + parseFloat(pago.monto || 0), 0);
-
-            return { totalPagado, faltaPagar: totalReserva - totalPagado };
+            return { totalPagado, totalReserva };
         } catch (error) {
             console.error('Error obteniendo datos de pagos:', error);
-            return { totalPagado: 0, faltaPagar: 0 };
+            return { totalPagado: 0, totalReserva: 0 };
         }
+    }
+
+    // NUEVO: Función para completar el pago pendiente
+    async function completarPago(idReserva, montoPendiente, montoTotal, reserva) {
+        const token = localStorage.getItem('token');
+        const btnCompletarPago = document.getElementById('btnCompletarPago');
+        if (btnCompletarPago) {
+            btnCompletarPago.disabled = true;
+            btnCompletarPago.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+        }
+        
+        try {
+            const response = await fetch(`/api/pagos/procesar`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({
+                    id_reserva: idReserva,
+                    monto: montoPendiente,
+                    metodo_pago: 'tarjeta',
+                    tipo_pago: 'completo',
+                    comprobante: null
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Error al procesar pago');
+            }
+            
+            const pagoData = await response.json();
+            
+            // Actualizar la vista
+            document.getElementById('detallePagado').textContent = `S/ ${montoTotal.toFixed(2)}`;
+            document.getElementById('detalleFaltaPagar').textContent = `S/ 0.00`;
+            document.getElementById('detalleTotal').textContent = `S/ ${montoTotal.toFixed(2)}`;
+            
+            const progressFill = document.getElementById('pagoProgressFill');
+            if (progressFill) {
+                progressFill.style.width = '100%';
+            }
+            
+            if (btnCompletarPago) {
+                btnCompletarPago.textContent = 'Ver Boleta';
+                btnCompletarPago.className = 'btn-success';
+                btnCompletarPago.disabled = false;
+                btnCompletarPago.innerHTML = '<i class="fas fa-receipt"></i> Ver Boleta';
+                btnCompletarPago.onclick = () => generarBoletaElectronica(idReserva, montoTotal, reserva);
+            }
+            
+            await generarBoletaElectronica(idReserva, montoTotal, reserva);
+            
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al completar el pago: ' + error.message);
+            if (btnCompletarPago) {
+                btnCompletarPago.disabled = false;
+                btnCompletarPago.innerHTML = '<i class="fas fa-credit-card"></i> Completar Pago';
+            }
+        }
+    }
+    
+    // NUEVO: Función para mostrar modal de confirmación de pago
+    function mostrarModalConfirmarPago(idReserva, montoPendiente, montoTotal, yaPagado, reserva) {
+        document.getElementById('montoPendienteModal').textContent = `S/ ${montoPendiente.toFixed(2)}`;
+        document.getElementById('totalReservaModal').textContent = `S/ ${montoTotal.toFixed(2)}`;
+        document.getElementById('yaPagadoModal').textContent = `S/ ${yaPagado.toFixed(2)}`;
+        document.getElementById('pendientePagarModal').textContent = `S/ ${montoPendiente.toFixed(2)}`;
+        
+        document.getElementById('confirmarPagoCompletoModal').style.display = 'block';
+        
+        const btnConfirmar = document.getElementById('btnConfirmarPagoCompleto');
+        if (btnConfirmar) {
+            btnConfirmar.onclick = async () => {
+                document.getElementById('confirmarPagoCompletoModal').style.display = 'none';
+                await completarPago(idReserva, montoPendiente, montoTotal, reserva);
+            };
+        }
+        
+        const btnCancelar = document.getElementById('btnCancelarPagoCompleto');
+        if (btnCancelar) {
+            btnCancelar.onclick = () => {
+                document.getElementById('confirmarPagoCompletoModal').style.display = 'none';
+            };
+        }
+    }
+
+    // NUEVO: Función para generar boleta electrónica
+    async function generarBoletaElectronica(idReserva, montoTotal, reserva) {
+        try {
+            const token = localStorage.getItem('token');
+            
+            let datosReserva = reserva;
+            if (!datosReserva.fecha_checkin) {
+                const response = await fetch(`/api/cliente/reservas`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (response.ok) {
+                    const todasReservas = await response.json();
+                    datosReserva = todasReservas.find(r => r.id_reserva === parseInt(idReserva)) || reserva;
+                }
+            }
+            
+            const datosBoleta = {
+                hotel: "JW Marriott Hotel Lima",
+                ruc: "20123456789",
+                direccion: "Av. Malecón de la Reserva 615, Miraflores, Lima, Perú",
+                telefono: "(01) 217-7000",
+                email: "info@jwmarriottlima.com",
+                numeroBoleta: String(idReserva).padStart(8, '0'),
+                fechaEmision: new Date().toLocaleString('es-ES', { timeZone: 'America/Lima' }),
+                cliente: {
+                    nombre: usuarioActual?.nombre || 'N/A',
+                    email: usuarioActual?.email || 'N/A'
+                },
+                reserva: {
+                    habitacion: datosReserva.numero_habitacion,
+                    categoria: datosReserva.categoria,
+                    checkin: new Date(datosReserva.fecha_checkin).toLocaleString('es-ES', { timeZone: 'America/Lima' }),
+                    checkout: new Date(datosReserva.fecha_checkout).toLocaleString('es-ES', { timeZone: 'America/Lima' }),
+                    estado: datosReserva.estado_reserva || 'Confirmada'
+                },
+                total: montoTotal.toFixed(2)
+            };
+            
+            mostrarBoletaA5(datosBoleta);
+            document.getElementById('boletaModal').style.display = 'block';
+            configurarBotonesBoleta(idReserva, montoTotal, reserva, datosReserva);
+            
+        } catch (error) {
+            console.error('Error generando boleta:', error);
+            alert('Pago completado, pero hubo un error al generar la boleta.');
+        }
+    }
+
+    // NUEVO: Configurar botones del modal de boleta
+    function configurarBotonesBoleta(idReserva, montoTotal, reserva, datosReserva) {
+        const datosBoleta = {
+            hotel: "JW Marriott Hotel Lima",
+            ruc: "20123456789",
+            direccion: "Av. Malecón de la Reserva 615, Miraflores, Lima, Perú",
+            telefono: "(01) 217-7000",
+            email: "info@jwmarriottlima.com",
+            numeroBoleta: String(idReserva).padStart(8, '0'),
+            fechaEmision: new Date().toLocaleString('es-ES', { timeZone: 'America/Lima' }),
+            cliente: {
+                nombre: usuarioActual?.nombre || 'N/A',
+                email: usuarioActual?.email || 'N/A'
+            },
+            reserva: {
+                habitacion: datosReserva.numero_habitacion,
+                categoria: datosReserva.categoria,
+                checkin: new Date(datosReserva.fecha_checkin).toLocaleString('es-ES', { timeZone: 'America/Lima' }),
+                checkout: new Date(datosReserva.fecha_checkout).toLocaleString('es-ES', { timeZone: 'America/Lima' }),
+                estado: datosReserva.estado_reserva || 'Confirmada'
+            },
+            total: montoTotal.toFixed(2)
+        };
+        
+        const btnFormatoA5 = document.getElementById('btnFormatoA5');
+        const btnFormatoTicket = document.getElementById('btnFormatoTicket');
+        const btnImprimir = document.getElementById('btnImprimirBoleta');
+        const btnCerrar = document.getElementById('btnCerrarBoleta');
+        
+        if (btnFormatoA5) btnFormatoA5.onclick = () => mostrarBoletaA5(datosBoleta);
+        if (btnFormatoTicket) btnFormatoTicket.onclick = () => mostrarBoletaTicket(datosBoleta);
+        if (btnImprimir) btnImprimir.onclick = () => imprimirBoleta(datosBoleta);
+        if (btnCerrar) btnCerrar.onclick = () => document.getElementById('boletaModal').style.display = 'none';
+    }
+
+    // NUEVO: Mostrar boleta en formato A5
+    function mostrarBoletaA5(datosBoleta) {
+        const boletaContent = document.getElementById('boletaContent');
+        if (!boletaContent) return;
+        
+        boletaContent.className = 'boleta-content boleta-a5';
+        boletaContent.innerHTML = `
+            <div class="boleta-header">
+                <div class="boleta-logo">
+                    <img src="/img/logo_2.png" alt="Logo JW Marriott" style="max-width: 120px; height: auto;">
+                </div>
+                <div class="boleta-title">BOLETA ELECTRÓNICA</div>
+                <div class="boleta-numero">N° ${datosBoleta.numeroBoleta}</div>
+                <div class="empresa-info">
+                    <strong>${datosBoleta.hotel}</strong><br>
+                    RUC: ${datosBoleta.ruc}<br>
+                    ${datosBoleta.direccion}<br>
+                    Teléfono: ${datosBoleta.telefono} | Email: ${datosBoleta.email}
+                </div>
+            </div>
+            
+            <div class="boleta-section">
+                <div class="section-title">DATOS DEL CLIENTE</div>
+                <div class="info-row">
+                    <span class="info-label">Nombre:</span>
+                    <span class="info-value">${datosBoleta.cliente.nombre}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Email:</span>
+                    <span class="info-value">${datosBoleta.cliente.email}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Fecha de Emisión:</span>
+                    <span class="info-value">${datosBoleta.fechaEmision}</span>
+                </div>
+            </div>
+            
+            <div class="boleta-section">
+                <div class="section-title">DETALLES DE LA RESERVA</div>
+                <div class="info-row">
+                    <span class="info-label">Habitación:</span>
+                    <span class="info-value">${datosBoleta.reserva.habitacion}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Categoría:</span>
+                    <span class="info-value">${datosBoleta.reserva.categoria}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Check-in:</span>
+                    <span class="info-value">${datosBoleta.reserva.checkin}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Check-out:</span>
+                    <span class="info-value">${datosBoleta.reserva.checkout}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Estado:</span>
+                    <span class="info-value">${datosBoleta.reserva.estado}</span>
+                </div>
+            </div>
+            
+            <div class="boleta-stamp">
+                ✓ PAGO COMPLETO REALIZADO
+            </div>
+            
+            <div class="boleta-total">
+                <div class="total-label">MONTO TOTAL PAGADO</div>
+                <div class="total-amount">S/ ${datosBoleta.total}</div>
+            </div>
+            
+            <div class="boleta-footer">
+                <p>Este documento constituye un comprobante de pago válido.</p>
+                <p>Gracias por su preferencia. ¡Esperamos que disfrute su estadía!</p>
+                <p><strong>${datosBoleta.hotel}</strong> - Excelencia en Hospitalidad</p>
+            </div>
+        `;
+    }
+
+    // NUEVO: Mostrar boleta en formato Ticket
+    function mostrarBoletaTicket(datosBoleta) {
+        const boletaContent = document.getElementById('boletaContent');
+        if (!boletaContent) return;
+        
+        boletaContent.className = 'boleta-content boleta-ticket';
+        boletaContent.innerHTML = `
+            <div class="boleta-header">
+                <div class="boleta-logo">
+                    <img src="/img/logo_2.png" alt="Logo JW Marriott" style="max-width: 80px; height: auto;">
+                </div>
+                <div class="boleta-title">BOLETA ELECTRÓNICA</div>
+                <div class="boleta-numero">N° ${datosBoleta.numeroBoleta}</div>
+                <div class="empresa-info">
+                    <strong>${datosBoleta.hotel}</strong><br>
+                    RUC: ${datosBoleta.ruc}<br>
+                    ${datosBoleta.direccion}<br>
+                    Tel: ${datosBoleta.telefono}
+                </div>
+            </div>
+            
+            <div class="boleta-section">
+                <div class="section-title">CLIENTE</div>
+                <div class="info-row">
+                    <span class="info-label">Nombre:</span>
+                    <span class="info-value">${datosBoleta.cliente.nombre}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Email:</span>
+                    <span class="info-value">${datosBoleta.cliente.email}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Fecha:</span>
+                    <span class="info-value">${datosBoleta.fechaEmision}</span>
+                </div>
+            </div>
+            
+            <div class="boleta-section">
+                <div class="section-title">DETALLES</div>
+                <div class="info-row">
+                    <span class="info-label">Hab:</span>
+                    <span class="info-value">${datosBoleta.reserva.habitacion}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Cat:</span>
+                    <span class="info-value">${datosBoleta.reserva.categoria}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Check-in:</span>
+                    <span class="info-value">${datosBoleta.reserva.checkin}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Check-out:</span>
+                    <span class="info-value">${datosBoleta.reserva.checkout}</span>
+                </div>
+            </div>
+            
+            <div class="boleta-stamp">
+                ✓ PAGO COMPLETO
+            </div>
+            
+            <div class="boleta-total">
+                <div class="total-label">TOTAL PAGADO</div>
+                <div class="total-amount">S/ ${datosBoleta.total}</div>
+            </div>
+            
+            <div class="boleta-footer">
+                <p>Comprobante válido - Gracias por su preferencia</p>
+                <p><strong>${datosBoleta.hotel}</strong></p>
+            </div>
+        `;
+    }
+
+    // NUEVO: Imprimir boleta
+    function imprimirBoleta(datosBoleta) {
+        const boletaContent = document.getElementById('boletaContent');
+        if (!boletaContent) return;
+        
+        const ventanaBoleta = window.open('', '_blank');
+        ventanaBoleta.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Boleta Electrónica - ${datosBoleta.hotel}</title>
+                <link rel="stylesheet" href="pago-modal.css">
+                <style>
+                    @media print {
+                        body { padding: 0; margin: 0; }
+                        .boleta-container { border: none; margin: 0; }
+                    }
+                </style>
+            </head>
+            <body>
+                ${boletaContent.outerHTML}
+            </body>
+            </html>
+        `);
+        ventanaBoleta.document.close();
+        
+        setTimeout(() => {
+            ventanaBoleta.print();
+        }, 500);
     }
 
     // Event listeners para modal

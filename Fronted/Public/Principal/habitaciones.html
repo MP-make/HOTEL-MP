@@ -160,11 +160,11 @@
                     <p id="reservaHabitacionPrecioDia" class="reserva-info reserva-precio"></p>
                     
                     <!-- FECHAS DEBAJO DE LOS DATOS -->
-                    <label for="fechaCheckin">Fecha de Check-in:</label>
-                    <input type="datetime-local" id="fechaCheckin" required class="form-input">
+                    <label for="fechaCheckinModal">Fecha de Check-in:</label>
+                    <input type="datetime-local" id="fechaCheckinModal" required class="form-input">
                     
-                    <label for="fechaCheckout">Fecha de Check-out:</label>
-                    <input type="datetime-local" id="fechaCheckout" required class="form-input">
+                    <label for="fechaCheckoutModal">Fecha de Check-out:</label>
+                    <input type="datetime-local" id="fechaCheckoutModal" required class="form-input">
                 </div>
 
                 <!-- COLUMNA 2: Servicios adicionales -->
@@ -255,6 +255,129 @@
                         </button>
                     </form>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DETALLES DE RESERVA -->
+    <div id="detallesReservaModal" class="modal">
+        <div class="modal-content reserva-modal-content">
+            <span class="close-modal" data-modal-close="detallesReservaModal">&times;</span>
+            <h2>Detalles de la Reserva</h2>
+            <div class="reserva-container">
+                <!-- COLUMNA 1: Imagen de la habitación -->
+                <div class="reserva-imagen-detalle">
+                    <img id="detalleHabitacionImagen" src="" alt="Habitación" class="reserva-img">
+                    <!-- Información básica debajo de la imagen -->
+                    <div class="detalle-info-basica">
+                        <p><strong>Categoría:</strong> <span id="detalleCategoria"></span></p>
+                        <p><strong>Estado:</strong> <span id="detalleEstado" class="badge-estado"></span></p>
+                    </div>
+                </div>
+                
+                <!-- COLUMNA 2: Estado de Pago y Botón -->
+                <div class="reserva-detalles-info">
+                    <!-- Fechas de la reserva -->
+                    <div class="detalle-info-group">
+                        <p><strong>Check-in:</strong> <span id="detalleFechaCheckin"></span></p>
+                        <p><strong>Check-out:</strong> <span id="detalleFechaCheckout"></span></p>
+                        <p><strong>Fecha de creación:</strong> <span id="detalleFechaCreacion"></span></p>
+                    </div>
+                    
+                    <!-- Barra de progreso de pago -->
+                    <div class="detalle-info-group pago-progress-section">
+                        <h4>Estado de Pago</h4>
+                        <div class="pago-progress-container">
+                            <div class="pago-progress-bar">
+                                <div id="pagoProgressFill" class="pago-progress-fill"></div>
+                            </div>
+                            <div class="pago-progress-labels">
+                                <span class="pago-label-pagado">Pagado: <strong id="detallePagado">S/ 0.00</strong></span>
+                                <span class="pago-label-pendiente">Pendiente: <strong id="detalleFaltaPagar">S/ 0.00</strong></span>
+                            </div>
+                            <div class="pago-progress-total">
+                                <span>Total de la reserva: <strong id="detalleTotal">S/ 0.00</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botón para completar el pago -->
+                    <div class="detalle-info-group">
+                        <button id="btnCompletarPago" class="btn-completar-pago" style="display: none;">
+                            <i class="fas fa-credit-card"></i> Completar Pago
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- COLUMNA 3: Formulario de Reclamo -->
+                <div class="reserva-reclamo-column">
+                    <h4>Enviar Reclamo sobre esta Reserva</h4>
+                    <form id="reclamoReservaForm">
+                        <label for="reclamoDescripcion">Descripción del reclamo:</label>
+                        <textarea id="reclamoDescripcion" class="form-input" rows="4" placeholder="Describe tu reclamo..." required></textarea>
+                        <input type="hidden" id="reclamoHabitacionId" value="">
+                        <input type="hidden" id="reclamoReservaId" value="">
+                        <p id="reclamoMessage" class="text-red-500 my-2 text-center"></p>
+                        <button type="submit" class="btn-submit">Enviar Reclamo</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CONFIRMAR PAGO COMPLETO -->
+    <div id="confirmarPagoCompletoModal" class="modal">
+        <div class="modal-content pago-completo-modal-content">
+            <span class="close-modal" data-modal-close="confirmarPagoCompletoModal">&times;</span>
+            <div class="pago-completo-container">
+                <div class="pago-completo-icon">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <h2 class="pago-completo-title">Completar Pago</h2>
+                <p class="pago-completo-message">¿Desea completar el pago de <strong id="montoPendienteModal">S/ 0.00</strong>?</p>
+                
+                <div class="pago-completo-info">
+                    <div class="info-item">
+                        <span class="info-label">Total de la reserva:</span>
+                        <span class="info-value" id="totalReservaModal">S/ 0.00</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Ya pagado:</span>
+                        <span class="info-value text-green" id="yaPagadoModal">S/ 0.00</span>
+                    </div>
+                    <div class="info-item highlight">
+                        <span class="info-label">Pendiente a pagar:</span>
+                        <span class="info-value text-red" id="pendientePagarModal">S/ 0.00</span>
+                    </div>
+                </div>
+
+                <div class="pago-completo-buttons">
+                    <button id="btnCancelarPagoCompleto" class="btn-cancelar">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button id="btnConfirmarPagoCompleto" class="btn-confirmar">
+                        <i class="fas fa-check"></i> Confirmar Pago
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PREVISUALIZACIÓN BOLETA -->
+    <div id="boletaModal" class="modal boleta-modal">
+        <div class="modal-content">
+            <span class="close-modal" data-modal-close="boletaModal">&times;</span>
+            <h2>Previsualización de Boleta</h2>
+            <div class="boleta-preview-container">
+                <div id="boletaContent" class="boleta-content boleta-a5">
+                    <!-- El contenido de la boleta se insertará aquí -->
+                </div>
+            </div>
+            <div class="boleta-buttons">
+                <button id="btnFormatoA5" class="btn-print">Formato A5</button>
+                <button id="btnFormatoTicket" class="btn-ticket">Formato Ticket</button>
+                <button id="btnImprimirBoleta" class="btn-print">Imprimir</button>
+                <button id="btnCerrarBoleta" class="btn-close-boleta">Cerrar</button>
             </div>
         </div>
     </div>

@@ -770,3 +770,89 @@ Modal de Reserva - Diseño Horizontal Elegante
 .pago-completo-buttons .btn-cancelar:active {
     transform: translateY(0) !important;
 }
+
+/* NUEVO: Botón Completar Pago / Ver Boleta - CENTRADO Y GRANDE EN VERDE */
+.btn-completar-pago,
+.btn-success {
+    width: 80% !important;
+    max-width: 400px !important;
+    margin: 30px auto !important;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 50%, #28a745 100%) !important;
+    background-size: 200% 200% !important;
+    color: white !important;
+    font-weight: 800 !important;
+    padding: 22px 30px !important;
+    border-radius: 18px !important;
+    border: none !important;
+    cursor: pointer !important;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+    box-shadow: 0 12px 35px rgba(40, 167, 69, 0.5) !important;
+    font-size: 1.3rem !important;
+    position: relative !important;
+    overflow: hidden !important;
+    display: block !important;
+    text-align: center !important;
+}
+
+.btn-completar-pago::before,
+.btn-success::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left 0.6s;
+}
+
+.btn-completar-pago:hover::before,
+.btn-success:hover::before {
+    left: 100%;
+}
+
+.btn-completar-pago:hover:not(:disabled),
+.btn-success:hover:not(:disabled) {
+    background-position: right center !important;
+    transform: translateY(-5px) scale(1.03) !important;
+    box-shadow: 0 18px 50px rgba(40, 167, 69, 0.7) !important;
+}
+
+.btn-completar-pago:active,
+.btn-success:active {
+    transform: translateY(-3px) scale(1.01) !important;
+}
+
+.btn-completar-pago:disabled,
+.btn-success:disabled {
+    background: linear-gradient(135deg, #6c757d, #5a6268) !important;
+    cursor: not-allowed !important;
+    opacity: 0.6 !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.btn-completar-pago i,
+.btn-success i {
+    margin-right: 10px !important;
+    font-size: 1.2rem !important;
+}
+
+/* Asegurar que el contenedor del botón lo centre correctamente */
+.detalle-info-group {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    margin-bottom: 20px !important;
+}
+
+.detalle-info-group p {
+    margin: 8px 0;
+    font-size: 1rem;
+    color: #495057;
+}
+
+.detalle-info-group strong {
+    color: #000000;
+    font-weight: 600;
+}

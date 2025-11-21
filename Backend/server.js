@@ -83,24 +83,51 @@ function sanitizeBoolean(val) {
 
 // Agregamos manejadores de errores globales para depuración
 process.on('uncaughtException', (err) => {
-console.error('Error no detectado (Uncaught Exception):', err);
-//process.exit(1);<----------- no olvidar sacarlo 
+  // FILTRAR errores de terminación de DB de Supabase (normales en plan free)
+  if (err.message && err.message.includes('db_termination')) {
+    console.warn('⚠️ Advertencia: Conexión a DB cerrada por Supabase (plan free). Esto es normal.');
+    return; // NO terminar el proceso
+  }
+  
+  console.error('Error no detectado (Uncaught Exception):', err);
+  // process.exit(1); // COMENTADO: No terminar el proceso
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-console.error('Rechazo de promesa no manejado (Unhandled Rejection) en:', promise, 'razón:', reason);
+  // FILTRAR errores de terminación de DB de Supabase
+  if (reason && reason.message && reason.message.includes('db_termination')) {
+    console.warn('⚠️ Advertencia: Promesa rechazada por cierre de DB (Supabase plan free)');
+    return;
+  }
+  
+  console.error('Rechazo de promesa no manejado (Unhandled Rejection) en:', promise, 'razón:', reason);
 });
 
 // Configuración de la conexión a PostgreSQL
 const pool = new Pool({
-user: process.env.DB_USER,
-host: process.env.DB_HOST,
-database: process.env.DB_DATABASE,
-password: process.env.DB_PASSWORD,
-port: process.env.DB_PORT,
-schema: 'public',
-ssl: { rejectUnauthorized: false },
-family: 4
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_DATABASE,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT,
+  schema: 'public',
+  ssl: { rejectUnauthorized: false },
+  family: 4,
+  // NUEVO: Configuración para reducir errores de conexión
+  max: 10, // Reducir el número máximo de conexiones
+  idleTimeoutMillis: 30000, // Cerrar conexiones inactivas después de 30 segundos
+  connectionTimeoutMillis: 5000, // Timeout de 5 segundos para conectar
+});
+
+// NUEVO: Manejar errores del pool de conexiones
+pool.on('error', (err, client) => {
+  // Filtrar errores de terminación de DB (normales en Supabase free)
+  if (err.message && err.message.includes('db_termination')) {
+    console.warn('⚠️ Pool de conexiones: DB cerrada por Supabase (normal en plan free)');
+    return;
+  }
+  
+  console.error('⚠️ Error inesperado en el pool de conexiones:', err.message);
 });
 
 // Helper: small sleep utility
