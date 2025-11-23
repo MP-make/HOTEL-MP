@@ -977,7 +977,13 @@ Barra de Búsqueda Flotante
     display: flex;
     flex-direction: column;
     flex: 1;
-    min-width: 150px;
+    min-width: 120px;
+}
+
+/* NUEVO: Campos de precio más pequeños */
+.search-field.precio-field {
+    flex: 0 0 100px;
+    min-width: 100px;
 }
 
 .search-field label {
@@ -1005,6 +1011,9 @@ Barra de Búsqueda Flotante
     cursor: pointer;
     transition: var(--transition);
     white-space: nowrap;
+    flex-shrink: 0;
+    height: 44px;
+    align-self: flex-end;
 }
 
 .btn-buscar:hover {
@@ -1020,6 +1029,11 @@ Barra de Búsqueda Flotante
     }
     
     .search-field {
+        min-width: auto;
+    }
+    
+    .search-field.precio-field {
+        flex: 1;
         min-width: auto;
     }
     
@@ -2079,6 +2093,16 @@ Los estilos ahora están en pago-modal.css
   transform: translateY(-2px);
   box-shadow: 0 4px 12px var(--shadow-medium);
 }
+
+
+
+.login-icon {
+    width: 20px;
+    height: 20px;
+    filter: brightness(0) invert(1); /* Convierte la imagen a blanco */
+    vertical-align: middle;
+}
+
 
 /* Tarjetas de habitaciones en el chat */
 .habitaciones-cards {

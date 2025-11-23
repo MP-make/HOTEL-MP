@@ -478,6 +478,70 @@ app.get("/api/cliente/habitaciones", async (req, res) => {
 });
 
 /**
+ * @route POST /api/cliente/habitaciones/disponibles
+ * @desc Verificar disponibilidad de habitaciones en un rango de fechas
+ */
+app.post("/api/cliente/habitaciones/disponibles", async (req, res) => {
+  const { fecha_checkin, fecha_checkout } = req.body;
+  
+  try {
+    // Validaciones básicas
+    if (!fecha_checkin || !fecha_checkout) {
+      return res.status(400).json({ error: 'Fechas de check-in y check-out son obligatorias' });
+    }
+
+    const checkIn = new Date(fecha_checkin);
+    const checkOut = new Date(fecha_checkout);
+
+    if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
+      return res.status(400).json({ error: 'Fechas inválidas' });
+    }
+
+    if (checkOut <= checkIn) {
+      return res.status(400).json({ error: 'Check-out debe ser posterior al check-in' });
+    }
+
+    // Obtener habitaciones que NO tienen conflictos de reserva en esas fechas
+    const query = `
+      SELECT DISTINCT
+          h.id_habitacion,
+          h.numero_habitacion,
+          h.piso,
+          h.capacidad,
+          h.precio_por_dia,
+          h.precio_por_hora,
+          h.disponible,
+          c.nombre AS categoria,
+          COALESCE(ARRAY_AGG(f.ruta_foto) FILTER (WHERE f.ruta_foto IS NOT NULL), '{}') AS fotos
+      FROM public.habitaciones h
+      INNER JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria
+      LEFT JOIN public.habitaciones_fotos f ON h.id_habitacion = f.id_habitacion
+      WHERE h.disponible = true
+        AND h.id_habitacion NOT IN (
+          SELECT r.id_habitacion 
+          FROM public.reservas r
+          WHERE r.estado_reserva <> 'completada'
+            AND r.estado_reserva <> 'cancelada'
+            AND NOT (r.fecha_checkout <= $1 OR r.fecha_checkin >= $2)
+        )
+      GROUP BY h.id_habitacion, c.nombre
+      ORDER BY h.numero_habitacion ASC;
+    `;
+
+    const result = await queryWithRetry(query, [checkIn.toISOString(), checkOut.toISOString()]);
+    
+    res.json({ 
+      habitaciones: result.rows,
+      totalDisponibles: result.rows.length 
+    });
+
+  } catch (err) {
+    console.error("Error verificando disponibilidad de habitaciones:", err);
+    res.status(500).json({ error: "Error al verificar disponibilidad", detalle: err.message });
+  }
+});
+
+/**
  * @route POST /api/cliente/reservas
  * @desc Crear una reserva
  */

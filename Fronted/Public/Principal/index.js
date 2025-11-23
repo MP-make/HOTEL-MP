@@ -371,6 +371,68 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // Función para mostrar habitaciones filtradas
+        function mostrarHabitacionesFiltradas(habitaciones) {
+            const contenedor = document.getElementById('habitacionGrid');
+            if (!contenedor) {
+                console.error('No se encontró el contenedor de habitaciones');
+                return;
+            }
+
+            if (habitaciones.length === 0) {
+                contenedor.innerHTML = `
+                    <div class="no-habitaciones">
+                        <h3>No se encontraron habitaciones con esos criterios</h3>
+                        <p>Por favor, intenta con otros filtros de búsqueda.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            contenedor.innerHTML = `
+                <div class="habitaciones-grid">
+                    ${habitaciones.map(habitacion => {
+                        const fotoSrc = habitacion.fotos && habitacion.fotos.length > 0 
+                            ? (habitacion.fotos[0].startsWith('/') ? habitacion.fotos[0] : '/img/habitaciones/' + habitacion.fotos[0]) 
+                            : 'https://source.unsplash.com/featured/?luxury-hotel-room';
+                        
+                        const yaLaReserve = clienteTieneReservaActiva(habitacion.id_habitacion);
+                        
+                        return `
+                        <div class="habitacion-card">
+                            <img src="${fotoSrc}" 
+                                 alt="${habitacion.numero_habitacion}" 
+                                 class="habitacion-imagen"
+                                 onerror="this.onerror=null; this.src='https://source.unsplash.com/featured/?luxury-hotel-room';">
+                            <div class="habitacion-info">
+                                <h3 class="habitacion-titulo">Habitación ${habitacion.numero_habitacion}</h3>
+                                <p class="habitacion-descripcion">${habitacion.categoria} - Piso ${habitacion.piso} - Capacidad ${habitacion.capacidad}</p>
+                                <div class="habitacion-precio">S/ ${habitacion.precio_por_dia} / día</div>
+                                <div class="habitacion-disponibilidad ${habitacion.disponible ? 'disponible' : 'no-disponible'}">
+                                    ${habitacion.disponible ? 'Disponible' : 'No disponible'}
+                                </div>
+                                <button class="btn-reservar" 
+                                        data-id="${habitacion.id_habitacion}"
+                                        data-nombre="Habitación ${habitacion.numero_habitacion}">
+                                    ${yaLaReserve ? 'Ver Mi Reserva' : 'Reservar Ahora'}
+                                </button>
+                            </div>
+                        </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+
+            // Agregar event listeners a los botones de reservar
+            document.querySelectorAll('.btn-reservar').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const habitacionId = parseInt(btn.getAttribute('data-id'));
+                    const nombre = btn.getAttribute('data-nombre');
+                    reservarHabitacion(habitacionId, nombre);
+                });
+            });
+        }
+
         // Función para mostrar detalles de una reserva
         function mostrarDetallesReserva(reserva) {
             // Llenar los datos del modal
@@ -1220,7 +1282,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!existingButton) {
                     const buttonDiv = document.createElement('div');
                     buttonDiv.className = 'text-center mt-8';
-                    buttonDiv.innerHTML = '<a href="PanelCliente.html" class="btn-primary btn-ver-mas">Ver Todas Mis Reservas</a>';
+                    buttonDiv.innerHTML = '<a href="PanelCliente#Reservas.html" class="btn-primary btn-ver-mas">Ver Todas Mis Reservas</a>';
                     section.appendChild(buttonDiv);
                 }
 
@@ -1955,48 +2017,94 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 500);
         }
 
-        // Manejar el envío del formulario de reclamo desde el modal de detalles
-        document.getElementById('reclamoReservaForm').addEventListener('submit', async function(e) {
+        // Event listener para el formulario de búsqueda flotante
+        document.getElementById('searchForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const checkin = document.getElementById('search-checkin').value;
+            const checkout = document.getElementById('search-checkout').value;
+            const huespedes = document.getElementById('search-guests').value;
+            const categoria = document.getElementById('search-room').value;
+            const precioMin = document.getElementById('search-precio-min').value;
+            const precioMax = document.getElementById('search-precio-max').value;
             
-            const descripcion = document.getElementById('reclamoDescripcion').value.trim();
-            const id_habitacion = document.getElementById('reclamoHabitacionId').value;
+            // Si hay fechas, verificar disponibilidad en el servidor
+            let habitacionesDisponibles = [...habitacionesData];
             
-            if (!descripcion) {
-                document.getElementById('reclamoMessage').textContent = 'Por favor, describe el reclamo.';
-                return;
+            if (checkin && checkout) {
+                try {
+                    const token = localStorage.getItem('token');
+                    const response = await fetch('/api/cliente/habitaciones/disponibles', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': token ? `Bearer ${token}` : ''
+                        },
+                        body: JSON.stringify({
+                            fecha_checkin: checkin + 'T14:00:00',
+                            fecha_checkout: checkout + 'T12:00:00'
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        habitacionesDisponibles = data.habitaciones || [];
+                        console.log('Habitaciones disponibles en esas fechas:', habitacionesDisponibles.length);
+                    } else {
+                        console.error('Error al verificar disponibilidad');
+                        alert('Error al verificar disponibilidad. Mostrando todas las habitaciones.');
+                    }
+                } catch (error) {
+                    console.error('Error al verificar disponibilidad:', error);
+                    alert('Error al verificar disponibilidad. Mostrando todas las habitaciones.');
+                }
             }
             
-            const token = localStorage.getItem('token');
-            
-            try {
-                const response = await fetch('/api/cliente/reclamos', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ descripcion, id_habitacion: parseInt(id_habitacion) })
-                });
-                
-                if (response.status === 401) {
-                    localStorage.removeItem('token');
-                    window.location.href = 'index.html';
-                    return;
-                }
-                
-                if (response.ok) {
-                    alert('Reclamo enviado exitosamente.');
-                    document.getElementById('reclamoReservaForm').reset();
-                    closeModal('detallesReservaModal');
-                } else {
-                    const error = await response.json();
-                    document.getElementById('reclamoMessage').textContent = 'Error al enviar reclamo: ' + (error.error || 'Desconocido');
-                }
-            } catch (error) {
-                console.error('Error enviando reclamo:', error);
-                document.getElementById('reclamoMessage').textContent = 'Error al enviar reclamo.';
+            // Filtrar por categoría
+            if (categoria) {
+                habitacionesDisponibles = habitacionesDisponibles.filter(h => 
+                    h.categoria.toLowerCase() === categoria.toLowerCase()
+                );
             }
+            
+            // Filtrar por precio mínimo
+            if (precioMin) {
+                habitacionesDisponibles = habitacionesDisponibles.filter(h => 
+                    parseFloat(h.precio_por_dia) >= parseFloat(precioMin)
+                );
+            }
+            
+            // Filtrar por precio máximo
+            if (precioMax) {
+                habitacionesDisponibles = habitacionesDisponibles.filter(h => 
+                    parseFloat(h.precio_por_dia) <= parseFloat(precioMax)
+                );
+            }
+            
+            // Filtrar por capacidad (huéspedes)
+            if (huespedes) {
+                habitacionesDisponibles = habitacionesDisponibles.filter(h => 
+                    parseInt(h.capacidad) >= parseInt(huespedes)
+                );
+            }
+            
+            // IMPORTANTE: Excluir habitaciones que el cliente YA tiene reservadas
+            if (usuarioActual && misReservasActivas && misReservasActivas.length > 0) {
+                const idsReservados = misReservasActivas
+                    .filter(r => r.estado_reserva !== 'completada' && r.estado_reserva !== 'cancelada')
+                    .map(r => r.id_habitacion);
+                
+                habitacionesDisponibles = habitacionesDisponibles.filter(h => 
+                    !idsReservados.includes(h.id_habitacion)
+                );
+                
+                console.log('Habitaciones del cliente excluidas:', idsReservados);
+            }
+            
+            // Mostrar resultados filtrados en la sección de habitaciones populares
+            mostrarHabitacionesFiltradas(habitacionesDisponibles);
+            
+            // Hacer scroll a la sección de habitaciones
+            document.getElementById('habitaciones').scrollIntoView({ behavior: 'smooth' });
         });
 
         // Función para inicializar todo el sistema
@@ -2025,28 +2133,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             inicializarSistema();
         }
-
-        // Event listener para el formulario de búsqueda flotante
-        document.getElementById('searchForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const checkin = document.getElementById('search-checkin').value;
-            const checkout = document.getElementById('search-checkout').value;
-            const huespedes = document.getElementById('search-guests').value;
-            const categoria = document.getElementById('search-room').value;
-            
-            // Convertir fechas a formato datetime-local
-            const checkinDT = checkin + 'T00:00';
-            const checkoutDT = checkout + 'T00:00';
-            
-            const params = new URLSearchParams({
-                checkin: checkinDT,
-                checkout: checkoutDT,
-                huespedes: huespedes,
-                categoria: categoria
-            });
-            
-            window.location.href = 'habitaciones.html?' + params.toString();
-        });
 
         // Función para cargar categorías dinámicamente en el filtro de búsqueda
         async function cargarCategoriasBusqueda() {
