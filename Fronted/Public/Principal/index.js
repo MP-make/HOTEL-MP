@@ -1760,7 +1760,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             font-family: Arial, sans-serif;
                             margin: 0;
                             padding: 10px;
-                            background: white;
+                           背景: white;
                         }
                         .boleta-container {
                             ${formato === 'ticket' ? 
@@ -2051,11 +2051,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         console.log('Habitaciones disponibles en esas fechas:', habitacionesDisponibles.length);
                     } else {
                         console.error('Error al verificar disponibilidad');
-                        alert('Error al verificar disponibilidad. Mostrando todas las habitaciones.');
+                        // Continuar mostrando todas las habitaciones sin alert
                     }
                 } catch (error) {
                     console.error('Error al verificar disponibilidad:', error);
-                    alert('Error al verificar disponibilidad. Mostrando todas las habitaciones.');
+                    // Continuar mostrando todas las habitaciones sin alert
                 }
             }
             
