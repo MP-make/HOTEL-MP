@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Función para cargar reclamos
     async function cargarReclamos() {
         const container = document.getElementById('reclamosGrid');
-        container.innerHTML = '<div class="loading">Cargando reclamos...</div>';
+        container.innerHTML = '<div class="loading">Cargando solicitudes...</div>';
         
         try {
             const token = localStorage.getItem('token');
@@ -402,26 +402,50 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const reclamos = await response.json();
             
+            // Función para obtener emoji y color según tipo
+            function getTipoInfo(tipo) {
+                const tipos = {
+                    'reclamo': { emoji: '⚠️', color: '#dc3545', bgColor: '#f8d7da', label: 'Reclamo' },
+                    'pedido': { emoji: '🛎️', color: '#0d6efd', bgColor: '#cfe2ff', label: 'Pedido' },
+                    'limpieza': { emoji: '🧹', color: '#198754', bgColor: '#d1e7dd', label: 'Limpieza' }
+                };
+                return tipos[tipo] || { emoji: '📝', color: '#6c757d', bgColor: '#e9ecef', label: tipo || 'Desconocido' };
+            }
+            
             if (!reclamos || reclamos.length === 0) {
-                container.innerHTML = '<div class="no-reclamos"><h3>No tienes reclamos</h3><p>Si tienes algún problema, puedes enviar un reclamo.</p></div>';
+                container.innerHTML = '<div class="no-reclamos"><h3>No tienes solicitudes</h3><p>Si tienes algún problema o necesitas algo, puedes enviar una solicitud.</p></div>';
             } else {
-                container.innerHTML = reclamos.map(reclamo => `
-                    <div class="reclamo-card">
-                        <h4>Reclamo (Fecha: ${new Date(reclamo.fecha_creacion).toLocaleDateString('es-ES')})</h4>
-                        <p><strong>Habitación:</strong> ${reclamo.numero_habitacion}</p>
+                container.innerHTML = reclamos.map(reclamo => {
+                    const tipoInfo = getTipoInfo(reclamo.tipo_solicitud);
+                    return `
+                    <div class="reclamo-card" style="border-left: 4px solid ${tipoInfo.color};">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                            <h4 style="margin: 0; color: #333; font-size: 1.1rem;">
+                                ${tipoInfo.emoji} ${tipoInfo.label}
+                            </h4>
+                            <span style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; color: ${tipoInfo.color}; background-color: ${tipoInfo.bgColor};">
+                                ${reclamo.estado === 'pendiente' ? 'Pendiente' : 'Resuelto'}
+                            </span>
+                        </div>
+                        <p><strong>Habitación:</strong> ${reclamo.numero_habitacion || 'N/A'}</p>
                         <p><strong>Descripción:</strong> ${reclamo.descripcion}</p>
-                        <p><strong>Estado:</strong> ${reclamo.estado}</p>
-                        <p><strong>Fecha:</strong> ${new Date(reclamo.fecha_creacion).toLocaleDateString('es-ES')}</p>
+                        <p><strong>Fecha:</strong> ${new Date(reclamo.fecha_creacion).toLocaleDateString('es-ES', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })}</p>
                     </div>
-                `).join('');
+                `}).join('');
             }
             
             // Cargar habitaciones para el formulario de nuevo reclamo
             await cargarHabitacionesParaReclamo();
             
         } catch (error) {
-            console.error('Error cargando reclamos:', error);
-            container.innerHTML = '<div class="error">Error al cargar los reclamos. Inténtalo de nuevo.</div>';
+            console.error('Error cargando solicitudes:', error);
+            container.innerHTML = '<div class="error">Error al cargar las solicitudes. Inténtalo de nuevo.</div>';
         }
     }
 
@@ -972,11 +996,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('reclamoReservaForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
+        const tipo_solicitud = document.getElementById('reclamoTipo').value;
         const descripcion = document.getElementById('reclamoDescripcion').value.trim();
         const id_habitacion = document.getElementById('reclamoHabitacionId').value;
         
         if (!descripcion) {
-            document.getElementById('reclamoMessage').textContent = 'Por favor, describe el reclamo.';
+            document.getElementById('reclamoMessage').textContent = 'Por favor, describe la solicitud.';
             return;
         }
         
@@ -989,7 +1014,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ descripcion, id_habitacion: parseInt(id_habitacion) })
+                body: JSON.stringify({ 
+                    tipo_solicitud, 
+                    descripcion, 
+                    id_habitacion: parseInt(id_habitacion) 
+                })
             });
             
             if (response.status === 401) {
@@ -999,17 +1028,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (response.ok) {
-                alert('Reclamo enviado exitosamente.');
+                alert('Solicitud enviada exitosamente.');
                 document.getElementById('reclamoReservaForm').reset();
                 document.getElementById('detallesReservaModal').style.display = 'none';
                 cargarReclamos(); // Recargar la lista de reclamos
             } else {
                 const error = await response.json();
-                document.getElementById('reclamoMessage').textContent = 'Error al enviar reclamo: ' + (error.error || 'Desconocido');
+                document.getElementById('reclamoMessage').textContent = 'Error al enviar solicitud: ' + (error.error || 'Desconocido');
             }
         } catch (error) {
-            console.error('Error enviando reclamo:', error);
-            document.getElementById('reclamoMessage').textContent = 'Error al enviar reclamo.';
+            console.error('Error enviando solicitud:', error);
+            document.getElementById('reclamoMessage').textContent = 'Error al enviar solicitud.';
         }
     });
 

@@ -252,48 +252,6 @@
                                 </div>
                             </div>
 
-                            <!-- 2. Rendimiento por Período y Tendencias -->
-                            <div class="admin-card">
-                                <div class="flex justify-between items-center mb-4">
-                                    <h2 class="text-xl font-semibold">Rendimiento por Período y Tendencias</h2>
-                                    <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Exportar a Hojas de cálculo</button>
-                                </div>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div class="p-4 bg-white rounded shadow">
-                                        <h4 class="font-semibold">Ingresos Mensuales (Vs. Meta)</h4>
-                                        <p class="text-sm text-gray-600">Gráfico de barras/líneas comparando los ingresos diarios/semanales con las metas establecidas para el mes.</p>
-                                        <!-- Chart placeholder -->
-                                        <div class="mt-4">
-                                            <canvas id="chart-ingresos-mensuales" width="400" height="200"></canvas>
-                                        </div>
-                                    </div>
-                                    <div class="p-4 bg-white rounded shadow">
-                                        <h4 class="font-semibold">Distribución de Ingresos (Por Método de Pago)</h4>
-                                        <p class="text-sm text-gray-600">Muestra qué porcentaje de los ingresos provienen de Tarjetas, Efectivo, Transferencias, etc.</p>
-                                        <!-- Chart placeholder -->
-                                        <div class="mt-4">
-                                            <canvas id="chart-distribucion-pagos" width="400" height="200"></canvas>
-                                        </div>
-                                    </div>
-                                    <div class="p-4 bg-white rounded shadow">
-                                        <h4 class="font-semibold">Servicios Adicionales Más Rentables</h4>
-                                        <p class="text-sm text-gray-600">Ranking de servicios que generan más ingresos (ej. Desayuno Premium, Tour Local, Lavandería, Room Service).</p>
-                                        <!-- Placeholder for list -->
-                                        <ul id="servicios-rentables-list" class="mt-4 text-sm">
-                                            <li>No hay datos disponibles aún.</li>
-                                        </ul>
-                                    </div>
-                                    <div class="p-4 bg-white rounded shadow">
-                                        <h4 class="font-semibold">Picos de Check-in/Check-out</h4>
-                                        <p class="text-sm text-gray-600">Gráfico que muestra las horas de mayor actividad en recepción (entradas/salidas). Ayuda a optimizar el personal.</p>
-                                        <!-- Chart placeholder -->
-                                        <div class="mt-4">
-                                            <canvas id="chart-picos-checkin-checkout" width="400" height="200"></canvas>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
                             <!-- 3. Gestión de Clientes y Recursos -->
                             <div class="admin-card">
                                 <div class="flex justify-between items-center mb-4">
@@ -1268,6 +1226,7 @@
                                         <td class="py-3 px-4">${new Date(r.fecha_checkin).toLocaleString('es-ES', { timeZone: 'America/Lima', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} - ${new Date(r.fecha_checkout).toLocaleString('es-ES', { timeZone: 'America/Lima', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                                         <td class="py-3 px-4">${r.estado_reserva}</td>
                                         <td class="py-3 px-4 flex space-x-2">
+                                        <button data-reserva='${JSON.stringify(r).replace(/'/g, "&apos;")}' class="ver-detalles-reserva-btn px-3 py-1 rounded bg-indigo-600 text-white text-xs">Ver Detalles</button>
                                         ${ (r.estado_reserva && String(r.estado_reserva).toLowerCase() !== 'completada') ? `
                                             <button data-id="${r.id_reserva}" class="complete-res-btn px-3 py-1 rounded bg-green-600 text-white text-xs">Completar</button>
                                             <button data-id="${r.id_reserva}" class="delete-res-btn px-3 py-1 rounded bg-red-600 text-white text-xs">Eliminar</button>
@@ -1342,6 +1301,7 @@
                                     <td class="py-3 px-4">${new Date(r.fecha_checkin).toLocaleString('es-ES', { timeZone: 'America/Lima', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} - ${new Date(r.fecha_checkout).toLocaleString('es-ES', { timeZone: 'America/Lima', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                                     <td class="py-3 px-4">${r.estado_reserva}</td>
                                     <td class="py-3 px-4 flex space-x-2">
+                                    <button data-reserva='${JSON.stringify(r).replace(/'/g, "&apos;")}' class="ver-detalles-reserva-btn px-3 py-1 rounded bg-indigo-600 text-white text-xs">Ver Detalles</button>
                                     ${ (r.estado_reserva && String(r.estado_reserva).toLowerCase() !== 'completada') ? `
                                         <button data-id="${r.id_reserva}" class="complete-res-btn px-3 py-1 rounded bg-green-600 text-white text-xs">Completar</button>
                                         <button data-id="${r.id_reserva}" class="delete-res-btn px-3 py-1 rounded bg-red-600 text-white text-xs">Eliminar</button>
@@ -1379,18 +1339,37 @@
             },
     
             'gestion-reclamos': {
-                title: 'Gestión de Reclamos',
+                title: 'Gestión de Solicitudes',
                 render: async () => {
                     try {
                         const reclamosRes = await apiGet('/encargado/reclamos');
                         const reclamos = Array.isArray(reclamosRes) ? reclamosRes : [];
 
+                        // Función para obtener emoji y color según tipo
+                        function getTipoInfo(tipo) {
+                            const tipos = {
+                                'reclamo': { color: '#dc3545', bgColor: '#f8d7da', label: 'Reclamo' },
+                                'pedido': { color: '#0d6efd', bgColor: '#cfe2ff', label: 'Pedido' },
+                                'limpieza': { Color: '#198754', bgColor: '#d1e7dd', label: 'Limpieza' }
+                            };
+                            return tipos[tipo] || { color: '#6c757d', bgColor: '#e9ecef', label: tipo || 'Desconocido' };
+                        }
+
                         return `
                         <div class="space-y-6">
-                            <!-- Formulario para agregar reclamo -->
+                            <!-- Formulario para agregar solicitud -->
                             <div class="admin-card">
-                                <h2 class="text-xl font-semibold mb-4">Agregar Nuevo Reclamo</h2>
+                                <h2 class="text-xl font-semibold mb-4">Agregar Nueva Solicitud</h2>
                                 <form id="add-reclamo-form" class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Solicitud</label>
+                                        <select id="reclamo-tipo" name="tipo_solicitud" required 
+                                                class="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500">
+                                            <option value="reclamo">Reclamo</option>
+                                            <option value="pedido">Pedido</option>
+                                            <option value="limpieza">Limpieza</option>
+                                        </select>
+                                    </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Número de Habitación</label>
                                         <input type="number" id="reclamo-habitacion" name="numero_habitacion" required 
@@ -1398,32 +1377,41 @@
                                                placeholder="Ej: 101">
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Descripción del Reclamo</label>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
                                         <textarea id="reclamo-descripcion" name="descripcion" required rows="3"
                                                   class="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500" 
-                                                  placeholder="Describa el problema o reclamo..."></textarea>
+                                                  placeholder="Describa la solicitud..."></textarea>
                                     </div>
                                     <div class="flex justify-end">
                                         <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
-                                            Agregar Reclamo
+                                            Agregar Solicitud
                                         </button>
                                     </div>
                                 </form>
                             </div>
 
-                            <!-- Lista de reclamos -->
+                            <!-- Lista de solicitudes -->
                             <div class="admin-card">
-                                <h2 class="text-xl font-semibold mb-4">Reclamos Registrados</h2>
+                                <h2 class="text-xl font-semibold mb-4">Solicitudes Registradas</h2>
                                 
                                 <!-- Filtros -->
                                 <div class="mb-4 p-4 bg-white rounded shadow flex flex-wrap gap-3 items-end">
                                     <div>
                                         <label class="block text-sm text-gray-600">Buscar en descripción</label>
-                                        <input id="filter-reclamo-texto" type="text" class="mt-1 border border-gray-300 rounded p-2" placeholder="Texto del reclamo">
+                                        <input id="filter-reclamo-texto" type="text" class="mt-1 border border-gray-300 rounded p-2" placeholder="Texto">
                                     </div>
                                     <div>
-                                        <label class="block text-sm text-gray-600">Número de Habitación</label>
-                                        <input id="filter-reclamo-habitacion" type="number" class="mt-1 border border-gray-300 rounded p-2" placeholder="Habitación">
+                                        <label class="block text-sm text-gray-600">Habitación</label>
+                                        <input id="filter-reclamo-habitacion" type="number" class="mt-1 border border-gray-300 rounded p-2" placeholder="Núm.">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm text-gray-600">Tipo</label>
+                                        <select id="filter-reclamo-tipo" class="mt-1 border border-gray-300 rounded p-2">
+                                            <option value="">Todos</option>
+                                            <option value="reclamo">Reclamo</option>
+                                            <option value="pedido">Pedido</option>
+                                            <option value="limpieza">Limpieza</option>
+                                        </select>
                                     </div>
                                     <div>
                                         <label class="block text-sm text-gray-600">Estado</label>
@@ -1444,6 +1432,7 @@
                                         <thead class="bg-gray-100">
                                             <tr>
                                                 <th class="py-3 px-4 text-left">ID</th>
+                                                <th class="py-3 px-4 text-left">Tipo</th>
                                                 <th class="py-3 px-4 text-left">Habitación</th>
                                                 <th class="py-3 px-4 text-left">Descripción</th>
                                                 <th class="py-3 px-4 text-left">Estado</th>
@@ -1452,10 +1441,17 @@
                                             </tr>
                                         </thead>
                                         <tbody id="reclamos-tbody" class="divide-y divide-gray-200">
-                                            ${reclamos.length ? reclamos.map(r => `
+                                            ${reclamos.length ? reclamos.map(r => {
+                                                const tipoInfo = getTipoInfo(r.tipo_solicitud);
+                                                return `
                                                 <tr class="border-b hover:bg-gray-50">
                                                     <td class="py-3 px-4">${r.id_reclamo}</td>
-                                                    <td class="py-3 px-4">${r.numero_habitacion}</td>
+                                                    <td class="py-3 px-4">
+                                                        <span style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 12px; font-size: 0.875rem; font-weight: 600; color: ${tipoInfo.color}; background-color: ${tipoInfo.bgColor};">
+                                                            ${tipoInfo.emoji} ${tipoInfo.label}
+                                                        </span>
+                                                    </td>
+                                                    <td class="py-3 px-4">${r.numero_habitacion || 'N/A'}</td>
                                                     <td class="py-3 px-4">${r.descripcion}</td>
                                                     <td class="py-3 px-4">
                                                         <span class="px-2 py-1 rounded text-xs ${r.estado === 'pendiente' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}">
@@ -1471,7 +1467,7 @@
                                                         ` : '<span class="text-sm text-gray-500">Resuelto</span>'}
                                                     </td>
                                                 </tr>
-                                            `).join('') : '<tr><td colspan="6" class="text-center py-4">No hay reclamos registrados.</td></tr>'}
+                                            `}).join('') : '<tr><td colspan="7" class="text-center py-4">No hay solicitudes registradas.</td></tr>'}
                                         </tbody>
                                     </table>
                                 </div>
@@ -1479,21 +1475,33 @@
                         </div>
                         `;
                     } catch (err) {
-                        return `<div class="admin-card"><p class="text-red-500">Error cargando reclamos: ${err.message}</p></div>`;
+                        return `<div class="admin-card"><p class="text-red-500">Error cargando solicitudes: ${err.message}</p></div>`;
                     }
                 },
                 postRender: () => {
-                    // Función para renderizar reclamos con filtros
+                    // Función para obtener emoji y color según tipo
+                    function getTipoInfo(tipo) {
+                        const tipos = {
+                            'reclamo': { emoji: '⚠️', color: '#dc3545', bgColor: '#f8d7da', label: 'Reclamo' },
+                            'pedido': { emoji: '🛎️', color: '#0d6efd', bgColor: '#cfe2ff', label: 'Pedido' },
+                            'limpieza': { emoji: '🧹', color: '#198754', bgColor: '#d1e7dd', label: 'Limpieza' }
+                        };
+                        return tipos[tipo] || { emoji: '📝', color: '#6c757d', bgColor: '#e9ecef', label: tipo || 'Desconocido' };
+                    }
+
+                    // Función para renderizar solicitudes con filtros
                     async function renderReclamosWithFilters() {
                         try {
                             const texto = (document.getElementById('filter-reclamo-texto') || {}).value || '';
                             const habitacion = (document.getElementById('filter-reclamo-habitacion') || {}).value || '';
                             const estado = (document.getElementById('filter-reclamo-estado') || {}).value || '';
+                            const tipo = (document.getElementById('filter-reclamo-tipo') || {}).value || '';
 
                             const params = new URLSearchParams();
                             if (texto) params.append('texto', texto);
                             if (habitacion) params.append('habitacion', habitacion);
                             if (estado) params.append('estado', estado);
+                            if (tipo) params.append('tipo', tipo);
 
                             const url = '/encargado/reclamos' + (params.toString() ? `?${params.toString()}` : '');
                             const reclamosRes = await apiGet(url);
@@ -1502,10 +1510,17 @@
                             const tbody = document.getElementById('reclamos-tbody');
                             if (!tbody) return;
 
-                            const rows = reclamos.map(r => `
+                            const rows = reclamos.map(r => {
+                                const tipoInfo = getTipoInfo(r.tipo_solicitud);
+                                return `
                                 <tr class="border-b hover:bg-gray-50">
                                     <td class="py-3 px-4">${r.id_reclamo}</td>
-                                    <td class="py-3 px-4">${r.numero_habitacion}</td>
+                                    <td class="py-3 px-4">
+                                        <span style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 12px; font-size: 0.875rem; font-weight: 600; color: ${tipoInfo.color}; background-color: ${tipoInfo.bgColor};">
+                                            ${tipoInfo.emoji} ${tipoInfo.label}
+                                        </span>
+                                    </td>
+                                    <td class="py-3 px-4">${r.numero_habitacion || 'N/A'}</td>
                                     <td class="py-3 px-4">${r.descripcion}</td>
                                     <td class="py-3 px-4">
                                         <span class="px-2 py-1 rounded text-xs ${r.estado === 'pendiente' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}">
@@ -1521,9 +1536,9 @@
                                         ` : '<span class="text-sm text-gray-500">Resuelto</span>'}
                                     </td>
                                 </tr>
-                            `).join('');
+                            `}).join('');
 
-                            tbody.innerHTML = rows.length ? rows : '<tr><td colspan="6" class="text-center py-4">No hay reclamos que coincidan con los filtros.</td></tr>';
+                            tbody.innerHTML = rows.length ? rows : '<tr><td colspan="7" class="text-center py-4">No hay solicitudes que coincidan con los filtros.</td></tr>';
                         } catch (err) {
                             showModal('Error', `<p>${err.message}</p>`);
                         }
@@ -1541,23 +1556,26 @@
                         document.getElementById('filter-reclamo-texto').value = '';
                         document.getElementById('filter-reclamo-habitacion').value = '';
                         document.getElementById('filter-reclamo-estado').value = '';
+                        document.getElementById('filter-reclamo-tipo').value = '';
                         renderReclamosWithFilters();
                     });
 
-                    // Formulario para agregar reclamo
+                    // Formulario para agregar solicitud
                     const addReclamoForm = document.getElementById('add-reclamo-form');
                     if (addReclamoForm) {
                         addReclamoForm.addEventListener('submit', async (e) => {
                             e.preventDefault();
+                            const tipo = document.getElementById('reclamo-tipo').value;
                             const habitacion = document.getElementById('reclamo-habitacion').value;
                             const descripcion = document.getElementById('reclamo-descripcion').value;
 
                             try {
                                 await apiPost('/encargado/reclamos', {
+                                    tipo_solicitud: tipo,
                                     numero_habitacion: habitacion,
                                     descripcion: descripcion
                                 });
-                                showModal('Éxito', '<p>Reclamo agregado correctamente.</p>');
+                                showModal('Éxito', '<p>Solicitud agregada correctamente.</p>');
                                 addReclamoForm.reset();
                                 renderReclamosWithFilters();
                             } catch (err) {
@@ -1566,14 +1584,14 @@
                         });
                     }
 
-                    // Delegación de eventos para resolver reclamos
+                    // Delegación de eventos para resolver solicitudes
                     document.body.addEventListener('click', async (e) => {
                         if (e.target.classList.contains('resolver-reclamo-btn')) {
                             const id = e.target.getAttribute('data-id');
-                            showConfirmModal('¿Marcar este reclamo como resuelto?', async () => {
+                            showConfirmModal('¿Marcar esta solicitud como resuelta?', async () => {
                                 try {
                                     await apiPut(`/encargado/reclamos/${id}/resolver`, {});
-                                    showModal('Éxito', '<p>Reclamo marcado como resuelto.</p>');
+                                    showModal('Éxito', '<p>Solicitud marcada como resuelta.</p>');
                                     renderReclamosWithFilters();
                                 } catch (err) {
                                     showModal('Error', `<p>${err.message}</p>`);
@@ -1808,155 +1826,320 @@
                 const categorias = await apiGet('/admin/categorias').catch(() => []);
                 const options = (categorias.length ? categorias.map(c => `<option value="${c.id_categoria}" ${c.id_categoria === habitacion.id_categoria ? 'selected' : ''}>${c.nombre}</option>`).join('') : `<option value="${habitacion.id_categoria}">${habitacion.categoria || 'N/A'}</option>`);
                 
-                // HTML de las imágenes existentes
-                const fotosHtml = fotosExistentes.length > 0 ? fotosExistentes.map(foto => `
-                    <div class="relative inline-block mr-2 mb-2">
-                        <img src="/img/habitaciones/${foto}" alt="Foto habitación" class="w-32 h-32 object-cover rounded border-2 border-gray-300">
-                        <button type="button" class="delete-foto-btn absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-700 text-sm font-bold" data-foto="${foto}" data-habitacion="${id}">×</button>
-                    </div>
-                `).join('') : '<p class="text-gray-500 text-sm">No hay imágenes actualmente</p>';
-                
+                // NUEVO MODAL CON 3 COLUMNAS ESTILO RESERVA
                 const formHtml = `
-                <form id="habitacion-form" class="space-y-4" enctype="multipart/form-data">
-                    <input type="hidden" name="id_habitacion" value="${habitacion.id_habitacion}">
-                    <div>
-                    <label class="block text-sm font-medium text-gray-700">Número de Habitación</label>
-                    <input name="numero_habitacion" value="${habitacion.numero_habitacion || ''}" required class="mt-1 block w-full border border-gray-300 rounded p-2">
-                    </div>
-                    <div>
-                    <label class="block text-sm font-medium text-gray-700">Categoría</label>
-                    <select name="id_categoria" class="mt-1 block w-full border border-gray-300 rounded p-2">${options}</select>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Precio por Día (USD)</label>
-                        <input type="number" step="0.01" name="precio_por_dia" value="${habitacion.precio_por_dia || ''}" class="mt-1 block w-full border border-gray-300 rounded p-2">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Precio por Hora (USD)</label>
-                        <input type="number" step="0.01" name="precio_por_hora" value="${habitacion.precio_por_hora || ''}" class="mt-1 block w-full border border-gray-300 rounded p-2">
-                    </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Piso</label>
-                        <input type="number" name="piso" value="${habitacion.piso || ''}" class="mt-1 block w-full border border-gray-300 rounded p-2">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Capacidad</label>
-                        <input type="number" name="capacidad" value="${habitacion.capacidad || ''}" class="mt-1 block w-full border border-gray-300 rounded p-2">
-                    </div>
-                    </div>
+                <div class="reserva-modal-content" style="max-width: 1400px !important;">
+                    <span class="close-modal" data-modal-close="dynamicModal">&times;</span>
+                    <h2 style="text-align: center; font-size: 2rem; margin-bottom: 30px; color: #000;">Editar Habitación</h2>
                     
-                    <!-- Imágenes existentes -->
-                    <div class="border-t pt-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Imágenes actuales de la habitación</label>
-                        <div id="fotos-existentes" class="flex flex-wrap mb-3">
-                            ${fotosHtml}
-                        </div>
-                    </div>
-                    
-                    <!-- Agregar nuevas imágenes -->
-                    <div class="border-t pt-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Agregar nuevas fotos</label>
-                        <input type="file" name="fotos" accept="image/*" multiple class="mt-1 block w-full border border-gray-300 rounded p-2">
-                        <p class="text-sm text-gray-500 mt-1">Puedes seleccionar múltiples imágenes nuevas</p>
-                    </div>
-                    <div>
-                    <label class="inline-flex items-center">
-                        <input type="checkbox" name="disponible" ${habitacion.disponible ? 'checked' : ''} class="form-checkbox">
-                        <span class="ml-2">Disponible</span>
-                    </label>
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Guardar Cambios</button>
-                </form>
-                `;
-                showModal('Editar Habitación', formHtml, () => {
-                    const form = document.getElementById('habitacion-form');
-                    
-                    // Manejar eliminación de fotos individuales
-                    const fotosContainer = document.getElementById('fotos-existentes');
-                    if (fotosContainer) {
-                        fotosContainer.addEventListener('click', async (e) => {
-                            if (e.target.classList.contains('delete-foto-btn')) {
-                                const foto = e.target.getAttribute('data-foto');
-                                const habitacionId = e.target.getAttribute('data-habitacion');
-                                
-                                showConfirmModal('¿Eliminar esta imagen?', async () => {
-                                    try {
-                                        const token = localStorage.getItem('token') || '';
-                                        const headers = { 
-                                            'Authorization': 'Bearer ' + token, 
-                                            'Content-Type': 'application/json' 
-                                        };
-                                        const res = await fetch(`/api/encargado/habitaciones/${habitacionId}/fotos/delete`, {
-                                            method: 'POST',
-                                            headers,
-                                            body: JSON.stringify({ url: foto })
-                                        });
-                                        
-                                        if (!res.ok) {
-                                            const errorData = await res.json().catch(() => ({}));
-                                            throw new Error(errorData.error || 'Error al eliminar imagen');
-                                        }
-                                        
-                                        // Remover la imagen del DOM
-                                        e.target.closest('.relative').remove();
-                                        
-                                        // Si no quedan más imágenes, mostrar mensaje
-                                        if (fotosContainer.querySelectorAll('.relative').length === 0) {
-                                            fotosContainer.innerHTML = '<p class="text-gray-500 text-sm">No hay imágenes actualmente</p>';
-                                        }
-                                        
-                                        showModal('Éxito', '<p>Imagen eliminada correctamente.</p>');
-                                    } catch (err) {
-                                        showModal('Error', `<p>${err.message}</p>`);
-                                    }
-                                });
-                            }
-                        });
-                    }
-                    
-                    form.addEventListener('submit', async (e) => {
-                        e.preventDefault();
-                        const formData = new FormData(form);
+                    <form id="habitacion-form" enctype="multipart/form-data">
+                        <input type="hidden" name="id_habitacion" value="${habitacion.id_habitacion}">
                         
-                        // FIX: Asegurar que disponible se envíe correctamente
-                        const disponibleCheckbox = form.querySelector('input[name="disponible"]');
-                        if (disponibleCheckbox) {
-                            formData.set('disponible', disponibleCheckbox.checked ? 'true' : 'false');
-                        }
+                        <div class="reserva-container">
+                            <!-- COLUMNA 1: Datos de la habitación -->
+                            <div class="reserva-info-column">
+                                <h4 style="color: #000; font-size: 1.3rem; margin-bottom: 20px; font-weight: 700;">📋 Datos de la Habitación</h4>
+                                
+                                <div style="margin-bottom: 15px;">
+                                    <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600;">Número de Habitación</label>
+                                    <input name="numero_habitacion" value="${habitacion.numero_habitacion || ''}" required 
+                                           class="form-input" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
+                                </div>
+                                
+                                <div style="margin-bottom: 15px;">
+                                    <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600;">Categoría</label>
+                                    <select name="id_categoria" class="form-input" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
+                                        ${options}
+                                    </select>
+                                </div>
+                                
+                                <div style="margin-bottom: 15px;">
+                                    <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600;">Piso</label>
+                                    <input type="number" name="piso" value="${habitacion.piso || ''}" 
+                                           class="form-input" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
+                                </div>
+                                
+                                <div style="margin-bottom: 15px;">
+                                    <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600;">Capacidad (personas)</label>
+                                    <input type="number" name="capacidad" value="${habitacion.capacidad || ''}" 
+                                           class="form-input" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
+                                </div>
+                                
+                                <div style="margin-bottom: 15px;">
+                                    <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600;">Precio por Día (USD)</label>
+                                    <input type="number" step="0.01" name="precio_por_dia" value="${habitacion.precio_por_dia || ''}" 
+                                           class="form-input" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
+                                </div>
+                                
+                                <div style="margin-bottom: 15px;">
+                                    <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600;">Precio por Hora (USD)</label>
+                                    <input type="number" step="0.01" name="precio_por_hora" value="${habitacion.precio_por_hora || ''}" 
+                                           class="form-input" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
+                                </div>
+                            </div>
 
-                        try {
-                            const token = localStorage.getItem('token') || '';
-                            const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
-                            const res = await fetch(`/api/admin/habitaciones/${habitacion.id_habitacion}`, {
-                                method: 'PUT',
-                                body: formData,
-                                headers
-                            });
-                            if (!res.ok) {
-                                let errMsg = res.statusText || 'Error al actualizar habitación';
-                                try {
-                                    const body = await res.json();
-                                    errMsg = body.error || body.message || body.detalle || JSON.stringify(body) || errMsg;
-                                } catch (e) {
-                                    try { const txt = await res.text(); if (txt) errMsg = txt; } catch (__){}
-                                }
-                                throw new Error(errMsg);
-                            }
-                            await res.json();
+                            <!-- COLUMNA 2: Descripción y Disponibilidad -->
+                            <div class="reserva-form-column">
+                                <h4 style="color: #000; font-size: 1.3rem; margin-bottom: 20px; font-weight: 700;">📝 Información Adicional</h4>
+                                
+                                <div style="margin-bottom: 20px;">
+                                    <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600;">Descripción</label>
+                                    <textarea name="descripcion" rows="6" class="form-input" 
+                                              style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; resize: vertical;"
+                                              placeholder="Describe las características de la habitación...">${habitacion.descripcion || ''}</textarea>
+                                </div>
+                                
+                                <div style="margin-bottom: 20px;">
+                                    <label style="display: flex; align-items: center; cursor: pointer; font-size: 1.1rem;">
+                                        <input type="checkbox" name="disponible" ${habitacion.disponible ? 'checked' : ''} 
+                                               style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
+                                        <span style="color: #000; font-weight: 600;">Habitación Disponible</span>
+                                    </label>
+                                    <p style="margin-top: 8px; font-size: 0.9rem; color: #666;">
+                                        Marca esta casilla si la habitación está lista para ser reservada
+                                    </p>
+                                </div>
+                                
+                                <div style="padding: 20px; background: linear-gradient(145deg, #e3f2fd, #bbdefb); border-radius: 12px; margin-top: 30px;">
+                                    <h5 style="color: #1976d2; font-weight: 700; margin-bottom: 10px; font-size: 1rem;">
+                                        💡 Consejos
+                                    </h5>
+                                    <ul style="list-style: none; padding: 0; font-size: 0.9rem; color: #333;">
+                                        <li style="margin-bottom: 8px;">✓ Asegúrate de completar todos los campos importantes</li>
+                                        <li style="margin-bottom: 8px;">✓ Las imágenes ayudan a los clientes a elegir mejor</li>
+                                        <li style="margin-bottom: 8px;">✓ Puedes agregar múltiples fotos de la habitación</li>
+                                        <li>✓ Haz clic en la "×" de cada foto para eliminarla</li>
+                                    </ul>
+                                </div>
+                            </div>
 
-                            loadSection('gestion-habitaciones');
-                            hideModal();
-                            showModal('Éxito', '<p>Habitación actualizada con éxito.</p>');
-                        } catch (err) {
-                            showModal('Error', `<p>${err.message}</p>`);
+                            <!-- COLUMNA 3: Gestión de Imágenes -->
+                            <div class="reserva-imagen-column">
+                                <h4 style="color: #000; font-size: 1.3rem; margin-bottom: 20px; font-weight: 700;">🖼️ Gestión de Imágenes</h4>
+                                
+                                <!-- Área de thumbnails dinámicos -->
+                                <div id="image-thumbnails-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-bottom: 20px; min-height: 120px;">
+                                    ${fotosExistentes.length > 0 ? fotosExistentes.map(foto => `
+                                        <div class="image-thumbnail" data-foto="${foto}" style="position: relative; width: 100px; height: 100px; border-radius: 8px; overflow: hidden; border: 2px solid #ddd; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                            <img src="/img/habitaciones/${foto}" alt="Foto" style="width: 100%; height: 100%; object-fit: cover;">
+                                            <button type="button" class="delete-thumbnail-btn" data-foto="${foto}" 
+                                                    style="position: absolute; top: 2px; right: 2px; background: rgba(220, 53, 69, 0.9); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">
+                                                ×
+                                            </button>
+                                        </div>
+                                    `).join('') : ''}
+                                    
+                                    <!-- Botón para agregar más imágenes -->
+                                    <div id="add-image-btn" style="width: 100px; height: 100px; border: 2px dashed #999; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: #f8f9fa; transition: all 0.3s; color: #666;">
+                                        <span style="font-size: 2.5rem; line-height: 1; margin-bottom: 4px;">+</span>
+                                        <span style="font-size: 0.75rem; text-align: center;">Agregar<br>Fotos</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Input oculto para archivos -->
+                                <input type="file" id="new-images-input" name="fotos" accept="image/*" multiple style="display: none;">
+                                
+                                <!-- Indicador de nuevas imágenes seleccionadas -->
+                                <div id="new-images-preview" style="margin-top: 15px; padding: 15px; background: #f0f8ff; border-radius: 8px; display: none;">
+                                    <p style="margin: 0 0 10px 0; font-weight: 600; color: #1976d2;">
+                                        📎 Nuevas imágenes seleccionadas: <span id="new-images-count">0</span>
+                                    </p>
+                                    <div id="new-images-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px;"></div>
+                                </div>
+                                
+                                <!-- Botón Guardar Cambios -->
+                                <button type="submit" class="btn-confirmar-reserva" style="margin-top: 30px; width: 100%;">
+                                    <i class="fas fa-save"></i> Guardar Cambios
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                `;
+                
+                // Mostrar modal sin usar showModal (para tener control total del HTML)
+                let modal = document.getElementById('dynamicModal');
+                if (!modal) {
+                    modal = document.createElement('div');
+                    modal.id = 'dynamicModal';
+                    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+                    document.body.appendChild(modal);
+                }
+                modal.innerHTML = formHtml;
+                
+                // Cerrar modal
+                modal.querySelector('.close-modal').addEventListener('click', () => {
+                    modal.remove();
+                });
+                
+                // Variables para gestión de imágenes
+                const form = document.getElementById('habitacion-form');
+                const thumbnailsContainer = document.getElementById('image-thumbnails-container');
+                const addImageBtn = document.getElementById('add-image-btn');
+                const newImagesInput = document.getElementById('new-images-input');
+                const newImagesPreview = document.getElementById('new-images-preview');
+                const newImagesList = document.getElementById('new-images-list');
+                const newImagesCount = document.getElementById('new-images-count');
+                
+                let imagesToDelete = [];
+                let newImagesFiles = [];
+                
+                // Abrir selector de archivos al hacer clic en el botón "+"
+                addImageBtn.addEventListener('click', () => {
+                    newImagesInput.click();
+                });
+                
+                // Manejar selección de nuevas imágenes
+                newImagesInput.addEventListener('change', (e) => {
+                    const files = Array.from(e.target.files);
+                    
+                    files.forEach(file => {
+                        if (file.type.startsWith('image/')) {
+                            newImagesFiles.push(file);
+                            
+                            // Crear preview
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                const preview = document.createElement('div');
+                                preview.className = 'new-image-preview';
+                                preview.style.cssText = 'position: relative; width: 80px; height: 80px; border-radius: 6px; overflow: hidden; border: 2px solid #4caf50;';
+                                preview.innerHTML = `
+                                    <img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover;">
+                                    <button type="button" class="remove-new-image" data-index="${newImagesFiles.length - 1}" 
+                                            style="position: absolute; top: 2px; right: 2px; background: rgba(244, 67, 54, 0.9); color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 14px; font-weight: bold;">
+                                        ×
+                                    </button>
+                                `;
+                                newImagesList.appendChild(preview);
+                            };
+                            reader.readAsDataURL(file);
                         }
                     });
-                    // Evitar doble envío por el handler global
-                    form.dataset.skipGlobal = 'true';
+                    
+                    // Actualizar contador y mostrar preview
+                    newImagesCount.textContent = newImagesFiles.length;
+                    if (newImagesFiles.length > 0) {
+                        newImagesPreview.style.display = 'block';
+                    }
+                    
+                    // Resetear input para permitir seleccionar los mismos archivos de nuevo
+                    newImagesInput.value = '';
                 });
+                
+                // Remover nueva imagen de la lista
+                newImagesList.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('remove-new-image')) {
+                        const index = parseInt(e.target.getAttribute('data-index'));
+                        newImagesFiles.splice(index, 1);
+                        
+                        // Re-renderizar previews
+                        newImagesList.innerHTML = '';
+                        newImagesFiles.forEach((file, idx) => {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                const preview = document.createElement('div');
+                                preview.className = 'new-image-preview';
+                                preview.style.cssText = 'position: relative; width: 80px; height: 80px; border-radius: 6px; overflow: hidden; border: 2px solid #4caf50;';
+                                preview.innerHTML = `
+                                    <img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover;">
+                                    <button type="button" class="remove-new-image" data-index="${idx}" 
+                                            style="position: absolute; top: 2px; right: 2px; background: rgba(244, 67, 54, 0.9); color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 14px; font-weight: bold;">
+                                        ×
+                                    </button>
+                                `;
+                                newImagesList.appendChild(preview);
+                            };
+                            reader.readAsDataURL(file);
+                        });
+                        
+                        newImagesCount.textContent = newImagesFiles.length;
+                        if (newImagesFiles.length === 0) {
+                            newImagesPreview.style.display = 'none';
+                        }
+                    }
+                });
+                
+                // Eliminar fotos existentes
+                thumbnailsContainer.addEventListener('click', async (e) => {
+                    if (e.target.classList.contains('delete-thumbnail-btn')) {
+                        const foto = e.target.getAttribute('data-foto');
+                        
+                        if (confirm('¿Eliminar esta imagen?')) {
+                            try {
+                                const token = localStorage.getItem('token') || '';
+                                const headers = { 
+                                    'Authorization': 'Bearer ' + token, 
+                                    'Content-Type': 'application/json' 
+                                };
+                                const res = await fetch(`/api/encargado/habitaciones/${id}/fotos/delete`, {
+                                    method: 'POST',
+                                    headers,
+                                    body: JSON.stringify({ url: foto })
+                                });
+                                
+                                if (!res.ok) {
+                                    throw new Error('Error al eliminar imagen');
+                                }
+                                
+                                // Remover del DOM
+                                e.target.closest('.image-thumbnail').remove();
+                                
+                                showModal('Éxito', '<p>Imagen eliminada correctamente.</p>');
+                            } catch (err) {
+                                showModal('Error', `<p>${err.message}</p>`);
+                            }
+                        }
+                    }
+                });
+                
+                // Enviar formulario
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(form);
+                    
+                    // Asegurar que disponible se envíe correctamente
+                    const disponibleCheckbox = form.querySelector('input[name="disponible"]');
+                    if (disponibleCheckbox) {
+                        formData.set('disponible', disponibleCheckbox.checked ? 'true' : 'false');
+                    }
+                    
+                    // Agregar nuevas imágenes
+                    formData.delete('fotos'); // Limpiar el campo anterior
+                    newImagesFiles.forEach(file => {
+                        formData.append('fotos', file);
+                    });
+
+                    try {
+                        const token = localStorage.getItem('token') || '';
+                        const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+                        const res = await fetch(`/api/admin/habitaciones/${habitacion.id_habitacion}`, {
+                            method: 'PUT',
+                            body: formData,
+                            headers
+                        });
+                        if (!res.ok) {
+                            let errMsg = res.statusText || 'Error al actualizar habitación';
+                            try {
+                                const body = await res.json();
+                                errMsg = body.error || body.message || body.detalle || JSON.stringify(body) || errMsg;
+                            } catch (e) {
+                                try { const txt = await res.text(); if (txt) errMsg = txt; } catch (__){}
+                            }
+                            throw new Error(errMsg);
+                        }
+                        await res.json();
+
+                        modal.remove();
+                        loadSection('gestion-habitaciones');
+                        showModal('Éxito', '<p>Habitación actualizada con éxito.</p>');
+                    } catch (err) {
+                        showModal('Error', `<p>${err.message}</p>`);
+                    }
+                });
+                
+                // Evitar doble envío por el handler global
+                form.dataset.skipGlobal = 'true';
+                
             } catch (err) {
                 showModal('Error', `<p>${err.message}</p>`);
             }
@@ -1971,7 +2154,7 @@
                     await apiDelete(`/admin/habitaciones/${id}`);
                     loadSection('gestion-habitaciones');
                     hideModal();
-                    showModal('Éxito', `<p>Habitación eliminada.</p>`);
+                    showModal('Éxito', '<p>Habitación eliminada.</p>');
                 } catch (err) {
                     showModal('Error', `<p>${err.message}</p>`);
                 }

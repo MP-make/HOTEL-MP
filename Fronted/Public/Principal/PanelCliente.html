@@ -214,14 +214,21 @@
                 
                 <!-- COLUMNA 3: Formulario de Reclamo -->
                 <div class="reserva-reclamo-column">
-                    <h4>Enviar Reclamo sobre esta Reserva</h4>
+                    <h4>Enviar Solicitud sobre esta Reserva</h4>
                     <form id="reclamoReservaForm">
-                        <label for="reclamoDescripcion">Descripción del reclamo:</label>
-                        <textarea id="reclamoDescripcion" class="form-input" rows="4" placeholder="Describe tu reclamo..." required></textarea>
+                        <label for="reclamoTipo">Tipo de Solicitud:</label>
+                        <select id="reclamoTipo" class="form-input" required style="margin-bottom: 12px;">
+                            <option value="reclamo">Reclamos o Quejas</option>
+                            <option value="pedido">Pedidos Adicionales</option>
+                            <option value="limpieza">Limpieza</option>
+                        </select>
+                        
+                        <label for="reclamoDescripcion">Descripción:</label>
+                        <textarea id="reclamoDescripcion" class="form-input" rows="4" placeholder="Describe tu solicitud..." required></textarea>
                         <input type="hidden" id="reclamoHabitacionId" value="">
                         <input type="hidden" id="reclamoReservaId" value="">
                         <p id="reclamoMessage" class="text-red-500 my-2 text-center"></p>
-                        <button type="submit" class="btn-submit">Enviar Reclamo</button>
+                        <button type="submit" class="btn-submit">Enviar Solicitud</button>
                     </form>
                 </div>
             </div>

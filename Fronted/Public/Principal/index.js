@@ -1300,7 +1300,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!existingButton) {
                     const buttonDiv = document.createElement('div');
                     buttonDiv.className = 'text-center mt-8';
-                    buttonDiv.innerHTML = '<a href="PanelCliente#Reservas.html" class="btn-primary btn-ver-mas">Ver Todas Mis Reservas</a>';
+                    buttonDiv.innerHTML = '<a href="PanelCliente.html#Reservas" class="btn-primary btn-ver-mas">Ver Todas Mis Reservas</a>';
                     section.appendChild(buttonDiv);
                 }
 
@@ -1336,15 +1336,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Manejar el envío del formulario de reclamo desde el modal de detalles
+        // Manejar el envío del formulario de solicitud desde el modal de detalles
         document.getElementById('reclamoReservaForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            const tipoSolicitud = document.getElementById('tipoSolicitud').value;
             const descripcion = document.getElementById('reclamoDescripcion').value.trim();
             const id_habitacion = document.getElementById('reclamoHabitacionId').value;
+            const id_reserva = document.getElementById('reclamoReservaId').value;
+            
+            if (!tipoSolicitud) {
+                document.getElementById('reclamoMessage').textContent = 'Por favor, selecciona el tipo de solicitud.';
+                return;
+            }
             
             if (!descripcion) {
-                document.getElementById('reclamoMessage').textContent = 'Por favor, describe el reclamo.';
+                document.getElementById('reclamoMessage').textContent = 'Por favor, describe tu solicitud.';
                 return;
             }
             
@@ -1357,7 +1364,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ descripcion, id_habitacion: parseInt(id_habitacion) })
+                    body: JSON.stringify({ 
+                        tipo_solicitud: tipoSolicitud,
+                        descripcion: descripcion, 
+                        id_habitacion: parseInt(id_habitacion),
+                        id_reserva: parseInt(id_reserva)
+                    })
                 });
                 
                 if (response.status === 401) {
@@ -1367,16 +1379,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 if (response.ok) {
-                    alert('Reclamo enviado exitosamente.');
+                    let mensaje = '';
+                    switch(tipoSolicitud) {
+                        case 'reclamo':
+                            mensaje = 'Reclamo enviado exitosamente. Pronto será atendido.';
+                            break;
+                        case 'pedido':
+                            mensaje = 'Pedido enviado exitosamente. Se procesará a la brevedad.';
+                            break;
+                        case 'limpieza':
+                            mensaje = 'Solicitud de limpieza enviada. El personal acudirá pronto.';
+                            break;
+                    }
+                    alert(mensaje);
                     document.getElementById('reclamoReservaForm').reset();
                     closeModal('detallesReservaModal');
                 } else {
                     const error = await response.json();
-                    document.getElementById('reclamoMessage').textContent = 'Error al enviar reclamo: ' + (error.error || 'Desconocido');
+                    document.getElementById('reclamoMessage').textContent = 'Error al enviar solicitud: ' + (error.error || 'Desconocido');
                 }
             } catch (error) {
-                console.error('Error enviando reclamo:', error);
-                document.getElementById('reclamoMessage').textContent = 'Error al enviar reclamo.';
+                console.error('Error enviando solicitud:', error);
+                document.getElementById('reclamoMessage').textContent = 'Error al enviar solicitud.';
             }
         });
 

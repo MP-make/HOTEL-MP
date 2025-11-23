@@ -340,6 +340,15 @@ Carrusel Principal
     background: white;
 }
 
+
+.login-icon {
+    width: 20px;
+    height: 20px;
+    filter: brightness(0) invert(1); /* Convierte la imagen a blanco */
+    vertical-align: middle;
+}
+
+
 /* ==============================
 Habitaciones
 ============================== */

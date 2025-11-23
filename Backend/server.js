@@ -85,7 +85,7 @@ function sanitizeBoolean(val) {
 process.on('uncaughtException', (err) => {
   // FILTRAR errores de terminación de DB de Supabase (normales en plan free)
   if (err.message && err.message.includes('db_termination')) {
-    console.warn('⚠️ Advertencia: Conexión a DB cerrada por Supabase (plan free). Esto es normal.');
+    console.warn('Advertencia: Conexión a DB cerrada por Supabase (plan free). Esto es normal.');
     return; // NO terminar el proceso
   }
   
@@ -96,7 +96,7 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason, promise) => {
   // FILTRAR errores de terminación de DB de Supabase
   if (reason && reason.message && reason.message.includes('db_termination')) {
-    console.warn('⚠️ Advertencia: Promesa rechazada por cierre de DB (Supabase plan free)');
+    console.warn('Advertencia: Promesa rechazada por cierre de DB (Supabase plan free)');
     return;
   }
   
@@ -123,11 +123,11 @@ const pool = new Pool({
 pool.on('error', (err, client) => {
   // Filtrar errores de terminación de DB (normales en Supabase free)
   if (err.message && err.message.includes('db_termination')) {
-    console.warn('⚠️ Pool de conexiones: DB cerrada por Supabase (normal en plan free)');
+    console.warn('Pool de conexiones: DB cerrada por Supabase (normal en plan free)');
     return;
   }
   
-  console.error('⚠️ Error inesperado en el pool de conexiones:', err.message);
+  console.error('Error inesperado en el pool de conexiones:', err.message);
 });
 
 // Helper: small sleep utility
@@ -684,24 +684,39 @@ app.get("/api/cliente/reclamos", authenticateToken, async (req, res) => {
 
 /**
  * @route POST /api/cliente/reclamos
- * @desc Crear un nuevo reclamo
+ * @desc Crear un nuevo reclamo/solicitud
  */
 app.post("/api/cliente/reclamos", authenticateToken, async (req, res) => {
-  const { descripcion, id_habitacion } = req.body;
+  const { tipo_solicitud, descripcion, id_habitacion, id_reserva } = req.body;
+  
+  // Validaciones
+  if (!tipo_solicitud) {
+    return res.status(400).json({ error: "Tipo de solicitud requerido" });
+  }
+  
   if (!descripcion) {
     return res.status(400).json({ error: "Descripción requerida" });
   }
+  
+  // Validar tipo de solicitud
+  const tiposValidos = ['reclamo', 'pedido', 'limpieza'];
+  if (!tiposValidos.includes(tipo_solicitud)) {
+    return res.status(400).json({ error: "Tipo de solicitud inválido. Use: reclamo, pedido o limpieza" });
+  }
+  
   const parsedIdHabitacion = id_habitacion && id_habitacion !== 'undefined' && !isNaN(parseInt(id_habitacion)) ? parseInt(id_habitacion) : null;
+  const parsedIdReserva = id_reserva && id_reserva !== 'undefined' && !isNaN(parseInt(id_reserva)) ? parseInt(id_reserva) : null;
+  
   try {
     const result = await queryWithRetry(
-      `INSERT INTO public.reclamos (id_usuario, id_habitacion, descripcion)
-       VALUES ($1, $2, $3) RETURNING id_reclamo, fecha_creacion`,
-      [req.user.id, parsedIdHabitacion, descripcion]
+      `INSERT INTO public.reclamos (id_usuario, id_habitacion, id_reserva, tipo_solicitud, descripcion)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id_reclamo, fecha_creacion, tipo_solicitud`,
+      [req.user.id, parsedIdHabitacion, parsedIdReserva, tipo_solicitud, descripcion]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error("Error creando reclamo:", err);
-    res.status(500).json({ error: "Error al crear reclamo" });
+    console.error("Error creando solicitud:", err);
+    res.status(500).json({ error: "Error al crear solicitud" });
   }
 });
 
@@ -1717,13 +1732,13 @@ app.get("/api/encargado/reservas", authenticateToken, requireEncargado, async (r
 
 /**
  * @route GET /api/encargado/reclamos
- * @desc Obtener reclamos con filtros
+ * @desc Obtener reclamos/solicitudes con filtros
  */
 app.get("/api/encargado/reclamos", authenticateToken, requireEncargado, async (req, res) => {
   try {
-    const { texto, habitacion, estado } = req.query;
+    const { texto, habitacion, estado, tipo } = req.query;
     let query = `
-      SELECT r.*, h.numero_habitacion, u.nombre as cliente
+      SELECT r.*, r.tipo_solicitud, h.numero_habitacion, u.nombre as cliente
       FROM reclamos r
       LEFT JOIN habitaciones h ON r.id_habitacion = h.id_habitacion
       LEFT JOIN usuarios u ON r.id_usuario = u.id
@@ -1741,6 +1756,10 @@ app.get("/api/encargado/reclamos", authenticateToken, requireEncargado, async (r
     if (estado) {
       params.push(estado);
       query += ` AND r.estado = $${params.length}`;
+    }
+    if (tipo) {
+      params.push(tipo);
+      query += ` AND r.tipo_solicitud = $${params.length}`;
     }
     query += " ORDER BY r.fecha_creacion DESC";
     const result = await queryWithRetry(query, params);
