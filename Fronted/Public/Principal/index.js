@@ -312,20 +312,38 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                // NUEVO: FILTRAR habitaciones que el cliente YA tiene reservadas
+                let habitacionesParaMostrar = data.habitaciones;
+                
+                if (usuarioActual && misReservasActivas && misReservasActivas.length > 0) {
+                    const idsReservados = misReservasActivas
+                        .filter(r => r.estado_reserva !== 'completada' && r.estado_reserva !== 'cancelada')
+                        .map(r => r.id_habitacion);
+                    
+                    // Excluir habitaciones que el cliente ya tiene reservadas
+                    habitacionesParaMostrar = data.habitaciones.filter(h => 
+                        !idsReservados.includes(h.id_habitacion)
+                    );
+                    
+                    console.log('Habitaciones excluidas de "Populares" porque el cliente ya las reservó:', idsReservados);
+                    console.log('Habitaciones restantes para mostrar:', habitacionesParaMostrar.length);
+                }
+
+                // Mostrar solo las primeras 6 habitaciones que NO están reservadas por el cliente
                 contenedor.innerHTML = `
                     <div class="habitaciones-grid">
-                        ${data.habitaciones.slice(0, 6).map(habitacion => {
+                        ${habitacionesParaMostrar.slice(0, 6).map(habitacion => {
                             const fotoSrc = habitacion.fotos && habitacion.fotos.length > 0 
                                 ? (habitacion.fotos[0].startsWith('/') ? habitacion.fotos[0] : '/img/habitaciones/' + habitacion.fotos[0]) 
                                 : 'https://source.unsplash.com/featured/?luxury-hotel-room';
                             
-                            // VERIFICAR si el cliente ya tiene una reserva activa de esta habitación
+                            // VERIFICAR si el cliente ya tiene una reserva activa de esta habitación (doble verificación)
                             const yaLaReserve = clienteTieneReservaActiva(habitacion.id_habitacion);
                             
                             return `
                             <div class="habitacion-card">
                                 <img src="${fotoSrc}" 
-                                     alt="${habitacion.numero_habitacion}" 
+                                     alt="Habitación ${habitacion.numero_habitacion}" 
                                      class="habitacion-imagen"
                                      onerror="this.onerror=null; this.src='https://source.unsplash.com/featured/?luxury-hotel-room';">
                                 <div class="habitacion-info">
@@ -1760,7 +1778,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             font-family: Arial, sans-serif;
                             margin: 0;
                             padding: 10px;
-                           背景: white;
+                            background: white;
                         }
                         .boleta-container {
                             ${formato === 'ticket' ? 
