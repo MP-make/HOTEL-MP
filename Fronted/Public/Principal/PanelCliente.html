@@ -296,8 +296,16 @@
     <div id="nuevoReclamoModal" class="modal">
         <div class="modal-content">
             <span class="close" data-modal-close="nuevoReclamoModal">&times;</span>
-            <h2>Enviar Nuevo Reclamo</h2>
+            <h2>Enviar Nueva Solicitud</h2>
             <form id="nuevoReclamoForm" class="reclamo-form">
+                <div class="form-group">
+                    <label for="nuevoReclamoTipo">Tipo de Solicitud:</label>
+                    <select id="nuevoReclamoTipo" name="tipo_solicitud" required>
+                        <option value="reclamo">⚠️ Reclamo</option>
+                        <option value="pedido">🛎️ Pedido</option>
+                        <option value="limpieza">🧹 Limpieza</option>
+                    </select>
+                </div>
                 <div class="form-group">
                     <label for="reclamoHabitacion">Habitación:</label>
                     <select id="reclamoHabitacion" name="id_habitacion" required>
@@ -308,7 +316,7 @@
                     <label for="reclamoDescripcion">Descripción:</label>
                     <textarea id="reclamoDescripcion" name="descripcion" required></textarea>
                 </div>
-                <button type="submit" class="btn-primary">Enviar Reclamo</button>
+                <button type="submit" class="btn-primary">Enviar Solicitud</button>
                 <p id="reclamoMessage" class="message"></p>
             </form>
         </div>

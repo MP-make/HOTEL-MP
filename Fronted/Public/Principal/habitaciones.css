@@ -494,7 +494,7 @@ Habitaciones
 .btn-reservar:hover:not(:disabled) {
     background: linear-gradient(45deg, #666666, #333333);
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);.3);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
 .btn-reservar:disabled {

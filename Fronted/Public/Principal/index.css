@@ -337,6 +337,72 @@ Header y Navegación
     transform: translateY(-2px);
 }
 
+/* ==============================
+Header - Iconos Expandibles (Mi Perfil y Cerrar Sesión)
+============================== */
+#profileBtn,
+#logoutBtn,
+#auth-link {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 10px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease-in-out;
+    border-radius: 8px;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 45px; /* Solo el tamaño del ícono */
+    position: relative;
+}
+
+#profileBtn i,
+#logoutBtn i,
+#auth-link i {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    width: 25px;
+    text-align: center;
+}
+
+#profileBtn span,
+#logoutBtn span,
+#auth-link span {
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+/* Estado HOVER - Expandir y mostrar texto */
+#profileBtn:hover,
+#logoutBtn:hover,
+#auth-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    max-width: 200px; /* Expandir para mostrar el texto */
+    padding-right: 15px;
+}
+
+#profileBtn:hover span,
+#logoutBtn:hover span,
+#auth-link:hover span {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Asegurar que userName se mantenga visible */
+#userName {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
 .auth-link {
     background: none;
     border: none;

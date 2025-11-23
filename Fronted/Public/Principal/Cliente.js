@@ -482,6 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function enviarReclamo(e) {
         e.preventDefault();
         
+        const tipo_solicitud = document.getElementById('nuevoReclamoTipo').value;
         const id_habitacion = document.getElementById('reclamoHabitacion').value;
         const descripcion = document.getElementById('reclamoDescripcion').value;
         
@@ -495,22 +496,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + token
                 },
-                body: JSON.stringify({ id_habitacion: parseInt(id_habitacion), descripcion })
+                body: JSON.stringify({ 
+                    tipo_solicitud,
+                    id_habitacion: parseInt(id_habitacion), 
+                    descripcion 
+                })
             });
             
             if (response.ok) {
-                messageElement.textContent = 'Reclamo enviado exitosamente';
+                messageElement.textContent = 'Solicitud enviada exitosamente';
                 messageElement.style.color = 'green';
                 document.getElementById('nuevoReclamoForm').reset();
                 document.getElementById('nuevoReclamoModal').style.display = 'none';
                 cargarReclamos(); // Recargar la lista
             } else {
                 const error = await response.json();
-                messageElement.textContent = error.error || 'Error al enviar reclamo';
+                messageElement.textContent = error.error || 'Error al enviar solicitud';
                 messageElement.style.color = 'red';
             }
         } catch (error) {
-            console.error('Error enviando reclamo:', error);
+            console.error('Error enviando solicitud:', error);
             messageElement.textContent = 'Error de conexión';
             messageElement.style.color = 'red';
         }
