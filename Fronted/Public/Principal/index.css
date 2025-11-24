@@ -338,11 +338,40 @@ Header y Navegación
 }
 
 /* ==============================
-Header - Iconos Expandibles (Mi Perfil y Cerrar Sesión)
+Header - Iconos Expandibles (TODOS LOS BOTONES DE AUTENTICACIÓN)
 ============================== */
+/* Botón "Iniciar Sesión" en index.html */
+.auth-link[data-modal-target="loginModal"] {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 10px 15px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease-in-out;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
+.auth-link[data-modal-target="loginModal"] .login-icon {
+    width: 24px;
+    height: 24px;
+    filter: brightness(0) invert(1);
+    flex-shrink: 0;
+}
+
+.auth-link[data-modal-target="loginModal"]:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
 #profileBtn,
-#logoutBtn,
-#auth-link {
+#logoutBtn {
     background: none;
     border: none;
     color: white;
@@ -363,8 +392,7 @@ Header - Iconos Expandibles (Mi Perfil y Cerrar Sesión)
 }
 
 #profileBtn i,
-#logoutBtn i,
-#auth-link i {
+#logoutBtn i {
     font-size: 1.1rem;
     flex-shrink: 0;
     width: 25px;
@@ -372,8 +400,7 @@ Header - Iconos Expandibles (Mi Perfil y Cerrar Sesión)
 }
 
 #profileBtn span,
-#logoutBtn span,
-#auth-link span {
+#logoutBtn span {
     opacity: 0;
     transform: translateX(-10px);
     transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
@@ -383,16 +410,14 @@ Header - Iconos Expandibles (Mi Perfil y Cerrar Sesión)
 
 /* Estado HOVER - Expandir y mostrar texto */
 #profileBtn:hover,
-#logoutBtn:hover,
-#auth-link:hover {
+#logoutBtn:hover {
     background: rgba(255, 255, 255, 0.1);
     max-width: 200px; /* Expandir para mostrar el texto */
     padding-right: 15px;
 }
 
 #profileBtn:hover span,
-#logoutBtn:hover span,
-#auth-link:hover span {
+#logoutBtn:hover span {
     opacity: 1;
     transform: translateX(0);
 }
