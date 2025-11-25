@@ -2285,6 +2285,79 @@
                 }
                 return;
             }
+            
+            // VER DETALLES DE RESERVA - HANDLER NUEVO
+            if (target && target.classList.contains('ver-detalles-reserva-btn')) {
+                try {
+                    const reservaData = target.getAttribute('data-reserva');
+                    const reserva = JSON.parse(reservaData);
+                    
+                    const detallesHtml = `
+                        <div style="max-width: 600px;">
+                            <h3 style="font-size: 1.5rem; margin-bottom: 20px; color: #1976d2; font-weight: 700;">
+                                📋 Detalles de la Reserva #${reserva.id_reserva}
+                            </h3>
+                            
+                            <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                                <h4 style="font-size: 1.1rem; margin-bottom: 15px; color: #333; font-weight: 600;">
+                                    👤 Información del Cliente
+                                </h4>
+                                <p style="margin: 8px 0;"><strong>Nombre:</strong> ${reserva.cliente_nombre || 'N/A'}</p>
+                                <p style="margin: 8px 0;"><strong>Email:</strong> ${reserva.cliente_email || 'N/A'}</p>
+                                <p style="margin: 8px 0;"><strong>Teléfono:</strong> ${reserva.cliente_telefono || 'N/A'}</p>
+                            </div>
+                            
+                            <div style="background: #e3f2fd; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                                <h4 style="font-size: 1.1rem; margin-bottom: 15px; color: #333; font-weight: 600;">
+                                    🏨 Información de la Habitación
+                                </h4>
+                                <p style="margin: 8px 0;"><strong>Habitación:</strong> ${reserva.numero_habitacion || 'N/A'}</p>
+                                <p style="margin: 8px 0;"><strong>Categoría:</strong> ${reserva.categoria_habitacion || 'N/A'}</p>
+                                <p style="margin: 8px 0;"><strong>Tipo de Reserva:</strong> ${reserva.tipo_reserva || 'N/A'}</p>
+                            </div>
+                            
+                            <div style="background: #fff3e0; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                                <h4 style="font-size: 1.1rem; margin-bottom: 15px; color: #333; font-weight: 600;">
+                                    📅 Fechas y Duración
+                                </h4>
+                                <p style="margin: 8px 0;"><strong>Check-in:</strong> ${new Date(reserva.fecha_checkin).toLocaleString('es-ES', { timeZone: 'America/Lima', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                                <p style="margin: 8px 0;"><strong>Check-out:</strong> ${new Date(reserva.fecha_checkout).toLocaleString('es-ES', { timeZone: 'America/Lima', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                            </div>
+                            
+                            <div style="background: #e8f5e9; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                                <h4 style="font-size: 1.1rem; margin-bottom: 15px; color: #333; font-weight: 600;">
+                                    💰 Información de Pago
+                                </h4>
+                                <p style="margin: 8px 0;"><strong>Precio Total:</strong> S/ ${parseFloat(reserva.precio_total || 0).toFixed(2)}</p>
+                                <p style="margin: 8px 0;"><strong>Estado del Pago:</strong> <span style="color: ${reserva.estado_pago === 'completado' ? '#4caf50' : '#ff9800'}; font-weight: 600;">${reserva.estado_pago || 'N/A'}</span></p>
+                                <p style="margin: 8px 0;"><strong>Método de Pago:</strong> ${reserva.metodo_pago || 'N/A'}</p>
+                            </div>
+                            
+                            <div style="background: #f3e5f5; padding: 20px; border-radius: 12px;">
+                                <h4 style="font-size: 1.1rem; margin-bottom: 15px; color: #333; font-weight: 600;">
+                                    ℹ️ Estado de la Reserva
+                                </h4>
+                                <p style="margin: 8px 0;"><strong>Estado:</strong> <span style="padding: 4px 12px; border-radius: 20px; background: ${reserva.estado_reserva === 'confirmada' ? '#4caf50' : reserva.estado_reserva === 'completada' ? '#2196f3' : '#ff9800'}; color: white; font-weight: 600;">${reserva.estado_reserva || 'N/A'}</span></p>
+                                <p style="margin: 8px 0;"><strong>Fecha de Creación:</strong> ${reserva.fecha_creacion ? new Date(reserva.fecha_creacion).toLocaleString('es-ES', { timeZone: 'America/Lima' }) : 'N/A'}</p>
+                                ${reserva.notas ? `<p style="margin: 8px 0;"><strong>Notas:</strong> ${reserva.notas}</p>` : ''}
+                            </div>
+                            
+                            <div style="margin-top: 20px; text-align: right;">
+                                <button onclick="hideModal()" style="background: #2196f3; color: white; padding: 10px 30px; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600;">
+                                    Cerrar
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    showModal('Detalles de la Reserva', detallesHtml);
+                } catch (err) {
+                    console.error('Error al mostrar detalles:', err);
+                    showModal('Error', '<p>No se pudieron cargar los detalles de la reserva.</p>');
+                }
+                return;
+            }
+            
             if (target && target.classList.contains('delete-res-btn')) {
                 const id = target.getAttribute('data-id');
                 showConfirmModal('¿Eliminar reserva?', async () => {

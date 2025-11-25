@@ -456,10 +456,6 @@ Header - Iconos Expandibles (TODOS LOS BOTONES DE AUTENTICACIÓN)
     display: inline;
 }
 
-
-.btnCompletarPago .btn-success{
-    align-items: center;
-}
 .btn-icon {
     background: none;
     border: none;
@@ -1877,6 +1873,9 @@ Los estilos ahora están en pago-modal.css
   height: 100%;
   object-fit: contain;
   background: transparent;
+  /* NUEVO: Eliminar fondo blanco del GIF usando mix-blend-mode */
+  mix-blend-mode: multiply;
+  filter: contrast(1.15) brightness(1.1);
 }
 
 /* Pop-up de bienvenida tipo bocadillo de cómic */

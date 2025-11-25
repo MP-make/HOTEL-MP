@@ -1078,66 +1078,273 @@ app.put("/api/admin/hotel-config", authenticateToken, requireAdmin, async (req, 
 
 /**
  * @route GET /api/admin/dashboard
- * @desc Obtener métricas del dashboard
+ * @desc Obtener métricas del dashboard con datos reales
  */
 app.get("/api/admin/dashboard", authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const totalHabitaciones = await queryWithRetry("SELECT COUNT(*)::int AS count FROM habitaciones");
-    const habitacionesDisponibles = await queryWithRetry("SELECT COUNT(*)::int AS count FROM habitaciones WHERE disponible = true");
-    const totalEncargados = await queryWithRetry("SELECT COUNT(*)::int AS count FROM usuarios u JOIN roles r ON u.rol = r.id_rol WHERE r.nombre = 'encargado'");
-    const totalReservas = await queryWithRetry("SELECT COUNT(*)::int AS count FROM reservas");
-    const reservasPendientes = await queryWithRetry("SELECT COUNT(*)::int AS count FROM reservas WHERE estado_reserva = 'pendiente'");
-    const reservasCompletadas = await queryWithRetry("SELECT COUNT(*)::int AS count FROM reservas WHERE estado_reserva = 'completada'");
-    const ingresos = await queryWithRetry(`
-      SELECT COALESCE(SUM(h.precio_por_dia * (r.fecha_checkout::date - r.fecha_checkin::date)), 0)::float AS total
-      FROM reservas r JOIN habitaciones h ON r.id_habitacion = h.id_habitacion
-      WHERE r.estado_reserva = 'completada'
+    // 1. INGRESOS NETOS DEL DÍA
+    const ingresosHoy = await queryWithRetry(`
+      SELECT COALESCE(SUM(monto_pagado), 0)::float as total
+      FROM pagos
+      WHERE DATE(fecha_pago) = CURRENT_DATE
     `);
 
-    // Ingresos mensuales (últimos 12 meses)
-    const ingresosMensuales = await queryWithRetry(`
-      SELECT TO_CHAR(r.fecha_checkout, 'YYYY-MM') as month, COALESCE(SUM(h.precio_por_dia * (r.fecha_checkout::date - r.fecha_checkin::date)), 0)::float as total
-      FROM reservas r JOIN habitaciones h ON r.id_habitacion = h.id_habitacion
-      WHERE r.estado_reserva = 'completada' AND r.fecha_checkout >= NOW() - INTERVAL '12 months'
-      GROUP BY month ORDER BY month
+    // 2. CHECK-INS HOY
+    const checkinsHoy = await queryWithRetry(`
+      SELECT COUNT(*)::int as count
+      FROM reservas
+      WHERE DATE(fecha_checkin) = CURRENT_DATE
+        AND estado_reserva != 'cancelada'
     `);
 
-    // Check-ins diarios (últimos 30 días)
-    const checkinsDiarios = await queryWithRetry(`
-      SELECT r.fecha_checkin::date as date, COUNT(*)::int as count
+    // 3. TASA DE OCUPACIÓN ACTUAL
+    const totalHabitaciones = await queryWithRetry("SELECT COUNT(*)::int as count FROM habitaciones");
+    const habitacionesOcupadas = await queryWithRetry(`
+      SELECT COUNT(DISTINCT id_habitacion)::int as count
+      FROM reservas
+      WHERE estado_reserva = 'confirmada'
+        AND fecha_checkin <= CURRENT_TIMESTAMP
+        AND fecha_checkout > CURRENT_TIMESTAMP
+    `);
+    const tasaOcupacion = totalHabitaciones.rows[0].count > 0 
+      ? habitacionesOcupadas.rows[0].count / totalHabitaciones.rows[0].count 
+      : 0;
+
+    // 4. ADR (Average Daily Rate) - Tarifa Diaria Promedio
+    const adrHoy = await queryWithRetry(`
+      SELECT COALESCE(AVG(h.precio_por_dia), 0)::float as promedio
       FROM reservas r
-      WHERE r.fecha_checkin >= NOW() - INTERVAL '30 days'
-      GROUP BY date ORDER BY date
+      JOIN habitaciones h ON r.id_habitacion = h.id_habitacion
+      WHERE DATE(r.fecha_checkin) = CURRENT_DATE
+        AND r.estado_reserva != 'cancelada'
     `);
 
-    // Distribución ingresos por categoría
-    const distribucionIngresos = await queryWithRetry(`
-      SELECT c.nombre as categoria, COALESCE(SUM(h.precio_por_dia * (r.fecha_checkout::date - r.fecha_checkin::date)), 0)::float as total
-      FROM reservas r JOIN habitaciones h ON r.id_habitacion = h.id_habitacion
-      JOIN categorias_habitaciones c ON h.id_categoria = c.id_categoria
-      WHERE r.estado_reserva = 'completada'
-      GROUP BY c.nombre ORDER BY total DESC
+    // 5. VALOR PENDIENTE DE RESERVAS FUTURAS
+    const valorPendienteFuturas = await queryWithRetry(`
+      SELECT COALESCE(SUM(monto_pendiente), 0)::float as total
+      FROM reservas
+      WHERE fecha_checkin > CURRENT_TIMESTAMP
+        AND estado_reserva IN ('pendiente', 'confirmada')
     `);
 
-    res.json({
-      total_habitaciones: totalHabitaciones.rows[0].count,
-      habitaciones_disponibles: habitacionesDisponibles.rows[0].count,
-      total_encargados: totalEncargados.rows[0].count,
-      total_reservas: totalReservas.rows[0].count,
-      reservas_pendientes: reservasPendientes.rows[0].count,
-      reservas_completadas: reservasCompletadas.rows[0].count,
-      ingresos_est: ingresos.rows[0].total,
-      ingresos_mensuales: ingresosMensuales.rows,
-      checkins_diarios: checkinsDiarios.rows,
-      distribucion_ingresos: distribucionIngresos.rows,
-      chart_ingresos_mensuales: ingresosMensuales.rows,
-      chart_distribucion_pagos: distribucionIngresos.rows,
-      chart_servicios_rentables: [],
-      chart_picos_checkin_checkout: checkinsDiarios.rows
+    // 6. HABITACIONES DISPONIBLES
+    const habitacionesDisponibles = await queryWithRetry(`
+      SELECT COUNT(*)::int as count
+      FROM habitaciones
+      WHERE disponible = true
+        AND id_habitacion NOT IN (
+          SELECT id_habitacion FROM reservas
+          WHERE estado_reserva = 'confirmada'
+            AND fecha_checkin <= CURRENT_TIMESTAMP
+            AND fecha_checkout > CURRENT_TIMESTAMP
+        )
+    `);
+
+    // 7. TOTAL DE HUÉSPEDES REGISTRADOS
+    const totalHuespedes = await queryWithRetry(`
+      SELECT COUNT(DISTINCT id_usuario)::int as count
+      FROM reservas
+      WHERE estado_reserva != 'cancelada'
+    `);
+
+    // 8. NUEVOS HUÉSPEDES ESTE MES
+    const nuevosHuespedesMes = await queryWithRetry(`
+      SELECT COUNT(DISTINCT r.id_usuario)::int as count
+      FROM reservas r
+      WHERE DATE_TRUNC('month', r.fecha_creacion) = DATE_TRUNC('month', CURRENT_DATE)
+        AND r.estado_reserva != 'cancelada'
+        AND NOT EXISTS (
+          SELECT 1 FROM reservas r2
+          WHERE r2.id_usuario = r.id_usuario
+            AND r2.fecha_creacion < DATE_TRUNC('month', CURRENT_DATE)
+        )
+    `);
+
+    // 9. HUÉSPEDES RECURRENTES ESTE MES
+    const huespedosRecurrentesMes = await queryWithRetry(`
+      SELECT COUNT(DISTINCT r.id_usuario)::int as count
+      FROM reservas r
+      WHERE DATE_TRUNC('month', r.fecha_checkin) = DATE_TRUNC('month', CURRENT_DATE)
+        AND r.estado_reserva != 'cancelada'
+        AND EXISTS (
+          SELECT 1 FROM reservas r2
+          WHERE r2.id_usuario = r.id_usuario
+            AND r2.id_reserva != r.id_reserva
+            AND r2.fecha_creacion < r.fecha_creacion
+        )
+    `);
+
+    // 10. ESTADÍA PROMEDIO (en días)
+    const estadiaPromedio = await queryWithRetry(`
+      SELECT COALESCE(AVG(EXTRACT(DAY FROM (fecha_checkout - fecha_checkin))), 0)::float as promedio
+      FROM reservas
+      WHERE estado_reserva = 'completada'
+    `);
+
+    // 11. GASTO PROMEDIO POR ESTADÍA
+    const gastoPromedioEstadia = await queryWithRetry(`
+      SELECT COALESCE(AVG(monto_total), 0)::float as promedio
+      FROM reservas
+      WHERE estado_reserva = 'completada'
+    `);
+
+    // 12. TASA DE RETENCIÓN (huéspedes que vuelven)
+    const tasaRetencion = await queryWithRetry(`
+      SELECT 
+        CASE 
+          WHEN COUNT(DISTINCT id_usuario) > 0 
+          THEN (COUNT(DISTINCT CASE WHEN num_reservas > 1 THEN id_usuario END)::float / COUNT(DISTINCT id_usuario)::float) * 100
+          ELSE 0
+        END as tasa
+      FROM (
+        SELECT id_usuario, COUNT(*) as num_reservas
+        FROM reservas
+        WHERE estado_reserva != 'cancelada'
+        GROUP BY id_usuario
+      ) subq
+    `);
+
+    // 13. RENDIMIENTO POR CATEGORÍA DE HABITACIÓN
+    const rendimientoCategorias = await queryWithRetry(`
+      SELECT 
+        c.nombre as categoria,
+        COUNT(DISTINCT CASE 
+          WHEN r.estado_reserva = 'confirmada' 
+            AND r.fecha_checkin <= CURRENT_TIMESTAMP 
+            AND r.fecha_checkout > CURRENT_TIMESTAMP 
+          THEN h.id_habitacion 
+        END)::float / NULLIF(COUNT(DISTINCT h.id_habitacion), 0) * 100 as ocupacion,
+        COALESCE(AVG(h.precio_por_dia), 0)::float as adr
+      FROM categorias_habitaciones c
+      LEFT JOIN habitaciones h ON c.id_categoria = h.id_categoria
+      LEFT JOIN reservas r ON h.id_habitacion = r.id_habitacion
+      GROUP BY c.nombre
+      ORDER BY ocupacion DESC
+    `);
+
+    // 14. QUEJAS PENDIENTES
+    const quejasPendientes = await queryWithRetry(`
+      SELECT COUNT(*)::int as count
+      FROM reclamos
+      WHERE estado = 'pendiente'
+        AND tipo_solicitud = 'reclamo'
+    `);
+
+    // 15. OCUPACIÓN PRÓXIMOS 7 DÍAS
+    const ocupacion7Dias = await queryWithRetry(`
+      SELECT 
+        COALESCE(
+          COUNT(DISTINCT r.id_habitacion)::float / 
+          NULLIF((SELECT COUNT(*) FROM habitaciones), 0) * 100,
+          0
+        ) as porcentaje
+      FROM reservas r
+      WHERE r.estado_reserva IN ('confirmada', 'pendiente')
+        AND r.fecha_checkin BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'
+    `);
+
+    // 16. HABITACIONES PARA REVISAR
+    const habitacionesRevisar = await queryWithRetry(`
+      SELECT COUNT(*)::int as count
+      FROM habitaciones
+      WHERE disponible = false
+    `);
+
+    // 17. INGRESOS MENSUALES (últimos 12 meses)
+    const ingresosMensuales = await queryWithRetry(`
+      SELECT 
+        TO_CHAR(fecha_pago, 'Mon YYYY') as mes,
+        COALESCE(SUM(monto), 0)::float as total
+      FROM pagos
+      WHERE fecha_pago >= CURRENT_DATE - INTERVAL '12 months'
+      GROUP BY TO_CHAR(fecha_pago, 'Mon YYYY'), DATE_TRUNC('month', fecha_pago)
+      ORDER BY DATE_TRUNC('month', fecha_pago)
+    `);
+
+    // 18. CHECK-INS DIARIOS (últimos 30 días)
+    const checkinsDiarios = await queryWithRetry(`
+      SELECT 
+        DATE(fecha_checkin) as fecha,
+        COUNT(*)::int as total
+      FROM reservas
+      WHERE fecha_checkin >= CURRENT_DATE - INTERVAL '30 days'
+        AND estado_reserva != 'cancelada'
+      GROUP BY DATE(fecha_checkin)
+      ORDER BY fecha
+    `);
+
+    // 19. DISTRIBUCIÓN DE INGRESOS POR MÉTODO DE PAGO
+    const distribucionPagos = await queryWithRetry(`
+      SELECT 
+        metodo_pago,
+        COALESCE(SUM(monto), 0)::float as total
+      FROM pagos
+      WHERE fecha_pago >= CURRENT_DATE - INTERVAL '30 days'
+      GROUP BY metodo_pago
+      ORDER BY total DESC
+    `);
+
+    // Preparar datos para categorías
+    const categoriaData = {};
+    rendimientoCategorias.rows.forEach(cat => {
+      const nombreCat = cat.categoria.toLowerCase();
+      categoriaData[`ocupacion_${nombreCat}`] = parseFloat(cat.ocupacion || 0).toFixed(1);
+      categoriaData[`adr_${nombreCat}`] = parseFloat(cat.adr || 0).toFixed(2);
     });
+
+    // RESPUESTA COMPLETA
+    res.json({
+      // Métricas clave hoy
+      ingresos_netos_dia: parseFloat(ingresosHoy.rows[0].total || 0),
+      checkins_hoy: checkinsHoy.rows[0].count,
+      tasa_ocupacion_actual: parseFloat(tasaOcupacion),
+      adr_hoy: parseFloat(adrHoy.rows[0].promedio || 0),
+      valor_pendiente_futuras: parseFloat(valorPendienteFuturas.rows[0].total || 0),
+      habitaciones_disponibles: habitacionesDisponibles.rows[0].count,
+
+      // Gestión de clientes
+      total_huespedes: totalHuespedes.rows[0].count,
+      nuevos_huespedes_mes: nuevosHuespedesMes.rows[0].count,
+      huespedes_recurrentes_mes: huespedosRecurrentesMes.rows[0].count,
+      estadia_promedio: parseFloat(estadiaPromedio.rows[0].promedio || 0).toFixed(1),
+      gasto_promedio_estadia: parseFloat(gastoPromedioEstadia.rows[0].promedio || 0),
+      tasa_retencion: parseFloat(tasaRetencion.rows[0].tasa || 0),
+
+      // Rendimiento por categoría
+      ...categoriaData,
+
+      // Alertas
+      quejas_pendientes: quejasPendientes.rows[0].count,
+      ocupacion_baja_7dias: parseFloat(ocupacion7Dias.rows[0].porcentaje || 0).toFixed(1),
+      habitaciones_revisar: habitacionesRevisar.rows[0].count,
+
+      // Datos para gráficos
+      chart_ingresos_mensuales: {
+        rows: ingresosMensuales.rows.map(m => ({
+          month: m.mes,
+          revenue: parseFloat(m.total),
+          target: parseFloat(m.total) * 1.1 // Meta: 10% más
+        }))
+      },
+      chart_distribucion_ingresos: {
+        rows: distribucionPagos.rows.map(p => ({
+          method: p.metodo_pago,
+          amount: parseFloat(p.total)
+        }))
+      },
+      chart_checkins_diarios: {
+        rows: checkinsDiarios.rows.map(c => ({
+          hour: c.fecha,
+          checkins: c.total,
+          checkouts: 0 // Placeholder - se puede calcular si hay datos
+        }))
+      },
+      servicios_rentables: [] // Placeholder para futura implementación
+    });
+
   } catch (err) {
     console.error("Error obteniendo métricas del dashboard:", err);
-    res.status(500).json({ error: "Error al obtener métricas" });
+    res.status(500).json({ error: "Error al obtener métricas", detalle: err.message });
   }
 });
 
@@ -2099,34 +2306,34 @@ app.get("/api/admin/reservas/con-pagos", authenticateToken, requireEncargado, as
 app.post("/api/chat", authenticateToken, async (req, res) => {
   const { pregunta } = req.body;
 
-  // Paso A: Validar pregunta
+  //Validar pregunta
   if (!pregunta || typeof pregunta !== 'string' || pregunta.trim().length === 0) {
     return res.status(400).json({ error: 'Pregunta requerida' });
   }
 
-  // Respuesta rápida para saludos
+  //Respuesta rápida para saludos
   const preguntaLower = pregunta.trim().toLowerCase();
   if (['hola', 'Hola', 'Holi', 'holi' , 'Hello', 'hello', 'Hi' , 'Buenas tardes','Buenas noches', 'buenas noches', 'buenos días', 'buenas tardes' , 'hi', 'buenos días'].includes(preguntaLower)) {
     return res.json({ respuesta: "¡Hola! Bienvenido a HotelBot. ¿En qué puedo ayudarte hoy?" });
   }
 
-  // Detectar preguntas sobre habitaciones
+  //Detectar preguntas sobre habitaciones
   const keywordsHabitaciones = ['habitación', 'habitaciones', 'reservar', 'disponible', 'disponibles', 'ver habitaciones', 'mostrar habitaciones', 'quiero reservar', 'buscar habitación'];
   const isAboutHabitaciones = keywordsHabitaciones.some(keyword => preguntaLower.includes(keyword));
 
   if (isAboutHabitaciones) {
     try {
-      // Obtener habitaciones disponibles
+      //Obtener habitaciones disponibles
       const habitacionesResult = await queryWithRetry(
         `SELECT h.id_habitacion, h.numero_habitacion, h.piso, h.capacidad, h.precio_por_dia, h.precio_por_hora, h.disponible, c.nombre AS categoria,
                 COALESCE(ARRAY_AGG(f.ruta_foto) FILTER (WHERE f.ruta_foto IS NOT NULL), '{}') AS fotos
-         FROM public.habitaciones h
-         INNER JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria
-         LEFT JOIN public.habitaciones_fotos f ON h.id_habitacion = f.id_habitacion
-         WHERE h.disponible = true
-         GROUP BY h.id_habitacion, c.nombre
-         ORDER BY h.numero_habitacion ASC
-         LIMIT 3`
+        FROM public.habitaciones h
+        INNER JOIN public.categorias_habitaciones c ON h.id_categoria = c.id_categoria
+        LEFT JOIN public.habitaciones_fotos f ON h.id_habitacion = f.id_habitacion
+        WHERE h.disponible = true
+        GROUP BY h.id_habitacion, c.nombre
+        ORDER BY h.numero_habitacion ASC
+        LIMIT 3`
       );
       return res.json({ respuesta: "Aquí tienes las habitaciones disponibles:", habitaciones: habitacionesResult.rows });
     } catch (err) {
@@ -2136,11 +2343,10 @@ app.post("/api/chat", authenticateToken, async (req, res) => {
   }
 
   try {
-    // Paso B: Buscar contexto relevante en faq_hotel
     const palabrasClave = pregunta.trim().toLowerCase().split(/\s+/);
     let contexto = '';
     for (const palabra of palabrasClave) {
-      if (palabra.length > 2) { // Ignorar palabras muy cortas
+      if (palabra.length > 2) { 
         const result = await queryWithRetry(
           "SELECT respuesta FROM faq_hotel WHERE LOWER(pregunta) ILIKE $1 OR LOWER(respuesta) ILIKE $1 LIMIT 3",
           [`%${palabra}%`]
@@ -2153,7 +2359,7 @@ app.post("/api/chat", authenticateToken, async (req, res) => {
       }
     }
 
-    // Paso C: Armar el Súper-Prompt
+    //Súper-Prompt
     const superPrompt = `Eres 'HotelBot', el asistente virtual amigable y profesional del Hotel JW Marriott.
 
 Información del hotel:
@@ -2169,21 +2375,21 @@ Pregunta del usuario: "${pregunta.trim()}"
 
 Mantén TODAS tus respuestas breves y concisas. Nunca uses más de 3 frases, a menos que el usuario te pida explícitamente más detalles.`;
 
-    // Paso D: Enviar a Ollama
+    //Enviar a Ollama
     const ollamaResponse = await axios.post('http://localhost:11434/api/chat', {
       model: 'llama3',
       messages: [{ role: 'user', content: superPrompt }],
       stream: false
     });
 
-    // Paso E: Procesar respuesta
+    //Procesar respuesta
     const respuesta = ollamaResponse.data?.message?.content?.trim() || 'Lo siento, no pude generar una respuesta.';
 
     res.json({ respuesta });
   } catch (error) {
     console.error('Error en chat con Ollama:', error);
 
-    // Respuestas de fallback en caso de error
+    //Respuestas en caso de error
     const fallbacks = [
       "Lo siento, estoy teniendo dificultades técnicas. Por favor, contacta directamente con el hotel al teléfono (999-999-999) o por email a Teycketan@gmail.com.",
       "Disculpa, mi sistema de IA no está disponible en este momento. Te recomiendo visitar nuestra sección de contacto para más información.",
